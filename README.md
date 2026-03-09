@@ -2,6 +2,34 @@
 
 MuJoCo simulation of a 5-segment metameric earthworm-like robot with spring steel strip structures, capable of rectilinear locomotion and passive 90° pipe navigation.
 
+## Demo
+
+### Rectilinear Locomotion (Open Field)
+
+![Straight crawl](record/v4/videos/worm_v4_straight.gif)
+
+Discrete retrograde peristalsis gait `{0,0,2|1}` — contraction wave propagates from head to tail.
+
+| Early | Mid | End |
+|:---:|:---:|:---:|
+| ![early](record/v4/frames/straight_s_early.png) | ![mid](record/v4/frames/straight_s_mid.png) | ![end](record/v4/frames/straight_s_end.png) |
+
+### Pipe Crawl with 90° Bend
+
+![Pipe crawl](record/v4/videos/worm_v4_pipe.gif)
+
+Passive turning — rectilinear gait drives forward, pipe walls redirect heading through the bend.
+
+| Entry | Bend | Exit |
+|:---:|:---:|:---:|
+| ![entry](record/v4/frames/pipe_p_entry.png) | ![bend](record/v4/frames/pipe_p_bend.png) | ![exit](record/v4/frames/pipe_p_exit.png) |
+
+### Spring Steel Strip Structure
+
+![Strip detail](record/v4/frames/preview_new_strips.png)
+
+8 spring steel strips per segment with dynamic bow deformation — strips compress when the segment contracts.
+
 ## Features
 
 - **Rectilinear locomotion** — Zhan/Fang 2019 discrete retrograde peristalsis gait `{0,0,2|1}`
@@ -41,7 +69,9 @@ src/
     exp_runner.py # Model XML generator (cable composites, plates, muscles)
     worm_v4.py    # Main simulation script (current)
 docs/             # Design notes and analysis
-record/v4/videos/ # Demo videos
+record/v4/
+  videos/         # Demo videos and GIFs
+  frames/         # Keyframe snapshots
 ```
 
 ## Design
