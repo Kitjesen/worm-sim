@@ -34,16 +34,16 @@ PLATE_RADIUS  = 0.022
 STRIP_CIRCLE_R = 0.017
 BOW_AMOUNT    = 0.007
 NUM_STRIPS    = 8
-NUM_VERTS     = 50
+NUM_VERTS     = 20
 Z_CENTER      = PLATE_RADIUS + 0.001          # 0.023 m
 STRIP_ANGLES  = [2 * math.pi * i / NUM_STRIPS for i in range(NUM_STRIPS)]
 
-# Visual strip dimensions — match real robot (prominent bowed fins)
-STRIP_W      = 0.0120    # 12 mm wide — prominent flat bands (matches Fang's real robot)
-STRIP_T      = 0.0005    # 0.5 mm thick (radial) — flat spring steel
-VIS_BOW      = 0.032     # 32 mm bow — open field (fins protrude well beyond disc)
-VIS_BOW_PIPE = 0.008     # 8 mm bow — pipe mode (17+8=25mm < 28mm channel half-width)
-STRIP_RGBA   = np.array([0.15, 0.15, 0.17, 1.0], dtype=np.float32)  # dark steel
+# Visual strip dimensions — thin spring steel bands forming a clean barrel cage
+STRIP_W      = 0.005     # 5 mm wide — thin bands (real robot ~3-5 mm)
+STRIP_T      = 0.0004    # 0.4 mm thick — flat spring steel
+VIS_BOW      = 0.008     # 8 mm bow — moderate barrel bulge (open field)
+VIS_BOW_PIPE = 0.005     # 5 mm bow — pipe mode
+STRIP_RGBA   = np.array([0.62, 0.65, 0.70, 1.0], dtype=np.float32)  # silver steel
 PLATE_RGBA   = np.array([0.08, 0.08, 0.10, 0.97], dtype=np.float32)  # near-black disc
 
 
@@ -143,12 +143,8 @@ def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
         e_up = np.cross(e_lat, e_fwd)                     # upward in local plane
         e_up /= (np.linalg.norm(e_up) + 1e-12)
 
-        # Bow amount: pipe mode limited to stay inside channel; open field scales with compression
-        if pipe_mode:
-            vis_bow = VIS_BOW_PIPE          # fixed — 17+8=25mm < 28mm channel half-width
-        else:
-            bow_scale = max(1.0, SEG_LENGTH / max(body_len, 0.015))
-            vis_bow   = VIS_BOW * bow_scale
+        # Bow amount: fixed values — no dynamic scaling to keep clean cage shape
+        vis_bow = VIS_BOW_PIPE if pipe_mode else VIS_BOW
 
         for si in range(NUM_STRIPS):
             ca = math.cos(STRIP_ANGLES[si])
@@ -175,7 +171,7 @@ def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
                 L   = np.linalg.norm(dv)
                 if L < 1e-10:
                     continue
-                half_len = L * 0.5 * 1.25   # 25% overlap → hides box-to-box seams
+                half_len = L * 0.5 * 1.05   # 5% overlap — minimal, clean seams
 
                 z_ax   = dv / L                           # strip length direction
 
@@ -463,8 +459,8 @@ def run(pipe_mode=False, record_video=False, sim_time=None):
         if record_video and step % frame_iv == 0 and renderer is not None:
             cam          = mujoco.MjvCamera()
             cam.type     = mujoco.mjtCamera.mjCAMERA_FREE
-            cam.distance = 0.80 if not pipe_mode else 1.0
-            cam.elevation = -30 if not pipe_mode else -60
+            cam.distance = 0.45 if not pipe_mode else 1.0
+            cam.elevation = -25 if not pipe_mode else -60
             cam.azimuth   = 45  if not pipe_mode else 90
 
             if pipe_mode:
