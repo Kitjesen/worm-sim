@@ -71,6 +71,7 @@ Purely passive turning — the rectilinear gait drives the worm forward, and pip
 1. Zhan X, Fang H, Xu J, Wang KW. **Planar locomotion of earthworm-like metameric robots.** *IJRR*, 2019. DOI: 10.1177/0278364919881687
 2. Zhou Q, Fang H, Xu J. **A CPG-Based Versatile Control Framework for Metameric Earthworm-Like Robotic Locomotion.** *Advanced Science*, 2023. DOI: 10.1002/advs.202206336
 3. Fang H, Wang C, Li S, Wang KW, Xu J. **Design and experimental gait analysis of a multi-segment in-pipe robot.** *SPIE*, 2014. DOI: 10.1117/12.2044262
+4. Riddle S, et al. **CMMWorm-SES: A MuJoCo soft worm robot model.** *Bioinspir. Biomim.*, 2025. Code: [github.com/sriddle97/3D-Soft-Worm-Robot-Model](https://github.com/sriddle97/3D-Soft-Worm-Robot-Model)
 
 ## License
 
