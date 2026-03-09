@@ -1,0 +1,35 @@
+V1 Worm Robot Summary (2026-02-26)
+====================================
+
+Architecture: Nested kinematic chain (plate0 -> plate1 -> ... -> plate5)
+  - plate0 has freejoint (root)
+  - plate1-5 are nested children with slide + hinge joints
+  - 8 cable strips per segment (composite type="cable" + elasticity plugin)
+  - 4 axial muscle tendons per segment (Hill actuators)
+  - Bulge ring (8 spheres) per segment for volume conservation
+
+Performance:
+  - Forward: 186.7mm in 15s (~12.5 mm/s)
+  - X drift: 12.2mm (after yaw stiffness fix)
+  - Peristaltic wave: prograde (tail->head), T=1500ms, half-wave sine
+
+Known Limitations:
+  1. Kinematic chain prevents per-segment independent height change
+     (child plates inherit all parent displacements)
+  2. Cable-plate collision cannot be enabled (kills locomotion)
+  3. Visual anti-penetration only (hide cable segments inside plates)
+
+Key Parameters:
+  - num_segments=5, seg_length=0.065m
+  - plate_radius=0.022, strip_circle_r=0.017
+  - bend_stiff=1e8, twist_stiff=4e7
+  - muscle_force=28N, ground_friction=1.5
+  - hinge_stiffness_yaw=50 (anti-drift)
+
+Files:
+  - worm_5seg.py          Main script (generates XML + simulates + records)
+  - worm_5seg.xml          Auto-generated MuJoCo model
+  - worm_5seg_motion.png   4-subplot motion history (Y, X, Z, segment length)
+  - videos/                All video versions (v4-v7b)
+  - diagnostic_images/     Closeup renders for debugging
+  - single_segment_proto/  Early single-segment experiments

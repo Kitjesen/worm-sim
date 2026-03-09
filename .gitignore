@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+MUJOCO_LOG.TXT
+NUL
+bin/
+ref/
+*.pptx
+record/proto/
+record/v1/
+record/v2/
+record/v3/
+record/*.mp4
+src/v3/__pycache__/
+src/v3/*.png
+src/v3/MUJOCO_LOG.TXT
