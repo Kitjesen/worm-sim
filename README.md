@@ -78,4 +78,4 @@ MIT
 
 ## Author
 
-Hongsen Pang ([@Kitjesen](https://github.com/Kitjesen)) — Shanghai Qiongpei Technology Co., Ltd.
+Hongsen Pang ([@Kitjesen](https://github.com/Kitjesen)) — BSRL Lab
