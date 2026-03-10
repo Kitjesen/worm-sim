@@ -143,8 +143,13 @@ def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
         e_up = np.cross(e_lat, e_fwd)                     # upward in local plane
         e_up /= (np.linalg.norm(e_up) + 1e-12)
 
-        # Bow amount: fixed values — no dynamic scaling to keep clean cage shape
-        vis_bow = VIS_BOW_PIPE if pipe_mode else VIS_BOW
+        # Dynamic bow: contracted segments bulge, relaxed segments stay slim
+        # → creates visible peristaltic wave in strip deformation
+        if pipe_mode:
+            vis_bow = VIS_BOW_PIPE
+        else:
+            bow_scale = min(2.0, max(0.5, SEG_LENGTH / max(body_len, 0.020)))
+            vis_bow = VIS_BOW * bow_scale
 
         for si in range(NUM_STRIPS):
             ca = math.cos(STRIP_ANGLES[si])
