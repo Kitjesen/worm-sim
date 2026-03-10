@@ -15,19 +15,21 @@ import json
 # ======================== Default Parameters ========================
 DEFAULTS = dict(
     num_segments=5,
-    seg_length=0.065,
-    plate_radius=0.022,
-    plate_geom_r=0.022,
-    plate_thickness=0.003,
-    strip_circle_r=0.017,
+    # ── Real robot dimensions (Fang/Zhan prototype) ──
+    seg_length=0.1012,         # 板间距 101.2mm (plate center-to-center)
+    plate_radius=0.055,        # 板直径 110mm / 2
+    plate_geom_r=0.055,
+    plate_thickness=0.0075,    # (101.2 - 86.2) / 2 = 7.5mm half-thickness
+    strip_circle_r=0.042,      # strip circle ≈ 76% of plate radius
     num_strips=8,
     num_verts=7,
-    strip_r=0.002,
-    bow_amount=0.007,
+    strip_r=0.004,             # cable body radius (scaled)
+    bow_amount=0.023,          # 钢片长度115.2mm → bow ≈ 23mm
+    # ── Physics ──
     bend_stiff=1e8,
     twist_stiff=2e6,
-    axial_muscle_force=60,
-    ring_muscle_force=12,
+    axial_muscle_force=200,
+    ring_muscle_force=40,
     ground_friction=1.5,
     steer_muscle_force=200,
     plate_stiff_x=500.0,
@@ -150,7 +152,7 @@ def build_model_xml(exp_id, params):
         plates_xml += f'      <joint name="p{p}_roll" type="hinge" axis="0 1 0" stiffness="{P["plate_stiff_roll"]}" damping="{P["plate_damp_roll"]}"/>\n'
         plates_xml += f'      <joint name="p{p}_yaw" type="hinge" axis="0 0 1" stiffness="{P["plate_stiff_yaw"]}" damping="{P["plate_damp_yaw"]}"/>\n'
         plates_xml += f'      <geom type="cylinder" size="{P["plate_geom_r"]} {P["plate_thickness"]}" pos="0 0 {z_center}"\n'
-        plates_xml += f'            euler="90 0 0" rgba="0.45 0.45 0.50 0.9" mass="0.02" contype="2" conaffinity="2"/>\n'
+        plates_xml += f'            euler="90 0 0" rgba="0.45 0.45 0.50 0.9" mass="0.10" contype="2" conaffinity="2"/>\n'
         # Ground contact foot geoms (provide friction for locomotion)
         if torsion_f > 0:
             # 3 contact spheres spread along X at plate bottom for effective torsional resistance
@@ -161,8 +163,8 @@ def build_model_xml(exp_id, params):
                 plates_xml += f'      <geom name="foot{p}_{fi}" type="sphere" size="0.003" pos="{fx:.5f} 0 0.003"\n'
                 plates_xml += f'            rgba="0.3 0.3 0.3 0.5" mass="0.001" friction="{foot_friction}" condim="4" contype="1" conaffinity="1"/>\n'
         else:
-            plates_xml += f'      <geom name="foot{p}" type="capsule" size="0.004" fromto="-0.016 0 0.002 0.016 0 0.002"\n'
-            plates_xml += f'            rgba="0.85 0.55 0.20 0.9" mass="0.002" friction="{P["ground_friction"]}" contype="1" conaffinity="1"/>\n'
+            plates_xml += f'      <geom name="foot{p}" type="capsule" size="0.006" fromto="-0.040 0 0.004 0.040 0 0.004"\n'
+            plates_xml += f'            rgba="0.85 0.55 0.20 0.9" mass="0.005" friction="{P["ground_friction"]}" contype="1" conaffinity="1"/>\n'
         for mi in range(4):
             sa = strip_angles[mi * 2]
             sx = strip_circle_r * 0.7 * math.cos(sa)
@@ -272,7 +274,7 @@ def build_model_xml(exp_id, params):
             # End segments get 30% stronger muscles to compensate boundary effect
             is_end_seg = (seg == 0 or seg == num_segments - 1)
             seg_force = P["axial_muscle_force"] * 1.3 if is_end_seg else P["axial_muscle_force"]
-            axial_muscles_xml += f'    <muscle class="muscle" name="{mname}" tendon="{tname}" force="{seg_force:.0f}" lengthrange="0.03 0.08"/>\n'
+            axial_muscles_xml += f'    <muscle class="muscle" name="{mname}" tendon="{tname}" force="{seg_force:.0f}" lengthrange="0.040 0.120"/>\n'
         # Center routing: separate spring tendon through plate center (axial only, no yaw coupling)
         if no_cables and tendon_spring_stiff > 0 and tendon_routing == "center":
             ctname = f"ct{seg}"
@@ -291,7 +293,7 @@ def build_model_xml(exp_id, params):
             ring_tendons_xml += f'      <site site="rs{seg}_{si}"/>\n'
         ring_tendons_xml += f'      <site site="rs{seg}_0"/>\n'
         ring_tendons_xml += f'    </spatial>\n'
-        ring_muscles_xml += f'    <muscle class="muscle" name="rm{seg}" tendon="{tname}" force="{P["ring_muscle_force"]}" lengthrange="0.05 0.20"/>\n'
+        ring_muscles_xml += f'    <muscle class="muscle" name="rm{seg}" tendon="{tname}" force="{P["ring_muscle_force"]}" lengthrange="0.08 0.35"/>\n'
 
     steer_tendons_xml = ""
     steer_muscles_xml = ""
@@ -302,7 +304,7 @@ def build_model_xml(exp_id, params):
             steer_tendons_xml += f'      <site site="p{seg}_{s1}"/>\n'
             steer_tendons_xml += f'      <site site="p{seg+1}_{s2}"/>\n'
             steer_tendons_xml += f'    </spatial>\n'
-            steer_muscles_xml += f'    <muscle class="muscle" name="{mname}" tendon="{tag}" force="{P["steer_muscle_force"]}" lengthrange="0.03 0.10"/>\n'
+            steer_muscles_xml += f'    <muscle class="muscle" name="{mname}" tendon="{tag}" force="{P["steer_muscle_force"]}" lengthrange="0.040 0.150"/>\n'
     num_steer = num_segments * 2
 
     if no_cables:

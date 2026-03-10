@@ -26,23 +26,23 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from exp_runner import build_model_xml
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Geometry constants (must match exp_runner DEFAULTS)
+# Geometry constants — real robot dimensions (Fang/Zhan prototype)
 # ─────────────────────────────────────────────────────────────────────────────
-NUM_SEGMENTS  = 5
-SEG_LENGTH    = 0.065
-PLATE_RADIUS  = 0.022
-STRIP_CIRCLE_R = 0.017
-BOW_AMOUNT    = 0.007
-NUM_STRIPS    = 8
-NUM_VERTS     = 20
-Z_CENTER      = PLATE_RADIUS + 0.001          # 0.023 m
-STRIP_ANGLES  = [2 * math.pi * i / NUM_STRIPS for i in range(NUM_STRIPS)]
+NUM_SEGMENTS   = 5
+SEG_LENGTH     = 0.1012        # 板间距 101.2mm
+PLATE_RADIUS   = 0.055         # 板直径 110mm / 2
+STRIP_CIRCLE_R = 0.042         # strip circle ≈ 76% plate radius
+BOW_AMOUNT     = 0.023         # 钢片长度115.2mm → bow 23mm
+NUM_STRIPS     = 8
+NUM_VERTS      = 20
+Z_CENTER       = PLATE_RADIUS + 0.001   # 0.056 m
+STRIP_ANGLES   = [2 * math.pi * i / NUM_STRIPS for i in range(NUM_STRIPS)]
 
-# Visual strip dimensions — thin spring steel bands forming a clean barrel cage
-STRIP_W      = 0.006     # 6 mm wide — visible bands
-STRIP_T      = 0.0005    # 0.5 mm thick — flat spring steel
-VIS_BOW      = 0.018     # 18 mm bow — dramatic barrel bulge, clearly visible
-VIS_BOW_PIPE = 0.010     # 10 mm bow — pipe mode
+# Visual strip dimensions — 钢片宽度 21mm, 0.3mm厚弹簧钢
+STRIP_W      = 0.021     # 21 mm wide — real robot strip width
+STRIP_T      = 0.0003    # 0.3 mm thick — spring steel
+VIS_BOW      = 0.025     # 25 mm bow — visible barrel bulge
+VIS_BOW_PIPE = 0.015     # 15 mm bow — pipe mode
 STRIP_RGBA   = np.array([0.72, 0.74, 0.78, 1.0], dtype=np.float32)  # bright silver
 PLATE_RGBA   = np.array([0.08, 0.08, 0.10, 0.97], dtype=np.float32)  # near-black disc
 
@@ -239,7 +239,7 @@ def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
 # Pipe geometry (90° bend)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_pipe_xml(channel_width=0.056, wall_height=0.055,
+def build_pipe_xml(channel_width=0.130, wall_height=0.120,
                    wall_thickness=0.005, straight_length=0.40,
                    bend_radius=0.20, n_bend=16,
                    entry_extra=0.05, ceiling_z=0.055):
@@ -561,19 +561,19 @@ def run(pipe_mode=False, turn_mode=None, fast_mode=False,
             cam.type     = mujoco.mjtCamera.mjCAMERA_FREE
 
             if pipe_mode:
-                cam.distance  = 1.0
+                cam.distance  = 2.0
                 cam.elevation = -60
                 cam.azimuth   = 90
-                cam.lookat[:] = [0.15, 0.50, 0.02]
+                cam.lookat[:] = [0.25, 0.80, 0.05]
             elif turn_mode:
-                cam.distance  = 0.60
+                cam.distance  = 1.2
                 cam.elevation = -50
                 cam.azimuth   = 90
                 mid = (d.xpos[head_id] + d.xpos[tail_id]) / 2.0
                 lookat_smooth += 0.02 * (mid - lookat_smooth)
                 cam.lookat[:] = lookat_smooth
             else:
-                cam.distance  = 0.45
+                cam.distance  = 1.0
                 cam.elevation = -25
                 cam.azimuth   = 45
                 mid = (d.xpos[head_id] + d.xpos[tail_id]) / 2.0
