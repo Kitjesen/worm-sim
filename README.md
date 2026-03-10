@@ -1,6 +1,6 @@
 # Earthworm-like Pipe-Crawling Robot Simulation
 
-MuJoCo simulation of a 5-segment metameric earthworm-like robot with spring steel strip structures, capable of rectilinear locomotion and passive 90° pipe navigation.
+MuJoCo simulation of a 5-segment metameric earthworm-like robot with spring steel strip structures, capable of rectilinear locomotion, active circular turning, and passive 90° pipe navigation.
 
 ## Demo
 
@@ -24,6 +24,12 @@ Passive turning — rectilinear gait drives forward, pipe walls redirect heading
 |:---:|:---:|:---:|
 | ![entry](record/v4/frames/pipe_p_entry.png) | ![bend](record/v4/frames/pipe_p_bend.png) | ![exit](record/v4/frames/pipe_p_exit.png) |
 
+### Circular Locomotion (Active Turning)
+
+![Left turn](record/v4/videos/worm_v4_turn_left.gif)
+
+4-state gait with diagonal steer tendons — State 2 (left bend) and State 3 (right bend) create active heading change via asymmetric extension.
+
 ### Spring Steel Strip Structure
 
 ![Strip detail](record/v4/frames/preview_new_strips.png)
@@ -33,6 +39,7 @@ Passive turning — rectilinear gait drives forward, pipe walls redirect heading
 ## Features
 
 - **Rectilinear locomotion** — Zhan/Fang 2019 discrete retrograde peristalsis gait `{0,0,2|1}`
+- **Active circular turning** — 4-state gait with diagonal steer tendons (State 2/3 left/right bend)
 - **Passive pipe turning** — 90° bend navigation using wall contact (no active steering)
 - **Spring steel strip rendering** — Flat BOX geoms with body-axis-stable orientation and dynamic bow
 - **Cable composite physics** — MuJoCo cable composites for inter-plate spring steel mechanics
@@ -40,14 +47,19 @@ Passive turning — rectilinear gait drives forward, pipe walls redirect heading
 ## Quick Start
 
 ```bash
-# Open-field straight crawl (record video)
+# Open-field straight crawl
 python src/v3/worm_v4.py --video
+
+# Circular locomotion (active turning)
+python src/v3/worm_v4.py --turn left --video
+python src/v3/worm_v4.py --turn right --video
 
 # Pipe crawl with 90° bend
 python src/v3/worm_v4.py --pipe --video
 
 # Headless (no video)
 python src/v3/worm_v4.py
+python src/v3/worm_v4.py --turn left
 python src/v3/worm_v4.py --pipe
 ```
 
@@ -80,13 +92,20 @@ Each segment consists of:
 - **2 acrylic plates** (cylinder geoms) — structural discs
 - **8 spring steel strips** (cable composites) — passive radial elasticity
 - **4 axial muscles** (tendons at 0°/90°/180°/270°) — longitudinal contraction
+- **2 diagonal steer tendons** (cross-body) — lateral bending for turning
 - **1 ring muscle** — radial contraction
 
-### Gait: Zhan/Fang 2019 `{n₂, n₃, n₁ | nP}`
+### 4-State Gait: Zhan/Fang 2019 `{n₂, n₃, n₁ | nP}`
 
-- State 0: Relaxed (ring muscle ON → slim profile)
-- State 1: Anchored (all axial muscles ON → contracted + radially expanded)
-- Rectilinear `{0,0,2|1}`: 2 anchored segments, 3 relaxed, wave propagates 1 segment/step
+| State | Action | Muscles | Effect |
+|-------|--------|---------|--------|
+| 0 | Relaxed | Ring ON | Slim profile, extends forward |
+| 1 | Anchored | All axial ON | Contracted, grips ground |
+| 2 | Left bend | Left steer ON | Extends at angle (left turn) |
+| 3 | Right bend | Right steer ON | Extends at angle (right turn) |
+
+- Rectilinear `{0,0,2|1}`: gait `[0,0,0,1,1]` — straight crawl
+- Circular left `{1,0,2|1}`: gait `[2,0,0,1,1]` — left turn
 - Retrograde peristalsis: contraction wave travels head → tail
 
 ### Pipe Locomotion

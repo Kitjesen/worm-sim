@@ -290,9 +290,29 @@ def build_pipe_xml(channel_width=0.056, wall_height=0.055,
 # Simulation
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run(pipe_mode=False, record_video=False, sim_time=None):
+def run(pipe_mode=False, turn_mode=None, record_video=False, sim_time=None):
     # ── Physics parameters ──────────────────────────────────────────────────
-    if pipe_mode:
+    if turn_mode:
+        # Circular locomotion — State 2/3 with diagonal steer tendons
+        turn_gait = '2,0,0,1,1' if turn_mode == 'left' else '3,0,0,1,1'
+        params = dict(
+            num_segments      = NUM_SEGMENTS,
+            no_cables         = 0,
+            cable_constraint  = 'weld',
+            cable_weld_solref = '0.002 1',
+            bend_stiff        = 1e8,
+            twist_stiff       = 2e6,
+            plate_stiff_x     = 0.0,        # FREE lateral — critical for turning
+            plate_stiff_y     = 0.0,
+            plate_stiff_yaw   = 0.0,        # free yaw for heading change
+            axial_muscle_force= 50,
+            steer_muscle_force= 25,         # gentle turning (axial=50)
+            gait_s0           = turn_gait,
+            step_duration     = 0.5,
+            settle_time       = 1.0,
+            sim_time          = sim_time or 40.0,
+        )
+    elif pipe_mode:
         params = dict(
             num_segments      = NUM_SEGMENTS,
             no_cables         = 0,
@@ -328,7 +348,12 @@ def run(pipe_mode=False, record_video=False, sim_time=None):
         )
 
     # ── Build XML ───────────────────────────────────────────────────────────
-    exp_id  = "pipe" if pipe_mode else "straight"
+    if turn_mode:
+        exp_id = f"turn_{turn_mode}"
+    elif pipe_mode:
+        exp_id = "pipe"
+    else:
+        exp_id = "straight"
     xml_str, P = build_model_xml(exp_id, params)
 
     num_plates = NUM_SEGMENTS + 1
@@ -365,8 +390,17 @@ def run(pipe_mode=False, record_video=False, sim_time=None):
     head_id = plate_ids[-1]
     tail_id = plate_ids[0]
 
+    # Steer muscle indices: axial(20) + ring(5) + steer(10)
+    num_steer_base = num_axial + NUM_SEGMENTS   # = 25
+
+    if turn_mode:
+        mode_str = f"TURN {turn_mode.upper()}"
+    elif pipe_mode:
+        mode_str = "PIPE CRAWL"
+    else:
+        mode_str = "OPEN FIELD"
     print(f"Model: bodies={m.nbody}, DOF={m.nv}, actuators={m.nu}")
-    print(f"Mode: {'PIPE CRAWL' if pipe_mode else 'OPEN FIELD'}")
+    print(f"Mode: {mode_str}")
 
     # ── Colour plates — dark steel, all equal
     plate_id_set = set(plate_ids)
@@ -399,14 +433,24 @@ def run(pipe_mode=False, record_video=False, sim_time=None):
         d.ctrl[:] = 0
         states = get_states(t)
         for seg, s in enumerate(states):
-            if s == 1:                                  # anchor → all 4 axial ON
+            if s == 1:
+                # State 1 — Anchor: all 4 axial ON → contracted, grips ground
                 for mi in range(4):
                     d.ctrl[seg * 4 + mi] = 1.0
-            # ring muscle: slim profile when relaxed (state 0)
+            elif s == 2:
+                # State 2 — Left bend: diagonal steer tendon (stL) ON
+                steer_idx = num_steer_base + seg * 2
+                if steer_idx < m.nu:
+                    d.ctrl[steer_idx] = 1.0
+            elif s == 3:
+                # State 3 — Right bend: diagonal steer tendon (stR) ON
+                steer_idx = num_steer_base + seg * 2 + 1
+                if steer_idx < m.nu:
+                    d.ctrl[steer_idx] = 1.0
+            # Ring muscle: slim when extending/bending (0,2,3), expanded when anchored (1)
             ring_idx = num_axial + seg
             if ring_idx < m.nu:
-                d.ctrl[ring_idx] = 1.0 if s == 0 else 0.0
-        # steer muscles stay at 0
+                d.ctrl[ring_idx] = 1.0 if s != 1 else 0.0
 
     # ── Video renderer ──────────────────────────────────────────────────────
     renderer = None
@@ -459,15 +503,23 @@ def run(pipe_mode=False, record_video=False, sim_time=None):
         if record_video and step % frame_iv == 0 and renderer is not None:
             cam          = mujoco.MjvCamera()
             cam.type     = mujoco.mjtCamera.mjCAMERA_FREE
-            cam.distance = 0.45 if not pipe_mode else 1.0
-            cam.elevation = -25 if not pipe_mode else -60
-            cam.azimuth   = 45  if not pipe_mode else 90
 
             if pipe_mode:
-                # Fixed overview for pipe
+                cam.distance  = 1.0
+                cam.elevation = -60
+                cam.azimuth   = 90
                 cam.lookat[:] = [0.15, 0.50, 0.02]
+            elif turn_mode:
+                cam.distance  = 0.60
+                cam.elevation = -50
+                cam.azimuth   = 90
+                mid = (d.xpos[head_id] + d.xpos[tail_id]) / 2.0
+                lookat_smooth += 0.02 * (mid - lookat_smooth)
+                cam.lookat[:] = lookat_smooth
             else:
-                # EMA-smoothed lookat: follows overall travel, filters gait vibration
+                cam.distance  = 0.45
+                cam.elevation = -25
+                cam.azimuth   = 45
                 mid = (d.xpos[head_id] + d.xpos[tail_id]) / 2.0
                 lookat_smooth += 0.03 * (mid - lookat_smooth)
                 cam.lookat[:] = lookat_smooth
@@ -491,7 +543,7 @@ def run(pipe_mode=False, record_video=False, sim_time=None):
     displacement = math.hypot(hx_f - hx0, hy_f - hy0)
 
     print(f"\n{'─'*55}")
-    print(f"  Worm V4 — {'PIPE' if pipe_mode else 'STRAIGHT'}")
+    print(f"  Worm V4 — {mode_str}")
     print(f"  Head final:    ({hx_f:.1f}, {hy_f:.1f}) mm")
     print(f"  Displacement:  {displacement:.1f} mm in {sim_total:.0f}s")
     print(f"  Speed:         {displacement/sim_total:.2f} mm/s")
@@ -505,7 +557,7 @@ def run(pipe_mode=False, record_video=False, sim_time=None):
             import mediapy
             vid_dir  = os.path.join(project_root, "record", "v4", "videos")
             os.makedirs(vid_dir, exist_ok=True)
-            tag      = "pipe" if pipe_mode else "straight"
+            tag      = f"turn_{turn_mode}" if turn_mode else ("pipe" if pipe_mode else "straight")
             vid_path = os.path.join(vid_dir, f"worm_v4_{tag}.mp4")
             mediapy.write_video(vid_path, frames, fps=fps)
             print(f"Video: {vid_path}  ({len(frames)} frames)")
@@ -521,10 +573,13 @@ def run(pipe_mode=False, record_video=False, sim_time=None):
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Worm V4 — rectilinear + pipe crawl")
+    ap = argparse.ArgumentParser(description="Worm V4 — rectilinear + pipe + circular locomotion")
     ap.add_argument("--pipe",  action="store_true", help="Pipe crawling mode (90° bend)")
+    ap.add_argument("--turn",  choices=["left", "right"], default=None,
+                    help="Circular locomotion (State 2/3 diagonal steer)")
     ap.add_argument("--video", action="store_true", help="Record video")
     ap.add_argument("--time",  type=float, default=None, help="Sim duration (seconds)")
     args = ap.parse_args()
 
-    run(pipe_mode=args.pipe, record_video=args.video, sim_time=args.time)
+    run(pipe_mode=args.pipe, turn_mode=args.turn,
+        record_video=args.video, sim_time=args.time)
