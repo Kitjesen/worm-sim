@@ -24,10 +24,10 @@ DEFAULTS = dict(
     num_verts=7,
     strip_r=0.002,
     bow_amount=0.007,
-    bend_stiff=8e7,
+    bend_stiff=1e8,
     twist_stiff=2e6,
-    axial_muscle_force=80,
-    ring_muscle_force=15,
+    axial_muscle_force=60,
+    ring_muscle_force=12,
     ground_friction=1.5,
     steer_muscle_force=200,
     plate_stiff_x=500.0,
@@ -37,7 +37,7 @@ DEFAULTS = dict(
     plate_stiff_roll=5.0,
     plate_stiff_yaw=0.0,
     plate_damp_x=0.5,
-    plate_damp_y=1.5,
+    plate_damp_y=3.0,
     plate_damp_z=0.5,
     plate_damp_pitch=0.5,
     plate_damp_roll=0.5,
@@ -190,7 +190,7 @@ def build_model_xml(exp_id, params):
           <config key="twist" value="{P['twist_stiff']}"/>
           <config key="vmax" value="2"/>
         </plugin>
-        <joint armature="0.01" damping="0.12" kind="main"/>
+        <joint armature="0.01" damping="0.25" kind="main"/>
         <geom type="capsule" size="{strip_r}" density="3500"
               friction="{P['ground_friction']}" contype="1" conaffinity="1"/>
       </composite>
@@ -269,9 +269,9 @@ def build_model_xml(exp_id, params):
             axial_tendons_xml += f'      <site site="p{seg+1}_s{mi}"/>\n'
             axial_tendons_xml += f'      <site site="p{seg}_s{mi}"/>\n'
             axial_tendons_xml += f'    </spatial>\n'
-            # End segments get 50% stronger muscles to compensate boundary effect
+            # End segments get 30% stronger muscles to compensate boundary effect
             is_end_seg = (seg == 0 or seg == num_segments - 1)
-            seg_force = P["axial_muscle_force"] * 1.5 if is_end_seg else P["axial_muscle_force"]
+            seg_force = P["axial_muscle_force"] * 1.3 if is_end_seg else P["axial_muscle_force"]
             axial_muscles_xml += f'    <muscle class="muscle" name="{mname}" tendon="{tname}" force="{seg_force:.0f}" lengthrange="0.03 0.08"/>\n'
         # Center routing: separate spring tendon through plate center (axial only, no yaw coupling)
         if no_cables and tendon_spring_stiff > 0 and tendon_routing == "center":
