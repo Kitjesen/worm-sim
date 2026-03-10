@@ -24,10 +24,10 @@ DEFAULTS = dict(
     num_verts=7,
     strip_r=0.002,
     bow_amount=0.007,
-    bend_stiff=1e8,
+    bend_stiff=8e7,
     twist_stiff=2e6,
-    axial_muscle_force=50,
-    ring_muscle_force=10,
+    axial_muscle_force=80,
+    ring_muscle_force=15,
     ground_friction=1.5,
     steer_muscle_force=200,
     plate_stiff_x=500.0,
@@ -161,8 +161,8 @@ def build_model_xml(exp_id, params):
                 plates_xml += f'      <geom name="foot{p}_{fi}" type="sphere" size="0.003" pos="{fx:.5f} 0 0.003"\n'
                 plates_xml += f'            rgba="0.3 0.3 0.3 0.5" mass="0.001" friction="{foot_friction}" condim="4" contype="1" conaffinity="1"/>\n'
         else:
-            plates_xml += f'      <geom name="foot{p}" type="capsule" size="0.003" fromto="-0.015 0 0.003 0.015 0 0.003"\n'
-            plates_xml += f'            rgba="0.3 0.3 0.3 0.5" mass="0.002" friction="{P["ground_friction"]}" contype="1" conaffinity="1"/>\n'
+            plates_xml += f'      <geom name="foot{p}" type="capsule" size="0.004" fromto="-0.016 0 0.002 0.016 0 0.002"\n'
+            plates_xml += f'            rgba="0.85 0.55 0.20 0.9" mass="0.002" friction="{P["ground_friction"]}" contype="1" conaffinity="1"/>\n'
         for mi in range(4):
             sa = strip_angles[mi * 2]
             sx = strip_circle_r * 0.7 * math.cos(sa)
@@ -269,7 +269,10 @@ def build_model_xml(exp_id, params):
             axial_tendons_xml += f'      <site site="p{seg+1}_s{mi}"/>\n'
             axial_tendons_xml += f'      <site site="p{seg}_s{mi}"/>\n'
             axial_tendons_xml += f'    </spatial>\n'
-            axial_muscles_xml += f'    <muscle class="muscle" name="{mname}" tendon="{tname}" force="{P["axial_muscle_force"]}" lengthrange="0.03 0.08"/>\n'
+            # End segments get 50% stronger muscles to compensate boundary effect
+            is_end_seg = (seg == 0 or seg == num_segments - 1)
+            seg_force = P["axial_muscle_force"] * 1.5 if is_end_seg else P["axial_muscle_force"]
+            axial_muscles_xml += f'    <muscle class="muscle" name="{mname}" tendon="{tname}" force="{seg_force:.0f}" lengthrange="0.03 0.08"/>\n'
         # Center routing: separate spring tendon through plate center (axial only, no yaw coupling)
         if no_cables and tendon_spring_stiff > 0 and tendon_routing == "center":
             ctname = f"ct{seg}"
