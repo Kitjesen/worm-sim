@@ -290,14 +290,32 @@ def build_pipe_xml(channel_width=0.056, wall_height=0.055,
 # Simulation
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run(pipe_mode=False, turn_mode=None, record_video=False, sim_time=None):
+def run(pipe_mode=False, turn_mode=None, fast_mode=False,
+        record_video=False, sim_time=None):
     # ── Physics parameters ──────────────────────────────────────────────────
+    # fast_mode: no_cables=1 → plates + tendons only (DOF ~36 vs ~1116)
+    #            Visual strips still rendered from plate positions.
+    #            Needs weld constraints + tendon springs for structural integrity.
+    no_cables_flag = 1 if fast_mode else 0
+
+    # Structural params for no-cable mode (replace cable stiffness)
+    fast_extras = dict(
+        plate_constraint    = 'connect',        # 3DOF position constraint (keeps inter-plate distance)
+        plate_weld_solref   = '0.002 1',        # tight constraint
+        plate_stiff_y       = 300.0,            # axial restoring stiffness
+        plate_stiff_pitch   = 30.0,             # resist tumbling
+        plate_stiff_roll    = 30.0,
+        plate_damp_x        = 2.0,              # lateral damping
+        plate_damp_y        = 3.0,              # axial damping
+        plate_damp_yaw      = 2.0,
+    ) if fast_mode else {}
+
     if turn_mode:
         # Circular locomotion — State 2/3 with diagonal steer tendons
         turn_gait = '2,0,0,1,1' if turn_mode == 'left' else '3,0,0,1,1'
         params = dict(
             num_segments      = NUM_SEGMENTS,
-            no_cables         = 0,
+            no_cables         = no_cables_flag,
             cable_constraint  = 'weld',
             cable_weld_solref = '0.002 1',
             bend_stiff        = 1e8,
@@ -309,13 +327,13 @@ def run(pipe_mode=False, turn_mode=None, record_video=False, sim_time=None):
             steer_muscle_force= 25,         # gentle turning (axial=50)
             gait_s0           = turn_gait,
             step_duration     = 0.5,
-            settle_time       = 1.0,
+            settle_time       = 1.0 if not fast_mode else 0.3,
             sim_time          = sim_time or 40.0,
         )
     elif pipe_mode:
         params = dict(
             num_segments      = NUM_SEGMENTS,
-            no_cables         = 0,
+            no_cables         = no_cables_flag,
             cable_constraint  = 'weld',
             cable_weld_solref = '0.005 1',
             bend_stiff        = 2e7,        # softer → passive turning in pipe
@@ -326,13 +344,13 @@ def run(pipe_mode=False, turn_mode=None, record_video=False, sim_time=None):
             axial_muscle_force= 50,
             gait_s0           = '0,0,0,1,1',   # rectilinear {0,0,2|1}
             step_duration     = 0.5,
-            settle_time       = 2.0,
+            settle_time       = 2.0 if not fast_mode else 0.5,
             sim_time          = sim_time or 80.0,
         )
     else:
         params = dict(
             num_segments      = NUM_SEGMENTS,
-            no_cables         = 0,
+            no_cables         = no_cables_flag,
             cable_constraint  = 'weld',
             cable_weld_solref = '0.002 1',
             bend_stiff        = 1e8,        # stiff → stable upright posture
@@ -343,9 +361,12 @@ def run(pipe_mode=False, turn_mode=None, record_video=False, sim_time=None):
             axial_muscle_force= 50,
             gait_s0           = '0,0,0,1,1',   # rectilinear {0,0,2|1}
             step_duration     = 0.5,
-            settle_time       = 1.0,
+            settle_time       = 1.0 if not fast_mode else 0.3,
             sim_time          = sim_time or 25.0,
         )
+
+    # Merge fast-mode structural params
+    params.update(fast_extras)
 
     # ── Build XML ───────────────────────────────────────────────────────────
     if turn_mode:
@@ -354,6 +375,8 @@ def run(pipe_mode=False, turn_mode=None, record_video=False, sim_time=None):
         exp_id = "pipe"
     else:
         exp_id = "straight"
+    if fast_mode:
+        exp_id += "_fast"
     xml_str, P = build_model_xml(exp_id, params)
 
     num_plates = NUM_SEGMENTS + 1
@@ -390,15 +413,17 @@ def run(pipe_mode=False, turn_mode=None, record_video=False, sim_time=None):
     head_id = plate_ids[-1]
     tail_id = plate_ids[0]
 
-    # Steer muscle indices: axial(20) + ring(5) + steer(10)
-    num_steer_base = num_axial + NUM_SEGMENTS   # = 25
+    # Steer muscle indices: axial(20) + ring(0 or 5) + steer(10)
+    num_ring = 0 if no_cables_flag else NUM_SEGMENTS
+    num_steer_base = num_axial + num_ring
 
+    fast_tag = " [FAST]" if fast_mode else ""
     if turn_mode:
-        mode_str = f"TURN {turn_mode.upper()}"
+        mode_str = f"TURN {turn_mode.upper()}{fast_tag}"
     elif pipe_mode:
-        mode_str = "PIPE CRAWL"
+        mode_str = f"PIPE CRAWL{fast_tag}"
     else:
-        mode_str = "OPEN FIELD"
+        mode_str = f"OPEN FIELD{fast_tag}"
     print(f"Model: bodies={m.nbody}, DOF={m.nv}, actuators={m.nu}")
     print(f"Mode: {mode_str}")
 
@@ -577,9 +602,11 @@ if __name__ == "__main__":
     ap.add_argument("--pipe",  action="store_true", help="Pipe crawling mode (90° bend)")
     ap.add_argument("--turn",  choices=["left", "right"], default=None,
                     help="Circular locomotion (State 2/3 diagonal steer)")
+    ap.add_argument("--fast",  action="store_true",
+                    help="Fast mode: no cables (DOF ~36 vs ~1116), ~30× faster")
     ap.add_argument("--video", action="store_true", help="Record video")
     ap.add_argument("--time",  type=float, default=None, help="Sim duration (seconds)")
     args = ap.parse_args()
 
-    run(pipe_mode=args.pipe, turn_mode=args.turn,
+    run(pipe_mode=args.pipe, turn_mode=args.turn, fast_mode=args.fast,
         record_video=args.video, sim_time=args.time)
