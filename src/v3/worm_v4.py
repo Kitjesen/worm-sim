@@ -34,16 +34,16 @@ PLATE_RADIUS   = 0.055         # 板直径 110mm / 2
 STRIP_CIRCLE_R = 0.042         # strip circle ≈ 76% plate radius
 BOW_AMOUNT     = 0.023         # 钢片长度115.2mm → bow 23mm
 NUM_STRIPS     = 8
-NUM_VERTS      = 20
+NUM_VERTS      = 40
 Z_CENTER       = PLATE_RADIUS + 0.001   # 0.056 m
 STRIP_ANGLES   = [2 * math.pi * i / NUM_STRIPS for i in range(NUM_STRIPS)]
 
 # Visual strip dimensions — 钢片宽度 21mm, 0.3mm厚弹簧钢
 STRIP_W      = 0.021     # 21 mm wide — real robot strip width
-STRIP_T      = 0.0003    # 0.3 mm thick — spring steel
-VIS_BOW      = 0.025     # 25 mm bow — visible barrel bulge
+STRIP_T      = 0.004     # 4 mm visual — thick solid bands matching reference
+VIS_BOW      = 0.028     # 28 mm bow — prominent barrel bulge
 VIS_BOW_PIPE = 0.015     # 15 mm bow — pipe mode
-STRIP_RGBA   = np.array([0.72, 0.74, 0.78, 1.0], dtype=np.float32)  # bright silver
+STRIP_RGBA   = np.array([0.10, 0.10, 0.12, 1.0], dtype=np.float32)  # all-black, same tone as plates
 PLATE_RGBA   = np.array([0.08, 0.08, 0.10, 0.97], dtype=np.float32)  # near-black disc
 
 
@@ -51,36 +51,24 @@ PLATE_RGBA   = np.array([0.08, 0.08, 0.10, 0.97], dtype=np.float32)  # near-blac
 # Flat steel strip injection
 # ─────────────────────────────────────────────────────────────────────────────
 
-def hide_cable_geoms(scene, m):
-    """Make MuJoCo's auto-generated cable capsules invisible.
+def hide_cable_geoms(scene, m, plate_id_set, n_orig):
+    """Hide all original scene geoms except plates and ground plane.
 
-    Uses body name matching (cable composite bodies start with 'c') plus
-    blue color fallback to catch any MuJoCo default-colored cable geoms.
+    n_orig: scene.ngeom before inject_flat_strips — only process original geoms,
+    leave injected strip geoms (indices n_orig..scene.ngeom-1) untouched.
     """
     OBJ_GEOM = int(mujoco.mjtObj.mjOBJ_GEOM)
-    # Build set of cable body IDs (cable composites generate bodies like 'c0s0B_*')
-    cable_body_ids = set()
-    for bid in range(m.nbody):
-        name = m.body(bid).name
-        if name and (name.startswith('c') and 's' in name and 'B' in name):
-            cable_body_ids.add(bid)
-    # Also hide ring ball bodies ('rb*')
-    for bid in range(m.nbody):
-        name = m.body(bid).name
-        if name and name.startswith('rb'):
-            cable_body_ids.add(bid)
-
-    for i in range(scene.ngeom):
+    for i in range(n_orig):
         g = scene.geoms[i]
-        # Method 1: match cable body via objid → body mapping
+        keep = False
         if int(g.objtype) == OBJ_GEOM and 0 <= g.objid < m.ngeom:
             bid = int(m.geom_bodyid[g.objid])
-            if bid in cable_body_ids:
-                g.rgba[3] = 0.0
-                continue
-        # Method 2: color fallback — any blueish geom (b > 0.5, r < 0.3)
-        r, g_ch, b = float(g.rgba[0]), float(g.rgba[1]), float(g.rgba[2])
-        if b > 0.5 and r < 0.3 and g_ch < 0.3:
+            if bid == 0 or bid in plate_id_set:
+                keep = True
+        elif int(g.objtype) != OBJ_GEOM:
+            # Non-geom scene objects (lights, etc.) — keep
+            keep = True
+        if not keep:
             g.rgba[3] = 0.0
 
 
@@ -135,13 +123,12 @@ def fix_plate_orientations(scene, m, d, plate_ids, plate_id_set):
 def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
     """Inject flat BOX geoms for spring steel strips into the render scene.
 
-    Uses a globally consistent lateral reference (world X projected onto each
-    segment's perpendicular plane) so that strip angles stay aligned across
-    segments — no twisting/spiral artefact from per-segment yaw differences.
+    Uses each plate's actual orientation (d.xmat) to anchor strip endpoints,
+    then interpolates along the segment — strips follow plate rotation exactly,
+    eliminating twisting artefacts under high contraction force.
     """
     BOX      = int(mujoco.mjtGeom.mjGEOM_BOX)
     num_segs = len(plate_ids) - 1
-    world_x  = np.array([1.0, 0.0, 0.0])    # consistent circumferential ref
     world_up = np.array([0.0, 0.0, 1.0])
 
     for seg in range(num_segs):
@@ -156,21 +143,23 @@ def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
             continue
         e_fwd = body_axis / body_len
 
-        # Project world_x onto plane ⊥ to e_fwd → consistent lateral ref
-        e_lat = world_x - np.dot(world_x, e_fwd) * e_fwd
-        lat_n = np.linalg.norm(e_lat)
-        if lat_n < 1e-6:                                  # body along world X
-            e_lat = np.cross(e_fwd, world_up)
-            lat_n = np.linalg.norm(e_lat)
-            e_lat = e_lat / lat_n if lat_n > 1e-6 else np.array([1.0, 0.0, 0.0])
-        else:
-            e_lat /= lat_n
+        # Get plate orientations → extract lateral reference from each plate's xmat
+        mat_i = d.xmat[pi].reshape(3, 3)   # columns = local axes in world frame
+        mat_j = d.xmat[pj].reshape(3, 3)
 
-        e_up = np.cross(e_lat, e_fwd)
-        e_up /= (np.linalg.norm(e_up) + 1e-12)
+        # Use plate's local X axis projected onto plane ⊥ body_axis as ref
+        def make_ref(mat_col):
+            ref = mat_col - np.dot(mat_col, e_fwd) * e_fwd
+            n = np.linalg.norm(ref)
+            if n < 1e-6:
+                ref = np.cross(e_fwd, world_up)
+                n = np.linalg.norm(ref)
+            return ref / (n + 1e-12)
 
-        # Dynamic bow: contracted segments bulge dramatically, relaxed stay slim
-        # bow_scale > 1 when segment compressed, < 1 when extended
+        ref_i = make_ref(mat_i[:, 0])
+        ref_j = make_ref(mat_j[:, 0])
+
+        # Dynamic bow: contracted segments bulge more
         if pipe_mode:
             vis_bow = VIS_BOW_PIPE
         else:
@@ -181,15 +170,29 @@ def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
             ca = math.cos(STRIP_ANGLES[si])
             sa = math.sin(STRIP_ANGLES[si])
 
-            # Compute NUM_VERTS vertex positions along the segment with bow
-            verts = []
+            # Compute vertex positions with interpolated circumferential ref
+            verts  = []
+            e_lats = []
+            e_ups  = []
             for k in range(NUM_VERTS):
-                t      = k / (NUM_VERTS - 1)
+                t = k / (NUM_VERTS - 1)
+
+                # Interpolate circumferential reference between plates
+                e_lat_k = (1.0 - t) * ref_i + t * ref_j
+                e_lat_k -= np.dot(e_lat_k, e_fwd) * e_fwd  # keep ⊥ body axis
+                n = np.linalg.norm(e_lat_k)
+                e_lat_k = e_lat_k / (n + 1e-12)
+
+                e_up_k = np.cross(e_lat_k, e_fwd)
+                e_up_k /= (np.linalg.norm(e_up_k) + 1e-12)
+
                 center = (1.0 - t) * pos_i + t * pos_j
                 bow_r  = vis_bow * 4.0 * t * (1.0 - t)
                 r      = STRIP_CIRCLE_R + bow_r
-                # World-space position: radial offset in body-axis frame
-                verts.append(center + r * ca * e_lat + (Z_CENTER + r * sa) * e_up)
+
+                verts.append(center + r * ca * e_lat_k + (Z_CENTER + r * sa) * e_up_k)
+                e_lats.append(e_lat_k)
+                e_ups.append(e_up_k)
 
             # Insert one flat BOX per consecutive vertex pair
             for k in range(NUM_VERTS - 1):
@@ -202,27 +205,26 @@ def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
                 L   = np.linalg.norm(dv)
                 if L < 1e-10:
                     continue
-                half_len = L * 0.5 * 1.05   # 5% overlap — minimal, clean seams
+                half_len = L * 0.5 * 1.25   # 25% overlap — continuous solid bands
 
-                z_ax   = dv / L                           # strip length direction
+                z_ax = dv / L
 
-                # Radial direction: outward from worm axis (same angle for whole segment)
-                radial = ca * e_lat + sa * e_up
-                rn     = np.linalg.norm(radial)
-                radial = radial / rn if rn > 1e-6 else e_up
+                # Use midpoint circumferential ref for BOX orientation
+                e_lat_mid = (e_lats[k] + e_lats[k + 1]) * 0.5
+                e_up_mid  = (e_ups[k]  + e_ups[k + 1])  * 0.5
+                e_lat_mid /= (np.linalg.norm(e_lat_mid) + 1e-12)
+                e_up_mid  /= (np.linalg.norm(e_up_mid)  + 1e-12)
 
-                # Tangential = circumferential (strip width direction)
+                radial = ca * e_lat_mid + sa * e_up_mid
+                rn = np.linalg.norm(radial)
+                radial = radial / rn if rn > 1e-6 else e_up_mid
+
                 tang = np.cross(z_ax, radial)
-                tn   = np.linalg.norm(tang)
-                tang = tang / tn if tn > 1e-6 else np.cross(z_ax, e_up)
+                tn = np.linalg.norm(tang)
+                tang = tang / tn if tn > 1e-6 else np.cross(z_ax, e_up_mid)
 
-                # Re-orthogonalize radial to ensure right-hand orthonormal frame
                 radial = np.cross(tang, z_ax)
 
-                # Row-major rotation matrix:
-                #   row 0 (local x) = tang   → strip width  (STRIP_W)
-                #   row 1 (local y) = radial → strip thickness (STRIP_T)
-                #   row 2 (local z) = z_ax   → strip length  (half_len)
                 mat = np.array([
                     tang[0],   tang[1],   tang[2],
                     radial[0], radial[1], radial[2],
@@ -232,6 +234,9 @@ def inject_flat_strips(scene, d, plate_ids, pipe_mode=False):
                 size = np.array([STRIP_W / 2, STRIP_T / 2, half_len], dtype=np.float64)
                 geom = scene.geoms[scene.ngeom]
                 mujoco.mjv_initGeom(geom, BOX, size, mid.astype(np.float64), mat, STRIP_RGBA)
+                geom.emission  = 0.12
+                geom.specular  = 0.5
+                geom.shininess = 0.4
                 scene.ngeom += 1
 
 
@@ -389,7 +394,7 @@ def run(pipe_mode=False, turn_mode=None, fast_mode=False,
             plate_stiff_x     = 500.0,      # anti-lateral drift
             plate_stiff_y     = 0.0,
             plate_stiff_yaw   = 0.0,
-            axial_muscle_force= 50,
+            axial_muscle_force= 100,
             gait_s0           = '0,0,0,1,1',   # rectilinear {0,0,2|1}
             step_duration     = 0.5,
             settle_time       = 1.0 if not fast_mode else 0.3,
@@ -458,10 +463,20 @@ def run(pipe_mode=False, turn_mode=None, fast_mode=False,
     print(f"Model: bodies={m.nbody}, DOF={m.nv}, actuators={m.nu}")
     print(f"Mode: {mode_str}")
 
-    # ── Colour plates — dark steel, all equal
+    # ── Hide cable/ring geoms at model level, colour plates dark
     plate_id_set = set(plate_ids)
+    cable_body_ids = set()
+    for bid in range(m.nbody):
+        bname = m.body(bid).name
+        if bname and ((bname.startswith('c') and 's' in bname and 'B' in bname) or
+                       bname.startswith('rb')):
+            cable_body_ids.add(bid)
     for gi in range(m.ngeom):
-        if m.geom_bodyid[gi] in plate_id_set:
+        bid = int(m.geom_bodyid[gi])
+        if bid in cable_body_ids:
+            m.geom_rgba[gi] = [0, 0, 0, 0]
+            m.geom_group[gi] = 4
+        elif bid in plate_id_set:
             m.geom_rgba[gi] = [0.10, 0.10, 0.12, 0.95]
 
     # ── Settle ──────────────────────────────────────────────────────────────
@@ -513,7 +528,11 @@ def run(pipe_mode=False, turn_mode=None, fast_mode=False,
     frames   = []
     fps      = 30
     if record_video:
-        renderer = mujoco.Renderer(m, 720, 1280, max_geom=5000)
+        renderer = mujoco.Renderer(m, 720, 1280, max_geom=10000)
+        vopt = mujoco.MjvOption()
+        vopt.geomgroup[4] = 0   # hide cable geoms
+        vopt.flags[mujoco.mjtVisFlag.mjVIS_TENDON] = 0
+        vopt.flags[mujoco.mjtVisFlag.mjVIS_JOINT] = 0
         print("Renderer created (720×1280, max_geom=5000)")
 
     # ── Main simulation loop ─────────────────────────────────────────────────
@@ -580,8 +599,9 @@ def run(pipe_mode=False, turn_mode=None, fast_mode=False,
                 lookat_smooth += 0.03 * (mid - lookat_smooth)
                 cam.lookat[:] = lookat_smooth
 
-            renderer.update_scene(d, cam)
-            hide_cable_geoms(renderer.scene, m)
+            renderer.update_scene(d, cam, scene_option=vopt)
+            n_orig = renderer.scene.ngeom
+            hide_cable_geoms(renderer.scene, m, plate_id_set, n_orig)
             fix_plate_orientations(renderer.scene, m, d, plate_ids, plate_id_set)
             inject_flat_strips(renderer.scene, d, plate_ids, pipe_mode=pipe_mode)
             frames.append(renderer.render().copy())

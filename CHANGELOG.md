@@ -1,5 +1,161 @@
 # Worm Robot Simulation — Changelog
 
+## [V5.1] - 2026-03-11 — 刚体+轮子架构 (worm_v5_1.py)
+
+### 架构重构 — 基于 v6.urdf 真实硬件设计
+- **设计思路**: 从 cable composites (327 bodies, 1116 DOF) 重构为刚体+轮子 (16 bodies, 24 DOF)
+- **参考**: `D:\robot\snake_worm\v6\urdf\v6.urdf` — SolidWorks 导出的 5 段蠕虫机器人
+- **拓扑**: 每个体节 = 1 个 capsule 刚体 + 2 个圆柱轮子, 通过 slide+yaw 关节串联
+  ```
+  [seg0+wheels] ─slide+yaw─ [seg1+wheels] ─slide+yaw─ [seg2+wheels] ─slide+yaw─ [seg3+wheels] ─slide+yaw─ [seg4+wheels]
+     (tail)                                                                                                    (head)
+  ```
+- **物理尺寸 (匹配 URDF)**:
+  - 体节: capsule 80mm, 半径 22mm, 质量 450g
+  - 轮子: cylinder 半径 15mm, 厚 10mm, 质量 48g
+  - 间距: 105mm center-to-center
+  - 总重: 2.73 kg (5 × 0.45 + 10 × 0.048)
+- **驱动器**: 18 总 (10 wheel velocity + 4 slide position + 4 yaw position)
+- **完全自包含**: 不依赖 exp_runner.py, 内置 XML 生成器
+
+### 三种运动模式
+| 模式 | 控制方式 | 速度 (25s) | 航向 |
+|------|----------|------------|------|
+| worm | Zhan/Fang 离散步态 `[0,0,0,1,1]` + 轮子锚定 | 25.6 mm/s | 0.0° |
+| snake | 正弦 yaw 波 + 全轮驱动 | 42.1 mm/s | -0.0° |
+| combined | 全轮驱动 + slide 蠕动波 + yaw 波 | **42.5 mm/s** | 1.1° |
+
+**v5.1b 优化 (combined)**: 原 combined 模式沿用 worm 的轮子锚定 (刹车)，导致 snake yaw 无法贡献速度 (仅 25.3 mm/s)。
+改为全轮持续驱动 + 纯 slide 蠕动波后，combined 达到 42.5 mm/s，超过 snake alone (42.1 mm/s)。
+
+### 蠕动步态 (worm mode)
+- Zhan/Fang 2019 离散逆行蠕动 `{0,0,2|1}`, 步态向量 `[0,0,0,1,1]`
+- State 0 (advancing): 驱动轮子前进 (-ω, 右手定则)
+- State 1 (anchored): 刹车轮子 (target=0, kv 阻尼 + 地面摩擦锚定)
+- Slide 关节: head-side advancing → 伸展 (+), anchored → 收缩 (-)
+
+### 蛇形步态 (snake mode)
+- 正弦 yaw 波: amp=0.25 rad (14.3°), freq=0.5 Hz, retrograde head→tail
+- 全轮恒速驱动: -3.0 rad/s → 42 mm/s 前进
+
+### 关键技术细节
+- **轮子方向**: 正角速度 (around X) 产生 -Y 摩擦 → forward drive 需要负 ω
+- **armature=0.001**: 解决 velocity actuator + 极小轮惯量 (5.4e-6 kg·m²) 的数值不稳定
+  - 无 armature: forcerange=±2 产生 370,000 rad/s² 加速度 → 轮子飞转 → robot 起飞
+  - 有 armature: 等效惯量 1e-3 → 最大加速度 2000 rad/s² → 稳定
+- **solver**: 使用 MuJoCo 默认求解器 (非 Newton, 避免深层嵌套链不稳定)
+
+### 对比 V5 (cable composites)
+| 指标 | V5 (cables) | V5.1 (rigid) |
+|------|-------------|--------------|
+| Bodies | 327 | 16 |
+| DOF | 1116 | 24 |
+| Actuators | 41 | 18 |
+| Worm speed | 4.26 mm/s | 25.7 mm/s |
+| Sim speed | ~2000 steps/s | ~13000 steps/s |
+| 稳定性 | 零 NaN | 零 NaN |
+
+### 文件
+- `src/v3/worm_v5_1.py` — V5.1 仿真脚本（新建, 自包含）
+- `record/v5_1/videos/worm_v5_1_worm.mp4`
+- `record/v5_1/videos/worm_v5_1_snake.mp4`
+- `record/v5_1/videos/worm_v5_1_combined.mp4`
+
+---
+
+## [V5.0] - 2026-03-11 — 双模态蠕虫-蛇机器人 (worm_v5.py)
+
+### 架构 — 5 体节 + 4 摆动关节
+- **灵感**: Bi, Zhou, Fang (2023) "A worm-snake-inspired metameric robot for multi-modal locomotion"
+- **拓扑**: 每两个体节中间一个摆动关节，每个体节有自己独立的两个隔板
+  ```
+  [plate0-cables-plate1] -swing0- [plate2-cables-plate3] -swing1- [plate4-cables-plate5] -swing2- [plate6-cables-plate7] -swing3- [plate8-cables-plate9]
+       体节0                         体节1                         体节2                         体节3                         体节4
+  ```
+  - 蠕动体节: seg 0,2,4,6,8（各含 cable composites、纵肌、环肌、斜肌）
+  - 摆动关节: seg 1,3,5,7（独立刚体，6 DOF + yaw 位置驱动器，无 cable）
+- **MuJoCo**: 9 segments, 10 plates, 335 bodies, 1164 DOF
+- **驱动器**: 39 总（20 axial + 5 ring + 10 steer + 4 swing yaw position）
+- **RL action space**: [5×contraction per 体节] + [4×yaw angle per 摆动关节]
+
+### 摆动关节设计
+- 每个关节 6 自由度（3 slide + 3 hinge），通过 `connect` 约束连接两侧板子
+  - X slide: stiffness=200（横向稳定）
+  - Y slide: stiffness=10（轴向柔顺，传递蠕动力）
+  - Z slide: stiffness=500（防下沉）
+  - pitch/roll: stiffness=50（防翘曲）
+  - yaw: stiffness=0（自由偏航，由 position actuator 控制）
+
+### 三种运动模式
+| 模式 | 控制 | 位移 (15s) | 速度 |
+|------|------|------------|------|
+| worm | 5 段蠕动波 `[0,0,0,1,1]` | 13.0 mm (+Y) | 0.87 mm/s |
+| combined | 蠕动 + 4 关节正弦波 | 970 mm | 64.7 mm/s |
+
+- 手动步态仅用于验证架构，RL 训练将学习最优双模态控制策略
+
+### exp_runner.py 修改
+- 新增参数: `swing_segments=""` (逗号分隔的摆动关节段索引)
+- Cable/ring/tendon 生成跳过摆动关节段
+- 摆动关节体、connect 约束、yaw 位置驱动器注入到两种 XML 模板
+
+### 视觉渲染
+- 钢片仅渲染蠕动体节（跳过摆动关节段）
+- 摆动关节可视化为小球 + capsule 脚
+- 沿用 V4.1 渲染方案（黑色厚钢片、xmat 锚定、三层 cable 隐藏）
+
+### 文件
+- `src/v3/worm_v5.py` — V5 仿真脚本（新建）
+- `src/v3/exp_runner.py` — XML 生成器（修改：摆动关节支持）
+- `record/v5/videos/worm_v5_combined.mp4`
+- `record/v5/videos/worm_v5_worm.mp4`
+
+---
+
+## [V4.1] - 2026-03-10 — 真实尺寸渲染优化 (worm_v4.py)
+
+### 视觉重构
+- **真实机器人尺寸**: 板间距 101.2mm, 板直径 110mm, 钢片长度 115.2mm, 钢片宽度 21mm
+- **钢片渲染**: 纯视觉注入 BOX geom（不依赖 cable composite 几何体）
+  - 厚度: 0.3mm → 4mm（厚实黑色带子，匹配实物外观）
+  - 顶点数: 20 → 40（每条钢片 39 段，消除断裂感）
+  - 重叠: 5% → 25%（连续平滑的桶形拱带）
+  - 弓度: 28mm（动态缩放 `bow_scale = SEG_LENGTH / body_len`）
+- **全黑色调**: 钢片 `[0.10, 0.10, 0.12]` + 板 `[0.08, 0.08, 0.10]`，靠 3D 形状和金属高光区分
+  - emission=0.12, specular=0.5, shininess=0.4
+- **消除钢片扭转**: 每条钢片两端用板子实际朝向 `d.xmat` 锚定，沿体节线性插值（替代全局 world_x 参考）
+
+### Cable 隐藏（三层）
+1. **模型级**: `m.geom_rgba=[0,0,0,0]` + `m.geom_group=4`（按 body name 匹配 cable/ring）
+2. **渲染选项**: `vopt.geomgroup[4]=0` + 隐藏 tendon/joint
+3. **场景级**: `hide_cable_geoms()` 隐藏所有非板非地面 geom（带 `n_orig` 保护注入的钢片 geom）
+
+### 物理调参
+- `axial_muscle_force`: 50 → 100N（可见蠕动压缩，无向上翘曲）
+- `bend_stiff=1e8`, `plate_stiff_x=500`（直线模式不变）
+- 补光灯: `exp_runner.py` 添加 fill light
+
+### 性能
+| 指标 | V4.0 (force=50) | V4.1 (force=100) |
+|------|----------------|------------------|
+| 位移 (10s) | ~16mm | **40mm** |
+| 速度 | 1.6 mm/s | **4.0 mm/s** |
+| 航向 | 0.0° | 0.0° |
+| 向上翘曲 | 无 | 无 |
+
+### 迭代记录
+1. force=50 + 0.8mm 钢片 → 收缩不可见，钢片太暗
+2. force=200 + emission=0.7 银色钢片 → 向上翘曲 + 钢片扭转
+3. force=200 + 黑色钢片 + xmat 锚定 → 翘曲仍存在
+4. force=100 + 4mm 厚钢片 + 40 顶点 + 25% 重叠 → **当前版本**
+
+### 文件
+- `src/v3/worm_v4.py` — 主仿真脚本（修改）
+- `src/v3/exp_runner.py` — XML 生成器（添加补光灯）
+- `record/v4/videos/worm_v4_straight.mp4`
+
+---
+
 ## [V3.5] - 2026-02-27 — 转向运动 (对角斜肌)
 
 ### 新增

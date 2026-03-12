@@ -98,6 +98,13 @@ DEFAULTS = dict(
     # Steering mode: which gait states receive lateral force
     # "extend" = state 0 only, "all" = all plates always, "anchor" = state 1 only
     steer_mode="extend",
+    # Yaw actuators (V5 snake mode)
+    yaw_actuator=0,               # 0=off, 1=add position actuators on plate yaw joints
+    yaw_actuator_kp=10.0,         # position gain (N·m/rad)
+    yaw_actuator_range=0.5,       # max angle (radians, ≈30°)
+    # Swing joints (V5 dual-mode): segment indices that are swing joints (no cables, yaw hinge)
+    # Example: "1,3" = segments 1 and 3 are swing joints, others are peristaltic
+    swing_segments="",            # comma-separated segment indices, "" = all peristaltic
     # Sim
     sim_time=15.0,
     settle_time=1.0,
@@ -126,6 +133,12 @@ def build_model_xml(exp_id, params):
     mid_vert_idx = num_verts // 2
     torsion_f = float(P.get('torsional_friction', 0))
     no_cables = int(P.get('no_cables', 0))
+
+    # Parse swing segments: set of segment indices that are swing joints (no cables)
+    swing_str = str(P.get('swing_segments', ''))
+    swing_set = set()
+    if swing_str.strip():
+        swing_set = {int(x) for x in swing_str.split(',')}
 
     def strip_verts(angle, seg_idx):
         y_start = seg_idx * seg_length
@@ -180,6 +193,8 @@ def build_model_xml(exp_id, params):
 
     cables_xml = ""
     for seg in range(num_segments):
+        if seg in swing_set:
+            continue  # no cables at swing joints
         for si, angle in enumerate(strip_angles):
             v = strip_verts(angle, seg)
             prefix = f"c{seg}s{si}"
@@ -200,6 +215,8 @@ def build_model_xml(exp_id, params):
 
     ring_balls_xml = ""
     for seg in range(num_segments):
+        if seg in swing_set:
+            continue  # no ring balls at swing joints
         mid_y = seg * seg_length + seg_length / 2
         for si, angle in enumerate(strip_angles):
             mid_r = strip_circle_r + bow_amount
@@ -215,10 +232,48 @@ def build_model_xml(exp_id, params):
     for seg in range(num_segments):
         excludes_xml += f'    <exclude body1="plate{seg}" body2="plate{seg+1}"/>\n'
 
+    # Swing joint bodies (visible sphere + foot at midpoint between plates)
+    swing_bodies_xml = ""
+    swing_eq_xml = ""
+    swing_act_xml = ""
+    for seg in sorted(swing_set):
+        if seg < 0 or seg >= num_segments:
+            continue
+        sw_idx = sorted(swing_set).index(seg)
+        y_mid = seg * seg_length + seg_length / 2.0
+        swing_bodies_xml += (
+            f'    <body name="swing{sw_idx}" pos="0 {y_mid:.5f} 0">\n'
+            f'      <joint name="sw{sw_idx}_x" type="slide" axis="1 0 0" stiffness="200" damping="1"/>\n'
+            f'      <joint name="sw{sw_idx}_y" type="slide" axis="0 1 0" stiffness="10" damping="0.5"/>\n'
+            f'      <joint name="sw{sw_idx}_z" type="slide" axis="0 0 1" stiffness="500" damping="2"/>\n'
+            f'      <joint name="sw{sw_idx}_pitch" type="hinge" axis="1 0 0" stiffness="50" damping="1"/>\n'
+            f'      <joint name="sw{sw_idx}_roll" type="hinge" axis="0 1 0" stiffness="50" damping="1"/>\n'
+            f'      <joint name="sw{sw_idx}_yaw" type="hinge" axis="0 0 1" stiffness="0" damping="0.5"/>\n'
+            f'      <geom type="sphere" size="0.012" pos="0 0 {z_center:.5f}" rgba="0.20 0.20 0.25 0.9" mass="0.005" contype="0" conaffinity="0"/>\n'
+            f'      <geom name="swfoot{sw_idx}" type="capsule" size="0.005" fromto="-0.025 0 0.004 0.025 0 0.004"\n'
+            f'            rgba="0.3 0.3 0.3 0.5" mass="0.002" friction="{P["ground_friction"]}" contype="1" conaffinity="1"/>\n'
+            f'    </body>\n'
+        )
+        # Connect swing body to both adjacent plates (stiff — these are the ONLY constraints at swing joints)
+        dy = seg_length / 2.0
+        swing_eq_xml += (
+            f'    <connect body1="plate{seg}" body2="swing{sw_idx}" anchor="0 {dy:.5f} 0" solref="0.001 1"/>\n'
+            f'    <connect body1="swing{sw_idx}" body2="plate{seg+1}" anchor="0 {-dy:.5f} 0" solref="0.001 1"/>\n'
+        )
+        # Position actuator on swing joint yaw
+        sw_kp = float(P.get('yaw_actuator_kp', 10.0))
+        sw_range = float(P.get('yaw_actuator_range', 0.5))
+        swing_act_xml += (
+            f'    <position name="swing{sw_idx}_act" joint="sw{sw_idx}_yaw" '
+            f'kp="{sw_kp}" ctrlrange="-{sw_range} {sw_range}"/>\n'
+        )
+
     cable_welds_xml = ""
     cable_ct = P['cable_constraint']
     cable_solref = P['cable_weld_solref']
     for seg in range(num_segments):
+        if seg in swing_set:
+            continue  # swing joints use plate-to-plate connect, not cable welds
         for si in range(num_strips):
             prefix = f"c{seg}s{si}"
             if cable_ct == "connect":
@@ -234,6 +289,8 @@ def build_model_xml(exp_id, params):
     ct = P['constraint_type']
     if ct == "connect":
         for seg in range(num_segments):
+            if seg in swing_set:
+                continue  # swing segments use swing body connects, not direct plate-to-plate
             plate_welds_xml += (
                 f'    <connect body1="plate{seg}" body2="plate{seg+1}"\n'
                 f'          anchor="0 {seg_length:.5f} 0"\n'
@@ -241,6 +298,8 @@ def build_model_xml(exp_id, params):
             )
     elif ct == "weld":
         for seg in range(num_segments):
+            if seg in swing_set:
+                continue  # swing segments use swing body connects
             plate_welds_xml += (
                 f'    <weld body1="plate{seg}" body2="plate{seg+1}"\n'
                 f'          solref="{P["plate_weld_solref"]}" solimp="{P["plate_weld_solimp"]}"/>\n'
@@ -249,6 +308,8 @@ def build_model_xml(exp_id, params):
 
     ring_connects_xml = ""
     for seg in range(num_segments):
+        if seg in swing_set:
+            continue
         for si in range(num_strips):
             prefix = f"c{seg}s{si}"
             ring_connects_xml += f'    <connect body1="rb{seg}_{si}" body2="{prefix}B_{mid_vert_idx}" anchor="0 0 0" solref="0.003 1"/>\n'
@@ -259,6 +320,8 @@ def build_model_xml(exp_id, params):
     tendon_spring_damp = float(P.get('tendon_damping', 0))
     tendon_routing = str(P.get('tendon_routing', 'offset'))  # "offset" or "center"
     for seg in range(num_segments):
+        if seg in swing_set:
+            continue  # no axial muscles at swing joints
         for mi in range(4):
             tname = f"at{seg}_{mi}"
             mname = f"am{seg}_{mi}"
@@ -287,6 +350,8 @@ def build_model_xml(exp_id, params):
     ring_tendons_xml = ""
     ring_muscles_xml = ""
     for seg in range(num_segments):
+        if seg in swing_set:
+            continue
         tname = f"rt{seg}"
         ring_tendons_xml += f'    <spatial name="{tname}" width="0.0015">\n'
         for si in range(num_strips):
@@ -298,6 +363,8 @@ def build_model_xml(exp_id, params):
     steer_tendons_xml = ""
     steer_muscles_xml = ""
     for seg in range(num_segments):
+        if seg in swing_set:
+            continue  # no steer tendons at swing joints
         for direction, tag, s1, s2 in [("L", f"stL{seg}", "stR", "stL"), ("R", f"stR{seg}", "stL", "stR")]:
             mname = f"sm{direction}{seg}"
             steer_tendons_xml += f'    <spatial name="{tag}" width="0.0012">\n'
@@ -306,6 +373,17 @@ def build_model_xml(exp_id, params):
             steer_tendons_xml += f'    </spatial>\n'
             steer_muscles_xml += f'    <muscle class="muscle" name="{mname}" tendon="{tag}" force="{P["steer_muscle_force"]}" lengthrange="0.040 0.150"/>\n'
     num_steer = num_segments * 2
+
+    # Yaw position actuators (V5 snake mode)
+    yaw_actuators_xml = ""
+    if int(P.get('yaw_actuator', 0)):
+        yaw_kp_act = float(P['yaw_actuator_kp'])
+        yaw_range = float(P['yaw_actuator_range'])
+        for p in range(num_plates):
+            yaw_actuators_xml += (
+                f'    <position name="yaw_p{p}" joint="p{p}_yaw" '
+                f'kp="{yaw_kp_act}" ctrlrange="-{yaw_range} {yaw_range}"/>\n'
+            )
 
     if no_cables:
         # Simplified model: plates only, no cables/ring balls
@@ -348,13 +426,13 @@ def build_model_xml(exp_id, params):
     <light diffuse=".8 .8 .8" dir="0 0 -1" directional="true" pos="0 0 3"/>
     <geom type="plane" size="2 2 0.01" condim="{'4' if torsion_f > 0 else '3'}" friction="{P['ground_friction']} {torsion_f} 0.001" contype="3" conaffinity="3"/>
 {plates_xml}
-  </worldbody>
+{swing_bodies_xml}  </worldbody>
   <contact>
 {excludes_xml}
   </contact>
   <equality>
 {plate_eq_xml}{yaw_eq_xml}
-  </equality>
+{swing_eq_xml}  </equality>
   <tendon>
 {axial_tendons_xml}
 {steer_tendons_xml}
@@ -362,7 +440,7 @@ def build_model_xml(exp_id, params):
   <actuator>
 {axial_muscles_xml}
 {steer_muscles_xml}
-  </actuator>
+{yaw_actuators_xml}{swing_act_xml}  </actuator>
 </mujoco>"""
     else:
         full_xml = f"""<?xml version="1.0" encoding="utf-8"?>
@@ -377,12 +455,13 @@ def build_model_xml(exp_id, params):
     <default class="muscle"><muscle ctrllimited="true" ctrlrange="0 1"/></default>
   </default>
   <worldbody>
-    <light diffuse=".8 .8 .8" dir="0 0 -1" directional="true" pos="0 0 3"/>
+    <light diffuse=".8 .8 .8" dir="0 -0.3 -1" directional="true" pos="0 0 3"/>
+    <light diffuse=".3 .3 .35" dir="0.5 0.5 -0.5" directional="true" pos="1 1 2"/>
     <geom type="plane" size="2 2 0.01" condim="{'4' if torsion_f > 0 else '3'}" friction="{P['ground_friction']} {torsion_f} 0.001" contype="3" conaffinity="3"/>
 {plates_xml}
 {cables_xml}
 {ring_balls_xml}
-  </worldbody>
+{swing_bodies_xml}  </worldbody>
   <contact>
 {excludes_xml}
   </contact>
@@ -390,7 +469,7 @@ def build_model_xml(exp_id, params):
 {cable_welds_xml}
 {plate_welds_xml}
 {ring_connects_xml}
-  </equality>
+{swing_eq_xml}  </equality>
   <tendon>
 {axial_tendons_xml}
 {ring_tendons_xml}
@@ -400,7 +479,7 @@ def build_model_xml(exp_id, params):
 {axial_muscles_xml}
 {ring_muscles_xml}
 {steer_muscles_xml}
-  </actuator>
+{yaw_actuators_xml}{swing_act_xml}  </actuator>
 </mujoco>"""
 
     return full_xml, P
