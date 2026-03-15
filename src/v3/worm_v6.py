@@ -77,8 +77,8 @@ NUM_STRIPS      = 8
 STRIP_CIRCLE_R  = 0.068    # 68mm — flush with body edge (mesh radius ~70mm)
 STRIP_W         = 0.018    # 18mm wide band (narrower, more refined)
 STRIP_T         = 0.002    # 2mm visual thickness (thinner, more realistic)
-VIS_BOW_MIN     = 0.001    # 1mm rest bow (subtle at rest)
-VIS_BOW_MAX     = 0.035    # 35mm max outward bow at full compression
+VIS_BOW_MIN     = 0.012    # 12mm rest bow (visibly curved even at rest)
+VIS_BOW_MAX     = 0.040    # 40mm max outward bow at full compression
 ARC_SEGS        = 24       # segments per strip for very smooth parabolic arc
 ARC_OVERLAP     = 1.12     # 12% overlap to hide seams without excess bulk
 STRIP_RGBA      = np.array([0.05, 0.05, 0.05, 1.0], dtype=np.float32)  # black
