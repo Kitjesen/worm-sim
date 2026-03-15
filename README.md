@@ -2,7 +2,28 @@
 
 MuJoCo simulation of a 5-segment metameric earthworm-like robot with spring steel strip structures, capable of rectilinear locomotion, active circular turning, and passive 90° pipe navigation.
 
-## Demo
+## V6 — RL Training Arena (Longworm2 CAD Model)
+
+![Training Arena](record/v6/videos/training_arena.gif)
+
+20 worm robots training in parallel — 4 training stages from random exploration to converged gait. 7 body segments, 11 actuated joints (6 slide + 5 yaw), 24 passive wheels, spring steel strip deformation. MJX (GPU) and SB3 (CPU) PPO training pipelines.
+
+```bash
+# RL training (CPU, SB3 PPO)
+python src/v3/train_v6.py --timesteps 5000000 --n-envs 16
+
+# RL training (GPU, MJX + brax PPO)
+python src/v3/train_v6_gpu.py --timesteps 10000000
+
+# Evaluate trained policy
+python src/v3/eval_v6.py
+
+# Render training arena video (4K)
+python src/v3/render_arena.py
+python src/v3/render_arena.py --preview  # 720p quick test
+```
+
+## V4 — Open-Loop Gaits (Cable Composite Model)
 
 ### Rectilinear Locomotion (Open Field)
 
