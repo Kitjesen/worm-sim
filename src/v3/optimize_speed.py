@@ -39,10 +39,10 @@ PHYSICS_DT  = 0.002
 # ─── Parameter Encoding ────────────────────────────────────────────
 # 14-dimensional search space:
 #   [0]     slide_amp       ∈ [0, SLIDE_RANGE_VAL]
-#   [1]     slide_freq      ∈ [0.1, 3.0] Hz
+#   [1]     slide_freq      ∈ [0.1, 10.0] Hz
 #   [2]     slide_wave_n    ∈ [0.5, 3.0] wavelengths across body
 #   [3]     yaw_amp         ∈ [0, YAW_RANGE_VAL]
-#   [4]     yaw_freq        ∈ [0.1, 3.0] Hz
+#   [4]     yaw_freq        ∈ [0.1, 10.0] Hz
 #   [5]     yaw_wave_n      ∈ [0.5, 3.0] wavelengths
 #   [6:12]  slide_phase_bias per joint  ∈ [-π, π]
 #   [12:13] step_duration   ∈ [0.3, 2.0] seconds
@@ -63,10 +63,10 @@ BOUNDS_LO = np.array([
 ])
 BOUNDS_HI = np.array([
     SLIDE_RANGE_VAL,  # slide_amp
-    3.0,    # slide_freq
+    10.0,   # slide_freq
     3.0,    # slide_wave_n
     YAW_RANGE_VAL,    # yaw_amp
-    3.0,    # yaw_freq
+    10.0,   # yaw_freq
     3.0,    # yaw_wave_n
     *[math.pi]*6,     # slide_phase_bias [6:12]
     2.0,    # step_duration
@@ -181,19 +181,34 @@ def evaluate(params, model, data, slide_ids, yaw_ids, head_id, mode='full'):
         if np.any(np.isnan(data.qpos)):
             return 1e6
 
+        # Mid-sim stability check every 0.5s
+        if step % int(0.5 / PHYSICS_DT) == 0 and step > 0:
+            z_mid = data.xpos[head_id, 2]
+            if z_mid < 0.02 or z_mid > 0.25:
+                return 1e6
+
     # Forward displacement (-X direction)
     xf = data.xpos[head_id, 0]
     yf = data.xpos[head_id, 1]
     forward = -(xf - x0)  # positive = moved forward in -X
     lateral = abs(yf)      # drift from center line (started at y=0)
 
-    # Check stability: penalize if robot flipped
+    # Check stability: penalize if robot flipped or launched
     z = data.xpos[head_id, 2]
-    if z < 0.02 or z > 0.3:
-        return 1e6  # flipped or launched
+    if z < 0.02 or z > 0.25:
+        return 1e6
 
-    # Penalize lateral drift: lose 3mm of credit per 1mm of drift
-    effective = forward - 3.0 * lateral
+    # Sanity check: reject implausible speeds (>500 mm/s = physics glitch)
+    if abs(forward) > SIM_TIME * 0.5:
+        return 1e6
+
+    # Must go forward, not backward
+    if forward < 0:
+        return 1e6
+
+    # Straightness: effective speed = forward minus heavy drift penalty
+    # Robot must keep lateral drift < 5% of forward distance
+    effective = forward - 15.0 * lateral
     return -effective  # negate: CMA-ES minimizes
 
 
