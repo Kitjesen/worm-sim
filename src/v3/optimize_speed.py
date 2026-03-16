@@ -39,10 +39,10 @@ PHYSICS_DT  = 0.002
 # ─── Parameter Encoding ────────────────────────────────────────────
 # 14-dimensional search space:
 #   [0]     slide_amp       ∈ [0, SLIDE_RANGE_VAL]
-#   [1]     slide_freq      ∈ [0.1, 10.0] Hz
+#   [1]     slide_freq      ∈ [0.1, 5.0] Hz  (realistic servo limit ~3-5Hz)
 #   [2]     slide_wave_n    ∈ [0.5, 3.0] wavelengths across body
 #   [3]     yaw_amp         ∈ [0, YAW_RANGE_VAL]
-#   [4]     yaw_freq        ∈ [0.1, 10.0] Hz
+#   [4]     yaw_freq        ∈ [0.1, 5.0] Hz
 #   [5]     yaw_wave_n      ∈ [0.5, 3.0] wavelengths
 #   [6:12]  slide_phase_bias per joint  ∈ [-π, π]
 #   [12:13] step_duration   ∈ [0.3, 2.0] seconds
@@ -63,10 +63,10 @@ BOUNDS_LO = np.array([
 ])
 BOUNDS_HI = np.array([
     SLIDE_RANGE_VAL,  # slide_amp
-    10.0,   # slide_freq
+    5.0,    # slide_freq (realistic servo limit)
     3.0,    # slide_wave_n
     YAW_RANGE_VAL,    # yaw_amp
-    10.0,   # yaw_freq
+    5.0,    # yaw_freq
     3.0,    # yaw_wave_n
     *[math.pi]*6,     # slide_phase_bias [6:12]
     2.0,    # step_duration
