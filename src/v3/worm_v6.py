@@ -25,12 +25,25 @@ import time
 import argparse
 import xml.etree.ElementTree as ET
 
+from motor_contract_v6 import (
+    NUM_ACTUATORS,
+    NUM_SLIDES,
+    NUM_YAWS,
+    SLIDE_FORCE_LIMIT_N,
+    SLIDE_JOINT_DAMPING,
+    SLIDE_JOINT_STIFFNESS,
+    SLIDE_POSITION_KP_N_PER_M,
+    SLIDE_TARGET_SCALE_M,
+    YAW_JOINT_DAMPING,
+    YAW_POSITION_KP_NM_PER_RAD,
+    YAW_TARGET_SCALE_RAD,
+    YAW_TORQUE_LIMIT_NM,
+)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants from URDF analysis
 # ─────────────────────────────────────────────────────────────────────────────
-NUM_SLIDES = 6          # back1-back6
-NUM_YAWS   = 5          # front2-front6
-NUM_ACTUATORS = NUM_SLIDES + NUM_YAWS  # 11
+# Actuator counts come from motor_contract_v6.
 
 # Collision shape dimensions (from STL mesh analysis)
 WHEEL_RADIUS = 0.016    # 16mm
@@ -47,10 +60,10 @@ TAIL_COL_HLEN  = 0.015  # back6 half-length
 BODY_Z = 0.086
 
 # Actuator parameters (scaled for heavier robot)
-SLIDE_KP = 800.0        # N/m position gain (heavier robot needs more force)
-SLIDE_FORCE = 50.0      # N max force
-YAW_KP   = 200.0        # Nm/rad position gain
-YAW_FORCE = 20.0        # Nm max torque
+SLIDE_KP = SLIDE_POSITION_KP_N_PER_M
+SLIDE_FORCE = SLIDE_FORCE_LIMIT_N
+YAW_KP = YAW_POSITION_KP_NM_PER_RAD
+YAW_FORCE = YAW_TORQUE_LIMIT_NM
 
 # Wheel parameters
 WHEEL_DAMPING = 0.002
@@ -58,12 +71,13 @@ WHEEL_ARMATURE = 0.0002
 WHEEL_FRICTION = "1.5 0.01 0.001"
 
 # Open-loop gait parameters
-SLIDE_RANGE_VAL = 0.05  # 50mm slide range (from URDF limits)
-YAW_RANGE_VAL   = 1.57  # ±90° yaw range
+SLIDE_RANGE_VAL = SLIDE_TARGET_SCALE_M  # 50mm slide command scale
+YAW_RANGE_VAL = YAW_TARGET_SCALE_RAD  # +/-90 deg yaw range
 SNAKE_AMP   = 0.40      # yaw amplitude (rad)
 SNAKE_FREQ  = 0.4       # Hz (slower for longer body)
 SNAKE_WAVES = 1.5       # wavelengths across body
-STEP_DURATION = 0.8     # seconds per peristaltic phase
+PERISTALTIC_ACTUATION_PERIOD_S = 1.0
+STEP_DURATION = PERISTALTIC_ACTUATION_PERIOD_S  # seconds per body segment cycle
 
 # Body colors (from URDF)
 COLOR_BASE  = "0.79 0.82 0.93 1"    # light blue-grey
@@ -83,6 +97,86 @@ ARC_SEGS        = 24       # segments per strip for very smooth parabolic arc
 ARC_OVERLAP     = 1.12     # 12% overlap to hide seams without excess bulk
 STRIP_RGBA      = np.array([0.05, 0.05, 0.05, 1.0], dtype=np.float32)  # black
 STRIP_ANGLES    = [2.0 * math.pi * k / NUM_STRIPS for k in range(NUM_STRIPS)]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Terrain presets
+# ─────────────────────────────────────────────────────────────────────────────
+TERRAIN_PRESETS = {
+    'flat': {
+        'floor_friction': '1.0 0.005 0.001',
+        'wheel_friction': '1.5 0.01 0.001',
+        'z_lo': 0.02, 'z_hi': 0.28,
+    },
+    'sand': {
+        # Isotropic high friction — removes wheel anisotropy advantage
+        'floor_friction': '2.5 2.5 1.0',
+        'wheel_friction': '2.5 2.5 1.0',
+        'z_lo': 0.02, 'z_hi': 0.28,
+    },
+    'slope': {
+        # 10° uphill incline in -X direction
+        'floor_friction': '1.5 0.008 0.001',
+        'wheel_friction': '1.5 0.01 0.001',
+        'floor_euler': '0 0.1745 0',
+        'floor_size': '30 10 0.1',
+        'z_lo': 0.01, 'z_hi': 3.0,
+    },
+    'rough': {
+        # Sinusoidal heightfield with noise (max bump height ~2.5cm)
+        'floor_friction': '1.0 0.005 0.001',
+        'wheel_friction': '1.5 0.01 0.001',
+        'hfield': {'nrow': 100, 'ncol': 200, 'sx': 20.0, 'sy': 5.0, 'zt': 0.025, 'zb': 0.005},
+        'z_lo': 0.01, 'z_hi': 0.38,
+    },
+    'steps': {
+        # Periodic transverse ridges (0.8cm high, every 15cm)
+        'floor_friction': '1.0 0.005 0.001',
+        'wheel_friction': '1.5 0.01 0.001',
+        'steps': {'start_x': -0.3, 'spacing': 0.15, 'n': 30, 'height': 0.008, 'half_w': 0.02},
+        'z_lo': 0.01, 'z_hi': 0.35,
+    },
+    'channel': {
+        # Narrow corridor — constrains lateral serpentine motion
+        'floor_friction': '1.0 0.005 0.001',
+        'wheel_friction': '1.5 0.01 0.001',
+        'channel_half_w': 0.22,   # ±22cm corridor (body ~14cm wide)
+        'z_lo': 0.02, 'z_hi': 0.28,
+    },
+    'pipe': {
+        # Enclosed pipe — straight + optional 90° bend
+        'floor_friction': '1.0 0.005 0.001',
+        'wheel_friction': '1.5 0.01 0.001',
+        'pipe_half_w': 0.085,     # ±85mm inner half-width (body 78mm, ~7mm clearance)
+        'pipe_height': 0.13,      # 130mm inner height (body top 119mm, ~11mm clearance)
+        'pipe_wall_t': 0.005,     # 5mm wall thickness
+        'pipe_length': 3.0,       # 3m straight section
+        'pipe_bend': False,       # set True for 90° bend
+        'pipe_bend_r': 0.40,      # bend radius 400mm
+        'pipe_n_bend': 20,        # bend segments
+        'z_lo': 0.02, 'z_hi': 0.20,
+    },
+}
+
+
+def setup_terrain(model, terrain='flat', seed=42):
+    """Post-load setup: fill heightfield data for 'rough' terrain."""
+    if terrain != 'rough':
+        return
+    hfield_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_HFIELD, 'rough')
+    if hfield_id < 0:
+        return
+    nrow = model.hfield_nrow[hfield_id]
+    ncol = model.hfield_ncol[hfield_id]
+    rng  = np.random.default_rng(seed)
+    xs   = np.linspace(0, 6 * math.pi, ncol)
+    ys   = np.linspace(0, 4 * math.pi, nrow)
+    xx, yy = np.meshgrid(xs, ys)
+    h = (0.40 * np.sin(xx) * np.sin(yy)
+         + 0.25 * np.sin(2.3 * xx + 0.7) * np.sin(1.7 * yy + 1.1)
+         + 0.15 * rng.standard_normal((nrow, ncol)))
+    h = (h - h.min()) / (h.max() - h.min() + 1e-8)
+    model.hfield_data[:nrow * ncol] = h.flatten().astype(np.float32)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -130,9 +224,123 @@ def parse_urdf(urdf_path):
 # MJCF XML generation
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_xml(mesh_dir, urdf_path):
-    """Generate MuJoCo XML from longworm2 URDF with STL meshes."""
+def _build_pipe_geoms(t_cfg):
+    """Generate MuJoCo XML geoms for a circular cross-section pipe along -X.
+
+    Uses box geoms arranged in a polygon ring to approximate a circular pipe.
+    Bottom segment is omitted (floor acts as pipe bottom).
+    Pipe is semi-transparent for visibility.
+    """
+    R   = t_cfg['pipe_half_w']       # inner radius of pipe
+    WT  = t_cfg['pipe_wall_t']       # wall thickness
+    SL  = t_cfg['pipe_length']       # straight length
+    N_RING = 16                      # segments per ring (polygon approximation)
+
+    # Pipe center is at z = R (bottom of circle touches z=0 floor)
+    cz = R
+    R_out = R + WT  # outer radius
+
+    w_attr = ('contype="1" conaffinity="3" friction="0.8 0.005 0.001"'
+              ' rgba="0.50 0.55 0.60 0.20"')
+
+    geoms = []
+
+    # ── Straight section along -X ──
+    s_cx = -(SL / 2.0 - 0.3)   # center X of straight section
+    s_hx = SL / 2.0             # half-length
+
+    # Build circular ring from box segments (skip bottom 2 segments — floor is there)
+    for k in range(N_RING):
+        theta = 2.0 * math.pi * k / N_RING
+        # Skip bottom segments (theta near -π/2 i.e. 3π/2 area)
+        if math.sin(theta) < -0.5:
+            continue
+
+        # Box center on the ring at angle theta
+        cy = R_out * math.cos(theta)
+        cz_k = R + R_out * math.sin(theta)
+
+        # Box is tangent to the ring: oriented along pipe axis (X) and ring tangent
+        # Half-thickness in radial direction = WT/2
+        # Half-width along tangent = arc segment length / 2
+        seg_arc = 2.0 * math.pi * R_out / N_RING / 2.0
+        roll_deg = math.degrees(theta)
+
+        geoms.append(
+            f'    <geom name="pipe_s{k}" type="box"'
+            f' size="{s_hx:.4f} {seg_arc:.5f} {WT/2:.5f}"'
+            f' pos="{s_cx:.4f} {cy:.5f} {cz_k:.5f}"'
+            f' euler="{roll_deg:.2f} 0 0" {w_attr}/>'
+        )
+
+    # ── Optional 90° bend ──
+    if t_cfg.get('pipe_bend', False):
+        BR = t_cfg['pipe_bend_r']
+        n_bend = t_cfg['pipe_n_bend']
+        dphi = (math.pi / 2.0) / n_bend
+        bend_ox = -(SL - 0.3)
+
+        for j in range(n_bend):
+            phi = (j + 0.5) * dphi
+            # Pipe centerline position in the bend (turning from -X into +Y)
+            pcx = bend_ox + BR * (math.cos(math.pi - phi) + 1)
+            pcy = -BR + BR * math.sin(phi)
+            yaw_deg = math.degrees(phi)
+            seg_len = BR * dphi
+
+            for k in range(N_RING):
+                theta = 2.0 * math.pi * k / N_RING
+                if math.sin(theta) < -0.5:
+                    continue
+
+                cy_local = R_out * math.cos(theta)
+                cz_k = R + R_out * math.sin(theta)
+                # Rotate local Y offset by bend yaw
+                cy_world = pcx + cy_local * (-math.sin(math.radians(yaw_deg)))
+                cx_world = pcy + cy_local * math.cos(math.radians(yaw_deg))
+                seg_arc = 2.0 * math.pi * R_out / N_RING / 2.0
+                roll_deg = math.degrees(theta)
+
+                geoms.append(
+                    f'    <geom name="pipe_b{j}_{k}" type="box"'
+                    f' size="{seg_len/2:.5f} {seg_arc:.5f} {WT/2:.5f}"'
+                    f' pos="{cy_world:.5f} {cx_world:.5f} {cz_k:.5f}"'
+                    f' euler="{roll_deg:.2f} 0 {yaw_deg:.2f}" {w_attr}/>'
+                )
+
+        # Exit straight along +Y
+        exit_x = bend_ox + BR
+        exit_len = SL * 0.5
+        exit_cy = exit_len / 2.0
+        for k in range(N_RING):
+            theta = 2.0 * math.pi * k / N_RING
+            if math.sin(theta) < -0.5:
+                continue
+            cx_local = R_out * math.cos(theta)
+            cz_k = R + R_out * math.sin(theta)
+            seg_arc = 2.0 * math.pi * R_out / N_RING / 2.0
+            roll_deg = math.degrees(theta)
+            geoms.append(
+                f'    <geom name="pipe_e{k}" type="box"'
+                f' size="{seg_arc:.5f} {exit_len/2:.4f} {WT/2:.5f}"'
+                f' pos="{exit_x + cx_local:.5f} {exit_cy:.5f} {cz_k:.5f}"'
+                f' euler="{roll_deg:.2f} 0 0" {w_attr}/>'
+            )
+
+    return '\n'.join(geoms)
+
+
+def build_xml(mesh_dir, urdf_path, terrain='flat', mjx_compat=False):
+    """Generate MuJoCo XML from longworm2 URDF with STL meshes.
+
+    mjx_compat=True replaces cylinder wheel geoms with capsules so that
+    MJX (JAX backend) can handle all terrain types — MJX does not support
+    CYLINDER↔BOX or CYLINDER↔HFIELD collision pairs.
+    """
     links, joints = parse_urdf(urdf_path)
+    t_cfg      = TERRAIN_PRESETS.get(terrain, TERRAIN_PRESETS['flat'])
+    wheel_fric = t_cfg.get('wheel_friction', WHEEL_FRICTION)
+    floor_fric = t_cfg.get('floor_friction', '1.0 0.005 0.001')
 
     # Build parent→children map
     children = {}
@@ -170,6 +378,10 @@ def build_xml(mesh_dir, urdf_path):
       ' rgb1="0.93 0.93 0.90" rgb2="0.82 0.82 0.80"/>')
     a('    <material name="grid_mat" texture="grid" texrepeat="20 20"'
       ' reflectance="0.1"/>')
+    if terrain == 'rough':
+        hf = t_cfg['hfield']
+        a(f'    <hfield name="rough" nrow="{hf["nrow"]}" ncol="{hf["ncol"]}"'
+          f' size="{hf["sx"]} {hf["sy"]} {hf["zt"]} {hf["zb"]}"/>')
     # STL meshes
     mesh_names = set()
     for link_name in links:
@@ -188,8 +400,39 @@ def build_xml(mesh_dir, urdf_path):
       ' ambient="0.3 0.3 0.3"/>')
     a('    <light pos="1.0 -0.5 2.5" dir="-0.3 0.2 -1" diffuse="0.5 0.5 0.5"/>')
     a('    <light pos="-1.0 0.5 2.0" dir="0.3 -0.1 -1" diffuse="0.3 0.3 0.3"/>')
-    a('    <geom name="floor" type="plane" size="10 10 0.1" material="grid_mat"'
-      ' friction="1.0 0.005 0.001"/>')
+    # ── Floor / terrain geom ──
+    if terrain == 'rough':
+        hf = t_cfg['hfield']
+        a(f'    <geom name="floor" type="hfield" hfield="rough"'
+          f' pos="-5 0 -{hf["zb"]}" material="grid_mat" friction="{floor_fric}"/>')
+    elif terrain == 'slope':
+        fs = t_cfg.get('floor_size', '30 10 0.1')
+        fe = t_cfg.get('floor_euler', '0 0 0')
+        a(f'    <geom name="floor" type="plane" size="{fs}" material="grid_mat"'
+          f' euler="{fe}" friction="{floor_fric}"/>')
+    else:
+        a(f'    <geom name="floor" type="plane" size="10 10 0.1" material="grid_mat"'
+          f' friction="{floor_fric}"/>')
+    # ── Extra terrain geometry ──
+    if terrain == 'steps':
+        sp = t_cfg['steps']
+        for k in range(sp['n']):
+            sx = sp['start_x'] - k * sp['spacing']
+            a(f'    <geom name="step_{k}" type="box"'
+              f' pos="{sx:.4f} 0 {sp["height"]/2:.5f}"'
+              f' size="{sp["half_w"]:.4f} 5.0 {sp["height"]/2:.5f}"'
+              f' material="grid_mat" friction="{floor_fric}"/>')
+    elif terrain == 'channel':
+        hw = t_cfg['channel_half_w']
+        for side, sy in [('left', -hw - 0.02), ('right', hw + 0.02)]:
+            a(f'    <geom name="wall_{side}" type="box"'
+              f' pos="-5 {sy:.4f} 0.05" size="20 0.02 0.1"'
+              f' rgba="0.5 0.4 0.4 0.6" contype="1" conaffinity="3"/>')
+    elif terrain == 'pipe':
+        pipe_xml = _build_pipe_geoms(t_cfg)
+        for line in pipe_xml.split('\n'):
+            if line.strip():
+                a(line)
     a('')
 
     # ── Recursive body tree generation ──
@@ -223,13 +466,15 @@ def build_xml(mesh_dir, urdf_path):
                         f' size="{SEG_COL_RADIUS * 0.8}" mass="{links[link_name]["mass"]:.4f}"'
                         f' rgba="1 0 0 0" friction="0.3 0.005 0.001"/>')
         elif link_name.startswith('w'):
-            # Wheel: cylinder with axis along Y (axle direction)
-            lines.append(f'{indent}<geom name="col_{link_name}" type="cylinder"'
+            # Wheel: cylinder with axis along Y (axle direction).
+            # MJX does not support CYLINDER↔BOX/HFIELD — use capsule in that mode.
+            wheel_type = 'capsule' if mjx_compat else 'cylinder'
+            lines.append(f'{indent}<geom name="col_{link_name}" type="{wheel_type}"'
                         f' size="{WHEEL_RADIUS} {WHEEL_THICK}"'
                         f' euler="1.5708 0 0"'
                         f' mass="{links[link_name]["mass"]:.4f}"'
                         f' rgba="0 0 0 0"'
-                        f' friction="{WHEEL_FRICTION}"/>')
+                        f' friction="{wheel_fric}"/>')
         return '\n'.join(lines)
 
     def emit_body(link_name, joint_info, depth):
@@ -255,7 +500,8 @@ def build_xml(mesh_dir, urdf_path):
             jname = joint_info['name']
             a(f'{indent}  <joint name="{jname}" type="slide"'
               f' axis="{ax_str}" range="{lo:.4f} {hi:.4f}"'
-              f' damping="10" stiffness="300"/>')
+              f' damping="{SLIDE_JOINT_DAMPING:g}"'
+              f' stiffness="{SLIDE_JOINT_STIFFNESS:g}"/>')
         elif joint_info['type'] == 'revolute':
             ax = joint_info['axis']
             ax_str = f"{ax[0]:.5f} {ax[1]:.5f} {ax[2]:.5f}"
@@ -270,7 +516,7 @@ def build_xml(mesh_dir, urdf_path):
                 # Actuated yaw joint
                 a(f'{indent}  <joint name="{jname}" type="hinge"'
                   f' axis="{ax_str}" range="{lo:.4f} {hi:.4f}"'
-                  f' damping="5"/>')
+                  f' damping="{YAW_JOINT_DAMPING:g}"/>')
 
         # Visual mesh
         color = get_color(link_name)
@@ -422,7 +668,7 @@ def inject_strips(scene, d, slide_pairs, natural_spacings):
 # Simulation
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run(mode='snake', record_video=False, sim_time=None):
+def run(mode='snake', record_video=False, sim_time=None, terrain='flat'):
     src_dir      = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.normpath(os.path.join(src_dir, "..", ".."))
     mesh_dir     = os.path.join(project_root, "meshes")
@@ -442,8 +688,8 @@ def run(mode='snake', record_video=False, sim_time=None):
             print(f"ERROR: URDF not found at {src_urdf}")
             return
 
-    xml_str  = build_xml(mesh_dir, urdf_path)
-    xml_path = os.path.join(bin_dir, f"worm_v6_{mode}.xml")
+    xml_str  = build_xml(mesh_dir, urdf_path, terrain=terrain)
+    xml_path = os.path.join(bin_dir, f"worm_v6_{mode}_{terrain}.xml")
     with open(xml_path, "w") as f:
         f.write(xml_str)
 
@@ -518,7 +764,7 @@ def run(mode='snake', record_video=False, sim_time=None):
         if mode in ('worm', 'combined'):
             wave_len = n_slides
             for j in range(n_slides):
-                phase = 2.0 * math.pi * (t / STEP_DURATION - j / wave_len)
+                phase = 2.0 * math.pi * (t / STEP_DURATION + j / wave_len)
                 # Sinusoidal slide: negative = contract (pull segments together)
                 target = -SLIDE_RANGE_VAL * 0.5 * (1.0 + math.sin(phase))
                 d.ctrl[slide_act_ids[j]] = target
@@ -613,8 +859,17 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Worm V6 — Longworm2 simulation")
     ap.add_argument("--mode", choices=["snake", "worm", "combined"],
                     default="snake", help="Locomotion mode")
+    ap.add_argument("--terrain", choices=list(TERRAIN_PRESETS.keys()),
+                    default="flat", help="Terrain type")
     ap.add_argument("--video", action="store_true", help="Record video")
     ap.add_argument("--time", type=float, default=None, help="Simulation time (s)")
+    ap.add_argument("--bend", action="store_true",
+                    help="Enable 90-degree bend (pipe terrain only)")
     args = ap.parse_args()
 
-    run(mode=args.mode, record_video=args.video, sim_time=args.time)
+    # Enable bend for pipe terrain
+    if args.bend and args.terrain == 'pipe':
+        TERRAIN_PRESETS['pipe']['pipe_bend'] = True
+
+    run(mode=args.mode, record_video=args.video, sim_time=args.time,
+        terrain=args.terrain)

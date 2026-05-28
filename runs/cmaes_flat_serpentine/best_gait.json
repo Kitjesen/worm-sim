@@ -1,0 +1,182 @@
+{
+  "best_speed_mm_s": 86.24,
+  "best_displacement_mm": 862.35,
+  "sim_time_s": 10.0,
+  "best_params": [
+    0.024349083560013158,
+    0.2816162312347258,
+    0.6765675962279064,
+    0.6625301497712115,
+    0.4305805205225198,
+    0.6404089550924063,
+    -3.1131548700563187,
+    2.239397258925444,
+    1.0629685332602232,
+    -0.14228466321320976,
+    -1.9703253704301447,
+    -0.7678566497887567,
+    0.625936854831164,
+    0.6060054272878848
+  ],
+  "param_names": [
+    "slide_amp",
+    "slide_freq",
+    "slide_wave_n",
+    "yaw_amp",
+    "yaw_freq",
+    "yaw_wave_n",
+    "slide_bias_0",
+    "slide_bias_1",
+    "slide_bias_2",
+    "slide_bias_3",
+    "slide_bias_4",
+    "slide_bias_5",
+    "step_duration",
+    "yaw_slide_coupling"
+  ],
+  "generations": 20,
+  "total_evals": 160,
+  "total_time_s": 70.0,
+  "history": [
+    {
+      "gen": 0,
+      "best_speed_mm_s": 41.31,
+      "gen_best_speed_mm_s": 41.31,
+      "gen_mean_speed_mm_s": -12499991.07,
+      "elapsed_s": 3.2
+    },
+    {
+      "gen": 1,
+      "best_speed_mm_s": 41.31,
+      "gen_best_speed_mm_s": 24.29,
+      "gen_mean_speed_mm_s": -39.07,
+      "elapsed_s": 6.7
+    },
+    {
+      "gen": 2,
+      "best_speed_mm_s": 50.64,
+      "gen_best_speed_mm_s": 50.64,
+      "gen_mean_speed_mm_s": -12.12,
+      "elapsed_s": 10.3
+    },
+    {
+      "gen": 3,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 86.24,
+      "gen_mean_speed_mm_s": -52.02,
+      "elapsed_s": 13.8
+    },
+    {
+      "gen": 4,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 45.29,
+      "gen_mean_speed_mm_s": -24.44,
+      "elapsed_s": 17.1
+    },
+    {
+      "gen": 5,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 54.1,
+      "gen_mean_speed_mm_s": -58.63,
+      "elapsed_s": 20.7
+    },
+    {
+      "gen": 6,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 25.46,
+      "gen_mean_speed_mm_s": -56.93,
+      "elapsed_s": 24.3
+    },
+    {
+      "gen": 7,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 16.95,
+      "gen_mean_speed_mm_s": -85.46,
+      "elapsed_s": 27.4
+    },
+    {
+      "gen": 8,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 34.13,
+      "gen_mean_speed_mm_s": -56.79,
+      "elapsed_s": 31.3
+    },
+    {
+      "gen": 9,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 39.57,
+      "gen_mean_speed_mm_s": -38.24,
+      "elapsed_s": 35.1
+    },
+    {
+      "gen": 10,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 42.27,
+      "gen_mean_speed_mm_s": -26.74,
+      "elapsed_s": 38.9
+    },
+    {
+      "gen": 11,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 56.27,
+      "gen_mean_speed_mm_s": -49.44,
+      "elapsed_s": 42.1
+    },
+    {
+      "gen": 12,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 53.49,
+      "gen_mean_speed_mm_s": -44.12,
+      "elapsed_s": 45.5
+    },
+    {
+      "gen": 13,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 72.2,
+      "gen_mean_speed_mm_s": -28.62,
+      "elapsed_s": 49.1
+    },
+    {
+      "gen": 14,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 72.05,
+      "gen_mean_speed_mm_s": -24.19,
+      "elapsed_s": 52.7
+    },
+    {
+      "gen": 15,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 15.66,
+      "gen_mean_speed_mm_s": -25000036.25,
+      "elapsed_s": 56.2
+    },
+    {
+      "gen": 16,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 22.55,
+      "gen_mean_speed_mm_s": -7.45,
+      "elapsed_s": 59.7
+    },
+    {
+      "gen": 17,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 0.61,
+      "gen_mean_speed_mm_s": -12500024.98,
+      "elapsed_s": 63.2
+    },
+    {
+      "gen": 18,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 33.98,
+      "gen_mean_speed_mm_s": -11.81,
+      "elapsed_s": 66.4
+    },
+    {
+      "gen": 19,
+      "best_speed_mm_s": 86.24,
+      "gen_best_speed_mm_s": 31.75,
+      "gen_mean_speed_mm_s": -16.3,
+      "elapsed_s": 70.0
+    }
+  ]
+}

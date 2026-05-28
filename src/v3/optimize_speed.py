@@ -27,7 +27,8 @@ PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 sys.path.insert(0, SCRIPT_DIR)
 
 from worm_v6 import (
-    build_xml, NUM_SLIDES, NUM_YAWS, NUM_ACTUATORS,
+    build_xml, setup_terrain, TERRAIN_PRESETS,
+    NUM_SLIDES, NUM_YAWS, NUM_ACTUATORS,
     SLIDE_RANGE_VAL, YAW_RANGE_VAL, BODY_Z,
 )
 
@@ -35,14 +36,15 @@ from worm_v6 import (
 SIM_TIME    = 10.0      # seconds per evaluation
 SETTLE_TIME = 1.0       # seconds to settle before gait starts
 PHYSICS_DT  = 0.002
+PENALTY_FITNESS = 1e6
 
 # ─── Parameter Encoding ────────────────────────────────────────────
 # 14-dimensional search space:
 #   [0]     slide_amp       ∈ [0, SLIDE_RANGE_VAL]
-#   [1]     slide_freq      ∈ [0.1, 5.0] Hz  (realistic servo limit ~3-5Hz)
+#   [1]     slide_freq      ∈ [0.1, 1.0] Hz  (real hardware limit: 1Hz max)
 #   [2]     slide_wave_n    ∈ [0.5, 3.0] wavelengths across body
 #   [3]     yaw_amp         ∈ [0, YAW_RANGE_VAL]
-#   [4]     yaw_freq        ∈ [0.1, 5.0] Hz
+#   [4]     yaw_freq        ∈ [0.1, 1.0] Hz  (real hardware limit: 1Hz max)
 #   [5]     yaw_wave_n      ∈ [0.5, 3.0] wavelengths
 #   [6:12]  slide_phase_bias per joint  ∈ [-π, π]
 #   [12:13] step_duration   ∈ [0.3, 2.0] seconds
@@ -63,10 +65,10 @@ BOUNDS_LO = np.array([
 ])
 BOUNDS_HI = np.array([
     SLIDE_RANGE_VAL,  # slide_amp
-    5.0,    # slide_freq (realistic servo limit)
+    1.0,    # slide_freq (real hardware limit: 1Hz max)
     3.0,    # slide_wave_n
     YAW_RANGE_VAL,    # yaw_amp
-    5.0,    # yaw_freq
+    1.0,    # yaw_freq (real hardware limit: 1Hz max)
     3.0,    # yaw_wave_n
     *[math.pi]*6,     # slide_phase_bias [6:12]
     2.0,    # step_duration
@@ -76,19 +78,19 @@ BOUNDS_HI = np.array([
 # Initial guess (current combined gait)
 X0 = np.array([
     SLIDE_RANGE_VAL * 0.5,  # slide_amp
-    1.25,   # slide_freq (1/STEP_DURATION=0.8)
+    0.5,    # slide_freq — mid of [0.1, 1.0] Hz real range
     1.0,    # slide_wave_n
     0.40,   # yaw_amp (SNAKE_AMP)
-    0.40,   # yaw_freq (SNAKE_FREQ)
+    0.5,    # yaw_freq — mid of [0.1, 1.0] Hz real range
     1.5,    # yaw_wave_n (SNAKE_WAVES)
     *[0.0]*6,  # no per-joint bias
-    0.8,    # step_duration
+    1.0,    # step_duration — 1 cycle = 1s at 1Hz
     0.0,    # no coupling
 ])
 SIGMA0 = 0.3  # initial step size (in normalized space)
 
 
-def build_model():
+def build_model(terrain='flat'):
     """Build MuJoCo model once, return (model, data, actuator_ids)."""
     mesh_dir = os.path.join(PROJECT_ROOT, "meshes")
     urdf_path = os.path.join(mesh_dir, "longworm2", "longworm2.SLDASM.urdf")
@@ -101,8 +103,9 @@ def build_model():
             os.makedirs(os.path.dirname(urdf_path), exist_ok=True)
             shutil.copy2(src, urdf_path)
 
-    xml_str = build_xml(mesh_dir, urdf_path)
+    xml_str = build_xml(mesh_dir, urdf_path, terrain=terrain)
     model = mujoco.MjModel.from_xml_string(xml_str)
+    setup_terrain(model, terrain)
     data = mujoco.MjData(model)
 
     slide_ids, yaw_ids = [], []
@@ -118,10 +121,31 @@ def build_model():
     return model, data, slide_ids, yaw_ids, head_id
 
 
-def evaluate(params, model, data, slide_ids, yaw_ids, head_id, mode='full'):
+def terrain_ground_z(x, y, terrain, t_cfg):
+    """Approximate terrain surface height at the root position."""
+    del y
+    if terrain == 'slope':
+        euler = t_cfg.get('floor_euler', '0 0 0').split()
+        pitch = float(euler[1]) if len(euler) >= 2 else 0.0
+        return -math.tan(pitch) * x
+    return 0.0
+
+
+def root_clearance(data, head_id, terrain, t_cfg):
+    pos = data.xpos[head_id]
+    return pos[2] - terrain_ground_z(pos[0], pos[1], terrain, t_cfg)
+
+
+def evaluate(params, model, data, slide_ids, yaw_ids, head_id, mode='full', terrain='flat'):
     """Simulate gait and return negative forward displacement (CMA-ES minimizes)."""
     # Clamp parameters
     p = np.clip(params, BOUNDS_LO, BOUNDS_HI)
+
+    t_cfg = TERRAIN_PRESETS.get(terrain, TERRAIN_PRESETS['flat'])
+    # Match WormEnvV6 termination tolerance. On a tilted plane the root can sit
+    # just below the nominal terrain z_lo while still being in stable contact.
+    z_lo  = max(0.0, t_cfg.get('z_lo', 0.02) - 0.01)
+    z_hi  = t_cfg.get('z_hi', 0.28)
 
     slide_amp    = p[0]
     slide_freq   = p[1]
@@ -152,7 +176,7 @@ def evaluate(params, model, data, slide_ids, yaw_ids, head_id, mode='full'):
         mujoco.mj_step(model, data)
 
     if np.any(np.isnan(data.qpos)):
-        return 1e6  # penalty for NaN
+        return PENALTY_FITNESS  # penalty for NaN
 
     # Record initial position
     x0 = data.xpos[head_id, 0]
@@ -179,13 +203,13 @@ def evaluate(params, model, data, slide_ids, yaw_ids, head_id, mode='full'):
         mujoco.mj_step(model, data)
 
         if np.any(np.isnan(data.qpos)):
-            return 1e6
+            return PENALTY_FITNESS
 
         # Mid-sim stability check every 0.5s
         if step % int(0.5 / PHYSICS_DT) == 0 and step > 0:
-            z_mid = data.xpos[head_id, 2]
-            if z_mid < 0.02 or z_mid > 0.25:
-                return 1e6
+            z_mid = root_clearance(data, head_id, terrain, t_cfg)
+            if z_mid < z_lo or z_mid > z_hi:
+                return PENALTY_FITNESS
 
     # Forward displacement (-X direction)
     xf = data.xpos[head_id, 0]
@@ -194,25 +218,22 @@ def evaluate(params, model, data, slide_ids, yaw_ids, head_id, mode='full'):
     lateral = abs(yf)      # drift from center line (started at y=0)
 
     # Check stability: penalize if robot flipped or launched
-    z = data.xpos[head_id, 2]
-    if z < 0.02 or z > 0.25:
-        return 1e6
+    z = root_clearance(data, head_id, terrain, t_cfg)
+    if z < z_lo or z > z_hi:
+        return PENALTY_FITNESS
 
     # Sanity check: reject implausible speeds (>500 mm/s = physics glitch)
     if abs(forward) > SIM_TIME * 0.5:
-        return 1e6
-
-    # Must go forward, not backward
-    if forward < 0:
-        return 1e6
+        return PENALTY_FITNESS
 
     # Straightness: effective speed = forward minus heavy drift penalty
     # Robot must keep lateral drift < 5% of forward distance
+    # Backward motion remains valid evidence and scores as negative speed.
     effective = forward - 15.0 * lateral
     return -effective  # negate: CMA-ES minimizes
 
 
-def optimize(popsize=16, max_gen=200, test=False, mode='full'):
+def optimize(popsize=16, max_gen=200, test=False, mode='full', terrain='flat'):
     """Run CMA-ES optimization.
     mode: 'full' (all params), 'peristaltic' (yaw=0), 'serpentine' (slide=0)
     """
@@ -226,7 +247,7 @@ def optimize(popsize=16, max_gen=200, test=False, mode='full'):
         max_gen = 20
         popsize = 8
 
-    print(f"CMA-ES Speed Optimization — Worm V6 [{mode.upper()}]")
+    print(f"CMA-ES Speed Optimization — Worm V6 [{mode.upper()}] on [{terrain.upper()}]")
     print(f"  params:    {N_PARAMS}")
     print(f"  popsize:   {popsize}")
     print(f"  max_gen:   {max_gen}")
@@ -235,7 +256,7 @@ def optimize(popsize=16, max_gen=200, test=False, mode='full'):
 
     # Build model
     print("  Building model...")
-    model, data, slide_ids, yaw_ids, head_id = build_model()
+    model, data, slide_ids, yaw_ids, head_id = build_model(terrain=terrain)
     print(f"  bodies={model.nbody}, DOF={model.nv}, actuators={model.nu}")
 
     # Normalize search space to [0, 1]
@@ -243,7 +264,7 @@ def optimize(popsize=16, max_gen=200, test=False, mode='full'):
     x0_norm = (X0 - BOUNDS_LO) / range_width
 
     # Output directory
-    run_dir = os.path.join(PROJECT_ROOT, "runs", f"cmaes_speed_{mode}")
+    run_dir = os.path.join(PROJECT_ROOT, "runs", f"cmaes_{terrain}_{mode}")
     os.makedirs(run_dir, exist_ok=True)
 
     # CMA-ES options
@@ -257,7 +278,7 @@ def optimize(popsize=16, max_gen=200, test=False, mode='full'):
 
     es = cma.CMAEvolutionStrategy(x0_norm, SIGMA0, opts)
 
-    best_fitness = 1e6
+    best_fitness = float("inf")
     best_params = None
     best_speed = 0.0
     history = []
@@ -272,7 +293,7 @@ def optimize(popsize=16, max_gen=200, test=False, mode='full'):
         for sol in solutions:
             # Denormalize
             params = BOUNDS_LO + sol * range_width
-            f = evaluate(params, model, data, slide_ids, yaw_ids, head_id, mode=mode)
+            f = evaluate(params, model, data, slide_ids, yaw_ids, head_id, mode=mode, terrain=terrain)
             fitnesses.append(f)
 
         es.tell(solutions, fitnesses)
@@ -282,7 +303,7 @@ def optimize(popsize=16, max_gen=200, test=False, mode='full'):
         gen_best_f = fitnesses[gen_best_idx]
         gen_best_speed = -gen_best_f / SIM_TIME * 1000  # mm/s
 
-        if gen_best_f < best_fitness:
+        if best_params is None or gen_best_f < best_fitness:
             best_fitness = gen_best_f
             best_params = BOUNDS_LO + solutions[gen_best_idx] * range_width
             best_speed = -best_fitness / SIM_TIME * 1000
@@ -366,12 +387,16 @@ if __name__ == "__main__":
                     help="Gait type: full (slide+yaw), peristaltic (slide only), serpentine (yaw only)")
     ap.add_argument("--all", action="store_true",
                     help="Run all 3 modes sequentially")
+    ap.add_argument("--terrain",
+                    choices=["flat", "sand", "slope", "rough", "steps", "channel"],
+                    default="flat",
+                    help="Terrain type")
     args = ap.parse_args()
 
     if args.all:
         for m in ["peristaltic", "serpentine", "full"]:
             optimize(popsize=args.popsize, max_gen=args.max_gen,
-                     test=args.test, mode=m)
+                     test=args.test, mode=m, terrain=args.terrain)
     else:
         optimize(popsize=args.popsize, max_gen=args.max_gen,
-                 test=args.test, mode=args.mode)
+                 test=args.test, mode=args.mode, terrain=args.terrain)

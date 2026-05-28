@@ -11,11 +11,14 @@ Usage:
     python train_v6.py --timesteps 1000000
 
     # Resume from checkpoint
-    python train_v6.py --resume runs/worm_v6_ppo/best_model.zip
+    python train_v6.py --timesteps 1000000 --resume runs/worm_v6_ppo/best_model.zip
 """
 
 import os
 import argparse
+import json
+import shutil
+import time
 import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize
@@ -27,20 +30,265 @@ from stable_baselines3.common.monitor import Monitor
 # ─── Paths ────────────────────────────────────────────────────────────────────
 SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
-RUN_DIR      = os.path.join(PROJECT_ROOT, "runs", "worm_v6_ppo")
-LOG_DIR      = os.path.join(RUN_DIR, "logs")
-CKPT_DIR     = os.path.join(RUN_DIR, "checkpoints")
+PAPER_TERRAINS = ("flat", "sand", "slope")
+GAIT_MODES = ("worm", "snake", "mixed", "random")
 
 
-def make_env(seed=0):
+def make_run_dirs(terrain='flat', gait_mode='random'):
+    run_dir  = os.path.join(PROJECT_ROOT, "runs",
+                            f"worm_v6_ppo_{terrain}_{gait_mode}")
+    log_dir  = os.path.join(run_dir, "logs")
+    ckpt_dir = os.path.join(run_dir, "checkpoints")
+    return run_dir, log_dir, ckpt_dir
+
+
+def infer_vecnormalize_path(model_path):
+    """Return the VecNormalize file paired with a final/best/checkpoint model."""
+    stem, ext = os.path.splitext(model_path)
+    if ext.lower() != ".zip":
+        return None
+
+    candidates = [f"{stem}_vecnormalize.pkl"]
+    base = os.path.basename(model_path)
+    directory = os.path.dirname(model_path)
+    marker = "_steps.zip"
+    if base.endswith(marker):
+        step_part = base[:-len(marker)].split("_")[-1]
+        prefix = base[:-len(step_part + marker)]
+        candidates.append(os.path.join(
+            directory, f"{prefix}vecnormalize_{step_part}_steps.pkl"))
+
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+    return None
+
+
+def read_json(path):
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return None
+
+
+def close_float(value, expected, tol=1e-6):
+    try:
+        return abs(float(value) - float(expected)) <= tol
+    except (TypeError, ValueError):
+        return False
+
+
+def dict_float_match(actual, expected):
+    if not isinstance(actual, dict):
+        return False
+    for key, expected_value in expected.items():
+        actual_value = actual.get(key)
+        if isinstance(expected_value, float):
+            if not close_float(actual_value, expected_value):
+                return False
+        elif actual_value != expected_value:
+            return False
+    return True
+
+
+def comparable_training_fields(config):
+    return {
+        "terrain": config.get("terrain"),
+        "gait_mode": config.get("gait_mode"),
+        "gait_blend": config.get("gait_blend"),
+        "obs_dim": config.get("obs_dim"),
+        "num_actuators": config.get("num_actuators"),
+        "num_imus": config.get("num_imus"),
+    }
+
+
+def training_config_compatible(existing, expected):
+    if not isinstance(existing, dict):
+        return False, ["missing training_config.json"]
+    reasons = []
+    if comparable_training_fields(existing) != comparable_training_fields(expected):
+        reasons.append("training fields")
+    if not dict_float_match(
+            existing.get("sensor_robustness"),
+            expected.get("sensor_robustness", {})):
+        reasons.append("sensor_robustness")
+    if not dict_float_match(
+            existing.get("control_timing"),
+            expected.get("control_timing", {})):
+        reasons.append("control_timing")
+    expected_actuator = expected.get("actuator_contract_fingerprint")
+    if (expected_actuator
+            and existing.get("actuator_contract_fingerprint")
+            != expected_actuator):
+        reasons.append("actuator_contract")
+    return not reasons, reasons
+
+
+def run_dir_for_model(model_path):
+    directory = os.path.dirname(os.path.abspath(model_path))
+    if os.path.basename(directory) == "checkpoints":
+        return os.path.dirname(directory)
+    return directory
+
+
+def resume_model_compatible(model_path, expected_config):
+    config = read_json(os.path.join(
+        run_dir_for_model(model_path), "training_config.json"))
+    return training_config_compatible(config, expected_config)
+
+
+def archive_existing_run_artifacts(run_dir, reason):
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    archive_dir = os.path.join(
+        run_dir, "incompatible_timing_archive", timestamp)
+    names = [
+        "best_model.zip",
+        "best_model_vecnormalize.pkl",
+        "final_model.zip",
+        "final_model_vecnormalize.pkl",
+        "training_config.json",
+        "training_result.json",
+        "eval_metrics.json",
+        "eval_metrics_robust.json",
+        "checkpoints",
+    ]
+    moved = []
+    for name in names:
+        src = os.path.join(run_dir, name)
+        if not os.path.exists(src):
+            continue
+        dst = os.path.join(archive_dir, name)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.move(src, dst)
+        moved.append(dst)
+    if moved:
+        marker = {
+            "created_unix_time": time.time(),
+            "reason": reason,
+            "moved": moved,
+        }
+        os.makedirs(archive_dir, exist_ok=True)
+        write_json(os.path.join(archive_dir, "archive_reason.json"), marker)
+        print(f"  Archived incompatible previous artifacts: {archive_dir}")
+    return moved
+
+
+def make_env(terrain='flat', gait_mode='random', gait_blend=None,
+             encoder_pos_noise_std=0.0, encoder_vel_noise_std=0.0,
+             imu_gravity_noise_std=0.0, imu_gyro_noise_std=0.0,
+             action_delay_steps=0, action_saturation=1.0, seed=0):
     """Factory for creating a monitored WormEnvV6 instance."""
     def _init():
         from worm_env_v6 import WormEnvV6
-        env = WormEnvV6()
+        env = WormEnvV6(
+            terrain=terrain, gait_mode=gait_mode, gait_blend=gait_blend,
+            encoder_pos_noise_std=encoder_pos_noise_std,
+            encoder_vel_noise_std=encoder_vel_noise_std,
+            imu_gravity_noise_std=imu_gravity_noise_std,
+            imu_gyro_noise_std=imu_gyro_noise_std,
+            action_delay_steps=action_delay_steps,
+            action_saturation=action_saturation)
         env = Monitor(env)
         env.reset(seed=seed)
         return env
     return _init
+
+
+def obs_layout_json(layout):
+    return {key: [value.start, value.stop] for key, value in layout.items()}
+
+
+def write_json(path, data):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def build_training_config(args, run_gait_label, sensor_kwargs):
+    from motor_contract_v6 import motor_contract
+    from worm_env_v6 import (
+        CMD_VEL_RANGE,
+        CMD_YAW_RANGE,
+        CTRL_DT,
+        NUM_ACTUATORS,
+        NUM_IMUS,
+        OBS_DIM,
+        OBS_LAYOUT,
+        PERISTALTIC_ACTUATION_PERIOD_S,
+        PHASE_FREQ,
+    )
+
+    return {
+        "format_version": 1,
+        "created_unix_time": time.time(),
+        "algorithm": "PPO",
+        "terrain": args.terrain,
+        "gait_mode": args.gait_mode,
+        "gait_blend": args.gait_blend,
+        "run_gait_label": run_gait_label,
+        "obs_dim": OBS_DIM,
+        "obs_layout": obs_layout_json(OBS_LAYOUT),
+        "num_actuators": NUM_ACTUATORS,
+        "num_imus": NUM_IMUS,
+        "actuator_contract_fingerprint": (
+            motor_contract()["contract_fingerprint"]),
+        "actuator_contract": motor_contract(),
+        "deployable_observation_sources": [
+            "velocity command",
+            "yaw-rate command",
+            "continuous gait_blend command",
+            "actuated joint encoder positions",
+            "actuated joint encoder velocities",
+            "previous applied action",
+            "per-segment IMU projected gravity",
+            "per-segment IMU angular velocity",
+            "phase clock",
+        ],
+        "forbidden_policy_sources": [
+            "base linear velocity",
+            "global position",
+            "global yaw",
+            "MuJoCo freejoint state as policy input",
+            "external localization as policy input",
+        ],
+        "command_ranges": {
+            "cmd_vel_m_s": list(CMD_VEL_RANGE),
+            "cmd_yaw_rad_s": list(CMD_YAW_RANGE),
+            "gait_blend": [0.0, 1.0],
+        },
+        "control_timing": {
+            "control_dt_s": CTRL_DT,
+            "control_rate_hz": 1.0 / CTRL_DT,
+            "peristaltic_actuation_period_s": (
+                PERISTALTIC_ACTUATION_PERIOD_S),
+            "phase_freq_hz": PHASE_FREQ,
+        },
+        "sensor_robustness": sensor_kwargs,
+        "training": {
+            "timesteps": args.timesteps,
+            "train_chunk_timesteps": args.train_chunk_timesteps,
+            "n_envs": args.n_envs,
+            "seed": 42,
+            "learning_rate": 3e-4,
+            "n_steps": 4096,
+            "batch_size": 1024,
+            "n_epochs": 10,
+            "gamma": 0.99,
+            "gae_lambda": 0.95,
+            "clip_range": 0.2,
+            "ent_coef": 0.05,
+            "vf_coef": 0.5,
+            "max_grad_norm": 0.5,
+            "policy_net_arch": {"pi": [256, 256], "vf": [256, 256]},
+            "norm_obs": True,
+            "norm_reward": False,
+            "clip_obs": 10.0,
+        },
+        "resume": args.resume,
+    }
 
 
 class NormSyncCallback(BaseCallback):
@@ -80,30 +328,73 @@ class NormSyncCallback(BaseCallback):
 
 
 def train(args):
+    terrain = args.terrain
+    gait_mode = args.gait_mode
+    gait_blend = args.gait_blend
+    sensor_kwargs = dict(
+        encoder_pos_noise_std=args.encoder_pos_noise,
+        encoder_vel_noise_std=args.encoder_vel_noise,
+        imu_gravity_noise_std=args.imu_gravity_noise,
+        imu_gyro_noise_std=args.imu_gyro_noise,
+        action_delay_steps=args.action_delay_steps,
+        action_saturation=args.action_saturation,
+    )
+    run_gait_label = gait_mode
+    if gait_blend is not None:
+        run_gait_label = f"blend_{gait_blend:.2f}".replace(".", "p")
+    RUN_DIR, LOG_DIR, CKPT_DIR = make_run_dirs(terrain, run_gait_label)
+
     os.makedirs(RUN_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
     os.makedirs(CKPT_DIR, exist_ok=True)
+    training_config = build_training_config(
+        args, run_gait_label, sensor_kwargs)
+    config_path = os.path.join(RUN_DIR, "training_config.json")
+    requested_resume = args.resume
+    if requested_resume:
+        resume_ok, resume_reasons = resume_model_compatible(
+            requested_resume, training_config)
+        if not resume_ok:
+            print(
+                "  WARNING: ignoring incompatible resume checkpoint "
+                f"({', '.join(resume_reasons)}): {requested_resume}")
+            args.resume = None
+
+    existing_config = read_json(config_path)
+    existing_ok, existing_reasons = training_config_compatible(
+        existing_config, training_config)
+    if not existing_ok:
+        archive_existing_run_artifacts(
+            RUN_DIR, ", ".join(existing_reasons) or "configuration mismatch")
+        os.makedirs(CKPT_DIR, exist_ok=True)
+
+    training_config = build_training_config(
+        args, run_gait_label, sensor_kwargs)
+    write_json(config_path, training_config)
 
     n_envs = args.n_envs
-    print(f"Worm V6 RL Training — PPO (Longworm2)")
+    print(f"Worm V6 RL Training — PPO (Longworm2) [{terrain}]")
+    print(f"  terrain:    {terrain}")
+    print(f"  gait_mode:  {gait_mode}")
+    print(f"  gait_blend: {gait_blend if gait_blend is not None else 'mode/default'}")
+    print(f"  sensor:     {sensor_kwargs}")
     print(f"  envs:       {n_envs}")
     print(f"  timesteps:  {args.timesteps:,}")
     print(f"  run_dir:    {RUN_DIR}")
+    print(f"  metadata:   {config_path}")
 
     # ── Create vectorized environments ──
     if n_envs == 1:
-        vec_env = DummyVecEnv([make_env(seed=42)])
+        raw_vec_env = DummyVecEnv([make_env(
+            terrain=terrain, gait_mode=gait_mode,
+            gait_blend=gait_blend, seed=42, **sensor_kwargs)])
     else:
-        vec_env = SubprocVecEnv([make_env(seed=42 + i) for i in range(n_envs)])
+        raw_vec_env = SubprocVecEnv(
+            [make_env(terrain=terrain, gait_mode=gait_mode,
+                      gait_blend=gait_blend, seed=42 + i, **sensor_kwargs)
+             for i in range(n_envs)])
 
     # Observation normalization — reward normalization DISABLED
-    vec_env = VecNormalize(
-        vec_env,
-        norm_obs=True,
-        norm_reward=False,
-        clip_obs=10.0,
-    )
-
     # ── Tensorboard ──
     try:
         import tensorboard  # noqa: F401
@@ -114,14 +405,37 @@ def train(args):
         print(f"  tensorboard: not installed (logging disabled)")
 
     # ── Create or load model ──
+    start_timesteps = 0
+    learn_timesteps = args.timesteps
     if args.resume:
         print(f"  Resuming from: {args.resume}")
-        model = PPO.load(args.resume, env=vec_env)
-        norm_path = args.resume.replace(".zip", "_vecnormalize.pkl")
-        if os.path.exists(norm_path):
-            vec_env = VecNormalize.load(norm_path, vec_env)
+        norm_path = infer_vecnormalize_path(args.resume)
+        if norm_path:
+            vec_env = VecNormalize.load(norm_path, raw_vec_env)
+            vec_env.training = True
+            vec_env.norm_reward = False
             print(f"  Loaded VecNormalize from: {norm_path}")
+        else:
+            print("  WARNING: no paired VecNormalize file found; "
+                  "observation normalization will start from defaults")
+            vec_env = VecNormalize(
+                raw_vec_env,
+                norm_obs=True,
+                norm_reward=False,
+                clip_obs=10.0,
+            )
+        model = PPO.load(args.resume, env=vec_env, device="cpu")
+        start_timesteps = int(model.num_timesteps)
+        learn_timesteps = max(args.timesteps - start_timesteps, 0)
+        print(f"  resume_start_timesteps: {start_timesteps:,}")
+        print(f"  remaining_to_target:     {learn_timesteps:,}")
     else:
+        vec_env = VecNormalize(
+            raw_vec_env,
+            norm_obs=True,
+            norm_reward=False,
+            clip_obs=10.0,
+        )
         model = PPO(
             "MlpPolicy",
             vec_env,
@@ -140,14 +454,19 @@ def train(args):
             ),
             tensorboard_log=tb_log,
             verbose=0,
-            device="cpu",          # MLP policy faster on CPU for PPO
+            device="cpu",
             seed=42,
         )
+    if args.train_chunk_timesteps is not None:
+        learn_timesteps = min(learn_timesteps, args.train_chunk_timesteps)
+        print(f"  chunk_timesteps:         {learn_timesteps:,}")
 
     print(f"  Policy network: {model.policy}")
 
     # ── Callbacks ──
-    eval_env = DummyVecEnv([make_env(seed=999)])
+    eval_env = DummyVecEnv([make_env(
+        terrain=terrain, gait_mode=gait_mode,
+        gait_blend=gait_blend, seed=999, **sensor_kwargs)])
     eval_env = VecNormalize(
         eval_env, norm_obs=True, norm_reward=False,
         clip_obs=10.0, training=False)
@@ -166,6 +485,7 @@ def train(args):
         save_freq=max(20000 // n_envs, 1),
         save_path=CKPT_DIR,
         name_prefix="worm_v6_ppo",
+        save_vecnormalize=True,
     )
 
     norm_sync = NormSyncCallback(
@@ -175,19 +495,42 @@ def train(args):
     )
 
     # ── Train ──
-    print(f"\n  Training started...")
-    model.learn(
-        total_timesteps=args.timesteps,
-        callback=[eval_callback, checkpoint_callback, norm_sync],
-        progress_bar=True,
-    )
+    if learn_timesteps > 0:
+        print(f"\n  Training started...")
+        model.learn(
+            total_timesteps=learn_timesteps,
+            callback=[eval_callback, checkpoint_callback, norm_sync],
+            progress_bar=True,
+            reset_num_timesteps=(args.resume is None),
+        )
+    else:
+        print("\n  Target timesteps already reached; saving current artifacts.")
 
     # ── Save ──
     final_path = os.path.join(RUN_DIR, "final_model")
     model.save(final_path)
     vec_env.save(f"{final_path}_vecnormalize.pkl")
+    result_path = os.path.join(RUN_DIR, "training_result.json")
+    result = dict(training_config)
+    result["completed_unix_time"] = time.time()
+    result["resume_start_timesteps"] = start_timesteps
+    result["target_timesteps"] = int(args.timesteps)
+    result["train_chunk_timesteps"] = (
+        int(args.train_chunk_timesteps)
+        if args.train_chunk_timesteps is not None else None)
+    result["completed_timesteps"] = int(model.num_timesteps)
+    result["artifacts"] = {
+        "final_model": f"{final_path}.zip",
+        "final_vecnormalize": f"{final_path}_vecnormalize.pkl",
+        "best_model": os.path.join(RUN_DIR, "best_model.zip"),
+        "best_vecnormalize": os.path.join(
+            RUN_DIR, "best_model_vecnormalize.pkl"),
+        "training_config": config_path,
+    }
+    write_json(result_path, result)
     print(f"\n  Saved final model: {final_path}.zip")
     print(f"  Saved VecNormalize: {final_path}_vecnormalize.pkl")
+    print(f"  Saved training result: {result_path}")
 
     vec_env.close()
     eval_env.close()
@@ -195,8 +538,31 @@ def train(args):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Train worm V6 robot with PPO")
+    ap.add_argument("--terrain", type=str, default="flat",
+                    choices=["flat", "sand", "slope", "rough", "steps", "channel"],
+                    help="Terrain type (default: flat)")
+    ap.add_argument("--gait-mode", type=str, default="random",
+                    choices=GAIT_MODES,
+                    help="Mode command: worm=0, mixed=0.5, snake=1, random=sample per episode")
+    ap.add_argument("--gait-blend", type=float, default=None,
+                    help="Override gait blend in [0, 1]")
+    ap.add_argument("--encoder-pos-noise", type=float, default=0.0,
+                    help="Normalized encoder position noise std")
+    ap.add_argument("--encoder-vel-noise", type=float, default=0.0,
+                    help="Normalized encoder velocity noise std")
+    ap.add_argument("--imu-gravity-noise", type=float, default=0.0,
+                    help="Projected-gravity IMU noise std")
+    ap.add_argument("--imu-gyro-noise", type=float, default=0.0,
+                    help="Normalized gyro noise std")
+    ap.add_argument("--action-delay-steps", type=int, default=0,
+                    help="Integer control-step delay before action is applied")
+    ap.add_argument("--action-saturation", type=float, default=1.0,
+                    help="Applied action limit in [0, 1] before actuator scaling")
     ap.add_argument("--timesteps", type=int, default=1_000_000,
                     help="Total training timesteps")
+    ap.add_argument("--train-chunk-timesteps", type=int, default=None,
+                    help="Train at most this many additional timesteps "
+                         "while keeping --timesteps as the formal target")
     ap.add_argument("--n-envs", type=int, default=4,
                     help="Number of parallel environments")
     ap.add_argument("--resume", type=str, default=None,

@@ -1,0 +1,135 @@
+{
+  "format_version": 1,
+  "inputs": {
+    "fixed_mode_summary": "fixed_mode_summary.csv",
+    "blend_scan_summary": "blend_scan_summary.csv",
+    "best_blend_by_terrain": "best_blend_by_terrain.csv"
+  },
+  "terrain_mode_selection": [
+    {
+      "terrain": "flat",
+      "fixed_best_mode": "worm",
+      "fixed_best_speed_mm_s": 20.00260203133259,
+      "scan_best_gait_blend": 0.5,
+      "scan_best_label": "mixed",
+      "scan_best_speed_mm_s": 16.657119535814356,
+      "scan_best_success_rate": 1.0,
+      "scan_vs_fixed_best_delta_mm_s": -3.345482495518233
+    },
+    {
+      "terrain": "sand",
+      "fixed_best_mode": "snake",
+      "fixed_best_speed_mm_s": 4.963756188751878,
+      "scan_best_gait_blend": 1.0,
+      "scan_best_label": "snake",
+      "scan_best_speed_mm_s": 4.879947321217933,
+      "scan_best_success_rate": 0.6,
+      "scan_vs_fixed_best_delta_mm_s": -0.08380886753394545
+    },
+    {
+      "terrain": "slope",
+      "fixed_best_mode": "snake",
+      "fixed_best_speed_mm_s": -10.438657164557911,
+      "scan_best_gait_blend": 0.0,
+      "scan_best_label": "worm",
+      "scan_best_speed_mm_s": -2.086117105365796,
+      "scan_best_success_rate": 0.4,
+      "scan_vs_fixed_best_delta_mm_s": 8.352540059192116
+    }
+  ],
+  "fixed_single_mode_averages": [
+    {
+      "mode": "worm",
+      "avg_speed_mm_s": 3.0570194914203874,
+      "avg_success_rate": 0.5333333333333333,
+      "avg_termination_rate": 0.13333333333333333
+    },
+    {
+      "mode": "snake",
+      "avg_speed_mm_s": 3.7122018709378097,
+      "avg_success_rate": 0.7333333333333334,
+      "avg_termination_rate": 0.06666666666666667
+    },
+    {
+      "mode": "mixed",
+      "avg_speed_mm_s": -0.6688099021645116,
+      "avg_success_rate": 0.4666666666666666,
+      "avg_termination_rate": 0.0
+    }
+  ],
+  "adaptive_best_blend_average": {
+    "policy": "random_best_blend_per_terrain",
+    "avg_speed_mm_s": 6.483649917222164,
+    "avg_success_rate": 0.6666666666666666,
+    "avg_termination_rate": 0.0
+  },
+  "goal3_status": "supported",
+  "claim_assessments": [
+    {
+      "claim": "Continuous gait_blend exposes terrain-dependent mode preferences.",
+      "status": "supported",
+      "evidence": [
+        {
+          "terrain": "flat",
+          "fixed_best_mode": "worm",
+          "fixed_best_speed_mm_s": 20.00260203133259,
+          "scan_best_gait_blend": 0.5,
+          "scan_best_label": "mixed",
+          "scan_best_speed_mm_s": 16.657119535814356,
+          "scan_best_success_rate": 1.0,
+          "scan_vs_fixed_best_delta_mm_s": -3.345482495518233
+        },
+        {
+          "terrain": "sand",
+          "fixed_best_mode": "snake",
+          "fixed_best_speed_mm_s": 4.963756188751878,
+          "scan_best_gait_blend": 1.0,
+          "scan_best_label": "snake",
+          "scan_best_speed_mm_s": 4.879947321217933,
+          "scan_best_success_rate": 0.6,
+          "scan_vs_fixed_best_delta_mm_s": -0.08380886753394545
+        },
+        {
+          "terrain": "slope",
+          "fixed_best_mode": "snake",
+          "fixed_best_speed_mm_s": -10.438657164557911,
+          "scan_best_gait_blend": 0.0,
+          "scan_best_label": "worm",
+          "scan_best_speed_mm_s": -2.086117105365796,
+          "scan_best_success_rate": 0.4,
+          "scan_vs_fixed_best_delta_mm_s": 8.352540059192116
+        }
+      ]
+    },
+    {
+      "claim": "Adaptive best-blend random policy improves cross-terrain average speed over the best single fixed mode.",
+      "status": "supported",
+      "adaptive_avg_speed_mm_s": 6.483649917222164,
+      "best_single_mode": "snake",
+      "best_single_avg_speed_mm_s": 3.7122018709378097,
+      "delta_mm_s": 2.771448046284354
+    },
+    {
+      "claim": "Adaptive best-blend random policy improves or preserves cross-terrain success rate versus the best single fixed mode.",
+      "status": "not_supported",
+      "adaptive_avg_success_rate": 0.6666666666666666,
+      "best_single_mode": "snake",
+      "best_single_avg_success_rate": 0.7333333333333334,
+      "delta_success_rate": -0.06666666666666676
+    },
+    {
+      "claim": "Adaptive best-blend random policy improves or preserves cross-terrain termination rate versus the most stable single fixed mode.",
+      "status": "supported",
+      "adaptive_avg_termination_rate": 0.0,
+      "best_single_mode": "mixed",
+      "best_single_avg_termination_rate": 0.0,
+      "delta_termination_rate": 0.0,
+      "interpretation": "negative_or_zero_is_better"
+    }
+  ],
+  "cautions": [
+    "flat: best continuous random-policy blend does not beat the best terrain-specific fixed policy speed.",
+    "sand: best continuous random-policy blend does not beat the best terrain-specific fixed policy speed.",
+    "Success rate is not improved; frame Goal 3 around average speed and termination stability, not success."
+  ]
+}

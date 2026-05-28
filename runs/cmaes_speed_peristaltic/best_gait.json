@@ -1,22 +1,22 @@
 {
-  "best_speed_mm_s": 343.83,
-  "best_displacement_mm": 3438.27,
+  "best_speed_mm_s": 64.9,
+  "best_displacement_mm": 648.98,
   "sim_time_s": 10.0,
   "best_params": [
-    0.03749843388899651,
-    4.999833342773795,
-    0.6039920883894667,
-    1.4689679979297956,
-    3.127818815108985,
-    1.2618386610295007,
-    -2.7361537418258512,
-    -2.0355686512582327,
-    -2.031466865997716,
-    2.363619502686868,
-    -3.139230917227944,
-    -2.7929762912660214,
-    1.9042752676068087,
-    -0.1287345654904528
+    0.0499967771750052,
+    0.99995922729403,
+    0.5053235731460374,
+    0.004576804060495781,
+    0.4269881104325972,
+    2.989422198070506,
+    2.471448492284372,
+    1.8269679928597355,
+    2.4449428584901423,
+    2.856862382888375,
+    -2.9748880169626144,
+    3.108692589704268,
+    0.7476788282885293,
+    0.23400636325858382
   ],
   "param_names": [
     "slide_amp",
@@ -34,1409 +34,2109 @@
     "step_duration",
     "yaw_slide_coupling"
   ],
-  "generations": 200,
-  "total_evals": 3200,
-  "total_time_s": 1904.2,
+  "generations": 300,
+  "total_evals": 4800,
+  "total_time_s": 4807.3,
   "history": [
     {
       "gen": 0,
-      "best_speed_mm_s": 52.8,
-      "gen_best_speed_mm_s": 52.8,
-      "gen_mean_speed_mm_s": 18.09,
-      "elapsed_s": 16.0
+      "best_speed_mm_s": 14.05,
+      "gen_best_speed_mm_s": 14.05,
+      "gen_mean_speed_mm_s": 7.13,
+      "elapsed_s": 16.1
     },
     {
       "gen": 1,
-      "best_speed_mm_s": 104.08,
-      "gen_best_speed_mm_s": 104.08,
-      "gen_mean_speed_mm_s": 29.48,
-      "elapsed_s": 30.1
+      "best_speed_mm_s": 24.29,
+      "gen_best_speed_mm_s": 24.29,
+      "gen_mean_speed_mm_s": 8.57,
+      "elapsed_s": 31.6
     },
     {
       "gen": 2,
-      "best_speed_mm_s": 183.35,
-      "gen_best_speed_mm_s": 183.35,
-      "gen_mean_speed_mm_s": 61.52,
-      "elapsed_s": 44.6
+      "best_speed_mm_s": 24.29,
+      "gen_best_speed_mm_s": 18.86,
+      "gen_mean_speed_mm_s": 13.07,
+      "elapsed_s": 47.0
     },
     {
       "gen": 3,
-      "best_speed_mm_s": 183.35,
-      "gen_best_speed_mm_s": 171.84,
-      "gen_mean_speed_mm_s": 99.1,
-      "elapsed_s": 60.5
+      "best_speed_mm_s": 24.29,
+      "gen_best_speed_mm_s": 16.38,
+      "gen_mean_speed_mm_s": 12.43,
+      "elapsed_s": 62.3
     },
     {
       "gen": 4,
-      "best_speed_mm_s": 209.18,
-      "gen_best_speed_mm_s": 209.18,
-      "gen_mean_speed_mm_s": 109.8,
-      "elapsed_s": 73.9
+      "best_speed_mm_s": 24.91,
+      "gen_best_speed_mm_s": 24.91,
+      "gen_mean_speed_mm_s": 14.04,
+      "elapsed_s": 77.9
     },
     {
       "gen": 5,
-      "best_speed_mm_s": 209.18,
-      "gen_best_speed_mm_s": 179.67,
-      "gen_mean_speed_mm_s": 119.56,
-      "elapsed_s": 87.3
+      "best_speed_mm_s": 30.9,
+      "gen_best_speed_mm_s": 30.9,
+      "gen_mean_speed_mm_s": 11.31,
+      "elapsed_s": 93.8
     },
     {
       "gen": 6,
-      "best_speed_mm_s": 209.18,
-      "gen_best_speed_mm_s": 155.17,
-      "gen_mean_speed_mm_s": 102.82,
-      "elapsed_s": 100.2
+      "best_speed_mm_s": 30.9,
+      "gen_best_speed_mm_s": 25.43,
+      "gen_mean_speed_mm_s": 12.59,
+      "elapsed_s": 109.7
     },
     {
       "gen": 7,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 226.29,
-      "gen_mean_speed_mm_s": 118.62,
-      "elapsed_s": 113.3
+      "best_speed_mm_s": 30.9,
+      "gen_best_speed_mm_s": 25.01,
+      "gen_mean_speed_mm_s": 16.35,
+      "elapsed_s": 125.6
     },
     {
       "gen": 8,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 226.13,
-      "gen_mean_speed_mm_s": 126.64,
-      "elapsed_s": 126.8
+      "best_speed_mm_s": 30.9,
+      "gen_best_speed_mm_s": 23.53,
+      "gen_mean_speed_mm_s": 13.87,
+      "elapsed_s": 141.4
     },
     {
       "gen": 9,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 184.55,
-      "gen_mean_speed_mm_s": 97.74,
-      "elapsed_s": 141.2
+      "best_speed_mm_s": 31.71,
+      "gen_best_speed_mm_s": 31.71,
+      "gen_mean_speed_mm_s": 16.18,
+      "elapsed_s": 156.9
     },
     {
       "gen": 10,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 201.8,
-      "gen_mean_speed_mm_s": 118.27,
-      "elapsed_s": 155.1
+      "best_speed_mm_s": 31.71,
+      "gen_best_speed_mm_s": 21.68,
+      "gen_mean_speed_mm_s": 15.5,
+      "elapsed_s": 172.4
     },
     {
       "gen": 11,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 194.07,
-      "gen_mean_speed_mm_s": 121.83,
-      "elapsed_s": 167.7
+      "best_speed_mm_s": 31.71,
+      "gen_best_speed_mm_s": 29.28,
+      "gen_mean_speed_mm_s": 15.86,
+      "elapsed_s": 188.1
     },
     {
       "gen": 12,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 220.84,
-      "gen_mean_speed_mm_s": 124.56,
-      "elapsed_s": 182.4
+      "best_speed_mm_s": 31.71,
+      "gen_best_speed_mm_s": 21.77,
+      "gen_mean_speed_mm_s": 12.66,
+      "elapsed_s": 203.9
     },
     {
       "gen": 13,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 159.62,
-      "gen_mean_speed_mm_s": 112.97,
-      "elapsed_s": 194.7
+      "best_speed_mm_s": 31.71,
+      "gen_best_speed_mm_s": 22.09,
+      "gen_mean_speed_mm_s": 15.27,
+      "elapsed_s": 219.7
     },
     {
       "gen": 14,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 224.31,
-      "gen_mean_speed_mm_s": 110.53,
-      "elapsed_s": 206.6
+      "best_speed_mm_s": 31.71,
+      "gen_best_speed_mm_s": 27.09,
+      "gen_mean_speed_mm_s": 15.68,
+      "elapsed_s": 235.0
     },
     {
       "gen": 15,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 220.87,
-      "gen_mean_speed_mm_s": 136.71,
-      "elapsed_s": 219.1
+      "best_speed_mm_s": 31.71,
+      "gen_best_speed_mm_s": 25.49,
+      "gen_mean_speed_mm_s": 19.11,
+      "elapsed_s": 250.8
     },
     {
       "gen": 16,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 218.34,
-      "gen_mean_speed_mm_s": 150.16,
-      "elapsed_s": 231.4
+      "best_speed_mm_s": 32.3,
+      "gen_best_speed_mm_s": 32.3,
+      "gen_mean_speed_mm_s": 18.63,
+      "elapsed_s": 266.1
     },
     {
       "gen": 17,
-      "best_speed_mm_s": 226.29,
-      "gen_best_speed_mm_s": 197.65,
-      "gen_mean_speed_mm_s": 129.92,
-      "elapsed_s": 244.6
+      "best_speed_mm_s": 32.45,
+      "gen_best_speed_mm_s": 32.45,
+      "gen_mean_speed_mm_s": 20.16,
+      "elapsed_s": 282.1
     },
     {
       "gen": 18,
-      "best_speed_mm_s": 234.75,
-      "gen_best_speed_mm_s": 234.75,
-      "gen_mean_speed_mm_s": 130.83,
-      "elapsed_s": 257.3
+      "best_speed_mm_s": 33.86,
+      "gen_best_speed_mm_s": 33.86,
+      "gen_mean_speed_mm_s": 19.68,
+      "elapsed_s": 297.3
     },
     {
       "gen": 19,
-      "best_speed_mm_s": 237.12,
-      "gen_best_speed_mm_s": 237.12,
-      "gen_mean_speed_mm_s": 147.11,
-      "elapsed_s": 270.9
+      "best_speed_mm_s": 33.86,
+      "gen_best_speed_mm_s": 33.79,
+      "gen_mean_speed_mm_s": 22.68,
+      "elapsed_s": 313.2
     },
     {
       "gen": 20,
-      "best_speed_mm_s": 237.12,
-      "gen_best_speed_mm_s": 221.67,
-      "gen_mean_speed_mm_s": 145.56,
-      "elapsed_s": 284.4
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 43.28,
+      "gen_mean_speed_mm_s": 21.07,
+      "elapsed_s": 328.6
     },
     {
       "gen": 21,
-      "best_speed_mm_s": 237.12,
-      "gen_best_speed_mm_s": 202.56,
-      "gen_mean_speed_mm_s": 133.7,
-      "elapsed_s": 297.9
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 33.85,
+      "gen_mean_speed_mm_s": 25.03,
+      "elapsed_s": 343.9
     },
     {
       "gen": 22,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 262.22,
-      "gen_mean_speed_mm_s": 149.31,
-      "elapsed_s": 310.7
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 35.49,
+      "gen_mean_speed_mm_s": 22.71,
+      "elapsed_s": 359.5
     },
     {
       "gen": 23,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 201.18,
-      "gen_mean_speed_mm_s": 148.43,
-      "elapsed_s": 324.2
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 36.29,
+      "gen_mean_speed_mm_s": 23.87,
+      "elapsed_s": 374.5
     },
     {
       "gen": 24,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 227.49,
-      "gen_mean_speed_mm_s": 147.63,
-      "elapsed_s": 338.0
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 32.58,
+      "gen_mean_speed_mm_s": 19.95,
+      "elapsed_s": 389.6
     },
     {
       "gen": 25,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 224.49,
-      "gen_mean_speed_mm_s": 145.89,
-      "elapsed_s": 349.8
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 30.24,
+      "gen_mean_speed_mm_s": 22.19,
+      "elapsed_s": 404.5
     },
     {
       "gen": 26,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 222.52,
-      "gen_mean_speed_mm_s": 155.52,
-      "elapsed_s": 362.1
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 34.67,
+      "gen_mean_speed_mm_s": 22.13,
+      "elapsed_s": 419.5
     },
     {
       "gen": 27,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 225.63,
-      "gen_mean_speed_mm_s": 145.69,
-      "elapsed_s": 374.7
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 41.65,
+      "gen_mean_speed_mm_s": 27.61,
+      "elapsed_s": 434.6
     },
     {
       "gen": 28,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 230.03,
-      "gen_mean_speed_mm_s": 147.44,
-      "elapsed_s": 387.5
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 36.84,
+      "gen_mean_speed_mm_s": 27.0,
+      "elapsed_s": 449.7
     },
     {
       "gen": 29,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 251.66,
-      "gen_mean_speed_mm_s": 174.01,
-      "elapsed_s": 399.7
+      "best_speed_mm_s": 43.28,
+      "gen_best_speed_mm_s": 37.58,
+      "gen_mean_speed_mm_s": 26.82,
+      "elapsed_s": 464.7
     },
     {
       "gen": 30,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 212.56,
-      "gen_mean_speed_mm_s": 169.83,
-      "elapsed_s": 412.2
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 50.8,
+      "gen_mean_speed_mm_s": 28.15,
+      "elapsed_s": 479.7
     },
     {
       "gen": 31,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 257.54,
-      "gen_mean_speed_mm_s": 182.47,
-      "elapsed_s": 420.5
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 40.48,
+      "gen_mean_speed_mm_s": 27.01,
+      "elapsed_s": 494.7
     },
     {
       "gen": 32,
-      "best_speed_mm_s": 262.22,
-      "gen_best_speed_mm_s": 247.75,
-      "gen_mean_speed_mm_s": 194.65,
-      "elapsed_s": 427.4
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 46.09,
+      "gen_mean_speed_mm_s": 26.8,
+      "elapsed_s": 509.9
     },
     {
       "gen": 33,
-      "best_speed_mm_s": 264.27,
-      "gen_best_speed_mm_s": 264.27,
-      "gen_mean_speed_mm_s": 149.2,
-      "elapsed_s": 434.3
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 42.26,
+      "gen_mean_speed_mm_s": 27.21,
+      "elapsed_s": 524.9
     },
     {
       "gen": 34,
-      "best_speed_mm_s": 264.27,
-      "gen_best_speed_mm_s": 264.05,
-      "gen_mean_speed_mm_s": 174.4,
-      "elapsed_s": 443.9
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 41.94,
+      "gen_mean_speed_mm_s": 29.32,
+      "elapsed_s": 539.7
     },
     {
       "gen": 35,
-      "best_speed_mm_s": 278.79,
-      "gen_best_speed_mm_s": 278.79,
-      "gen_mean_speed_mm_s": 193.58,
-      "elapsed_s": 456.9
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 47.97,
+      "gen_mean_speed_mm_s": 34.39,
+      "elapsed_s": 555.0
     },
     {
       "gen": 36,
-      "best_speed_mm_s": 278.79,
-      "gen_best_speed_mm_s": 245.64,
-      "gen_mean_speed_mm_s": 179.93,
-      "elapsed_s": 469.5
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 46.27,
+      "gen_mean_speed_mm_s": 35.59,
+      "elapsed_s": 570.3
     },
     {
       "gen": 37,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 294.02,
-      "gen_mean_speed_mm_s": 198.76,
-      "elapsed_s": 482.4
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 44.78,
+      "gen_mean_speed_mm_s": 31.84,
+      "elapsed_s": 585.5
     },
     {
       "gen": 38,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 255.09,
-      "gen_mean_speed_mm_s": 182.73,
-      "elapsed_s": 495.3
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 44.54,
+      "gen_mean_speed_mm_s": 35.92,
+      "elapsed_s": 600.7
     },
     {
       "gen": 39,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 235.34,
-      "gen_mean_speed_mm_s": 182.65,
-      "elapsed_s": 508.2
+      "best_speed_mm_s": 50.8,
+      "gen_best_speed_mm_s": 49.17,
+      "gen_mean_speed_mm_s": 37.91,
+      "elapsed_s": 615.9
     },
     {
       "gen": 40,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 265.27,
-      "gen_mean_speed_mm_s": 187.05,
-      "elapsed_s": 521.1
+      "best_speed_mm_s": 51.21,
+      "gen_best_speed_mm_s": 51.21,
+      "gen_mean_speed_mm_s": 37.45,
+      "elapsed_s": 631.1
     },
     {
       "gen": 41,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 273.95,
-      "gen_mean_speed_mm_s": 202.03,
-      "elapsed_s": 533.2
+      "best_speed_mm_s": 51.21,
+      "gen_best_speed_mm_s": 48.09,
+      "gen_mean_speed_mm_s": 38.66,
+      "elapsed_s": 646.2
     },
     {
       "gen": 42,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 292.39,
-      "gen_mean_speed_mm_s": 183.18,
-      "elapsed_s": 544.5
+      "best_speed_mm_s": 51.21,
+      "gen_best_speed_mm_s": 50.82,
+      "gen_mean_speed_mm_s": 40.74,
+      "elapsed_s": 661.6
     },
     {
       "gen": 43,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 283.62,
-      "gen_mean_speed_mm_s": 213.13,
-      "elapsed_s": 555.3
+      "best_speed_mm_s": 54.43,
+      "gen_best_speed_mm_s": 54.43,
+      "gen_mean_speed_mm_s": 41.23,
+      "elapsed_s": 676.7
     },
     {
       "gen": 44,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 283.0,
-      "gen_mean_speed_mm_s": 195.42,
-      "elapsed_s": 567.5
+      "best_speed_mm_s": 54.43,
+      "gen_best_speed_mm_s": 53.96,
+      "gen_mean_speed_mm_s": 44.46,
+      "elapsed_s": 691.7
     },
     {
       "gen": 45,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 263.57,
-      "gen_mean_speed_mm_s": 211.96,
-      "elapsed_s": 580.5
+      "best_speed_mm_s": 54.43,
+      "gen_best_speed_mm_s": 53.02,
+      "gen_mean_speed_mm_s": 45.65,
+      "elapsed_s": 706.8
     },
     {
       "gen": 46,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 257.54,
-      "gen_mean_speed_mm_s": 198.67,
-      "elapsed_s": 592.5
+      "best_speed_mm_s": 54.43,
+      "gen_best_speed_mm_s": 53.21,
+      "gen_mean_speed_mm_s": 46.23,
+      "elapsed_s": 722.0
     },
     {
       "gen": 47,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 249.75,
-      "gen_mean_speed_mm_s": 199.77,
-      "elapsed_s": 605.4
+      "best_speed_mm_s": 56.98,
+      "gen_best_speed_mm_s": 56.98,
+      "gen_mean_speed_mm_s": 44.74,
+      "elapsed_s": 737.6
     },
     {
       "gen": 48,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 260.94,
-      "gen_mean_speed_mm_s": 206.61,
-      "elapsed_s": 618.0
+      "best_speed_mm_s": 56.98,
+      "gen_best_speed_mm_s": 54.91,
+      "gen_mean_speed_mm_s": 47.79,
+      "elapsed_s": 752.9
     },
     {
       "gen": 49,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 274.52,
-      "gen_mean_speed_mm_s": 210.14,
-      "elapsed_s": 630.4
+      "best_speed_mm_s": 56.98,
+      "gen_best_speed_mm_s": 55.28,
+      "gen_mean_speed_mm_s": 46.66,
+      "elapsed_s": 768.6
     },
     {
       "gen": 50,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 265.02,
-      "gen_mean_speed_mm_s": 200.71,
-      "elapsed_s": 643.4
+      "best_speed_mm_s": 57.72,
+      "gen_best_speed_mm_s": 57.72,
+      "gen_mean_speed_mm_s": 49.84,
+      "elapsed_s": 783.9
     },
     {
       "gen": 51,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 274.29,
-      "gen_mean_speed_mm_s": 204.4,
-      "elapsed_s": 653.1
+      "best_speed_mm_s": 58.62,
+      "gen_best_speed_mm_s": 58.62,
+      "gen_mean_speed_mm_s": 51.95,
+      "elapsed_s": 799.5
     },
     {
       "gen": 52,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 280.96,
-      "gen_mean_speed_mm_s": 205.66,
-      "elapsed_s": 661.4
+      "best_speed_mm_s": 58.62,
+      "gen_best_speed_mm_s": 56.4,
+      "gen_mean_speed_mm_s": 49.46,
+      "elapsed_s": 815.2
     },
     {
       "gen": 53,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 288.65,
-      "gen_mean_speed_mm_s": 199.36,
-      "elapsed_s": 670.4
+      "best_speed_mm_s": 59.35,
+      "gen_best_speed_mm_s": 59.35,
+      "gen_mean_speed_mm_s": 47.52,
+      "elapsed_s": 830.9
     },
     {
       "gen": 54,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 291.15,
-      "gen_mean_speed_mm_s": 228.93,
-      "elapsed_s": 680.2
+      "best_speed_mm_s": 59.35,
+      "gen_best_speed_mm_s": 57.62,
+      "gen_mean_speed_mm_s": 47.59,
+      "elapsed_s": 846.6
     },
     {
       "gen": 55,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 266.45,
-      "gen_mean_speed_mm_s": 211.99,
-      "elapsed_s": 690.4
+      "best_speed_mm_s": 59.35,
+      "gen_best_speed_mm_s": 52.42,
+      "gen_mean_speed_mm_s": 46.34,
+      "elapsed_s": 862.3
     },
     {
       "gen": 56,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 291.7,
-      "gen_mean_speed_mm_s": 206.98,
-      "elapsed_s": 700.0
+      "best_speed_mm_s": 59.35,
+      "gen_best_speed_mm_s": 57.61,
+      "gen_mean_speed_mm_s": 49.47,
+      "elapsed_s": 878.2
     },
     {
       "gen": 57,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 264.89,
-      "gen_mean_speed_mm_s": 198.17,
-      "elapsed_s": 709.8
+      "best_speed_mm_s": 59.35,
+      "gen_best_speed_mm_s": 58.52,
+      "gen_mean_speed_mm_s": 50.21,
+      "elapsed_s": 893.7
     },
     {
       "gen": 58,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 278.96,
-      "gen_mean_speed_mm_s": 220.31,
-      "elapsed_s": 719.8
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 60.88,
+      "gen_mean_speed_mm_s": 50.66,
+      "elapsed_s": 909.6
     },
     {
       "gen": 59,
-      "best_speed_mm_s": 294.02,
-      "gen_best_speed_mm_s": 282.1,
-      "gen_mean_speed_mm_s": 235.74,
-      "elapsed_s": 728.4
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 59.95,
+      "gen_mean_speed_mm_s": 51.84,
+      "elapsed_s": 925.3
     },
     {
       "gen": 60,
-      "best_speed_mm_s": 297.1,
-      "gen_best_speed_mm_s": 297.1,
-      "gen_mean_speed_mm_s": 218.59,
-      "elapsed_s": 739.7
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 60.44,
+      "gen_mean_speed_mm_s": 54.97,
+      "elapsed_s": 940.9
     },
     {
       "gen": 61,
-      "best_speed_mm_s": 297.1,
-      "gen_best_speed_mm_s": 284.24,
-      "gen_mean_speed_mm_s": 249.35,
-      "elapsed_s": 749.6
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 60.21,
+      "gen_mean_speed_mm_s": 52.81,
+      "elapsed_s": 956.6
     },
     {
       "gen": 62,
-      "best_speed_mm_s": 297.1,
-      "gen_best_speed_mm_s": 286.5,
-      "gen_mean_speed_mm_s": 211.84,
-      "elapsed_s": 757.9
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 60.02,
+      "gen_mean_speed_mm_s": 53.17,
+      "elapsed_s": 972.1
     },
     {
       "gen": 63,
-      "best_speed_mm_s": 297.1,
-      "gen_best_speed_mm_s": 273.95,
-      "gen_mean_speed_mm_s": 218.59,
-      "elapsed_s": 766.8
-    },
-    {
-      "gen": 64,
-      "best_speed_mm_s": 297.1,
-      "gen_best_speed_mm_s": 293.48,
-      "gen_mean_speed_mm_s": 219.68,
-      "elapsed_s": 775.3
-    },
-    {
-      "gen": 65,
-      "best_speed_mm_s": 297.1,
-      "gen_best_speed_mm_s": 276.11,
-      "gen_mean_speed_mm_s": 222.46,
-      "elapsed_s": 783.2
-    },
-    {
-      "gen": 66,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 300.05,
-      "gen_mean_speed_mm_s": 228.07,
-      "elapsed_s": 791.1
-    },
-    {
-      "gen": 67,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 283.25,
-      "gen_mean_speed_mm_s": 231.54,
-      "elapsed_s": 798.8
-    },
-    {
-      "gen": 68,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 273.29,
-      "gen_mean_speed_mm_s": 231.69,
-      "elapsed_s": 806.7
-    },
-    {
-      "gen": 69,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 276.95,
-      "gen_mean_speed_mm_s": 245.43,
-      "elapsed_s": 814.5
-    },
-    {
-      "gen": 70,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 280.87,
-      "gen_mean_speed_mm_s": 206.73,
-      "elapsed_s": 822.2
-    },
-    {
-      "gen": 71,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 274.88,
-      "gen_mean_speed_mm_s": 233.57,
-      "elapsed_s": 829.8
-    },
-    {
-      "gen": 72,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 277.41,
-      "gen_mean_speed_mm_s": 234.14,
-      "elapsed_s": 838.3
-    },
-    {
-      "gen": 73,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 295.08,
-      "gen_mean_speed_mm_s": 257.21,
-      "elapsed_s": 847.3
-    },
-    {
-      "gen": 74,
-      "best_speed_mm_s": 300.05,
-      "gen_best_speed_mm_s": 285.33,
-      "gen_mean_speed_mm_s": 259.55,
-      "elapsed_s": 855.3
-    },
-    {
-      "gen": 75,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 315.63,
-      "gen_mean_speed_mm_s": 248.74,
-      "elapsed_s": 862.8
-    },
-    {
-      "gen": 76,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 303.72,
-      "gen_mean_speed_mm_s": 259.52,
-      "elapsed_s": 870.5
-    },
-    {
-      "gen": 77,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 305.79,
-      "gen_mean_speed_mm_s": 267.9,
-      "elapsed_s": 878.3
-    },
-    {
-      "gen": 78,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 306.85,
-      "gen_mean_speed_mm_s": 262.75,
-      "elapsed_s": 885.9
-    },
-    {
-      "gen": 79,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 305.02,
-      "gen_mean_speed_mm_s": 272.3,
-      "elapsed_s": 894.9
-    },
-    {
-      "gen": 80,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 312.26,
-      "gen_mean_speed_mm_s": 276.03,
-      "elapsed_s": 902.4
-    },
-    {
-      "gen": 81,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 309.77,
-      "gen_mean_speed_mm_s": 278.98,
-      "elapsed_s": 909.8
-    },
-    {
-      "gen": 82,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 295.48,
-      "gen_mean_speed_mm_s": 271.31,
-      "elapsed_s": 917.3
-    },
-    {
-      "gen": 83,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 311.72,
-      "gen_mean_speed_mm_s": 281.87,
-      "elapsed_s": 924.9
-    },
-    {
-      "gen": 84,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 304.64,
-      "gen_mean_speed_mm_s": 278.6,
-      "elapsed_s": 933.0
-    },
-    {
-      "gen": 85,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 310.61,
-      "gen_mean_speed_mm_s": 267.41,
-      "elapsed_s": 940.4
-    },
-    {
-      "gen": 86,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 302.52,
-      "gen_mean_speed_mm_s": 270.1,
-      "elapsed_s": 948.0
-    },
-    {
-      "gen": 87,
-      "best_speed_mm_s": 315.63,
-      "gen_best_speed_mm_s": 308.71,
-      "gen_mean_speed_mm_s": 270.46,
-      "elapsed_s": 955.7
-    },
-    {
-      "gen": 88,
-      "best_speed_mm_s": 322.6,
-      "gen_best_speed_mm_s": 322.6,
-      "gen_mean_speed_mm_s": 283.96,
-      "elapsed_s": 964.8
-    },
-    {
-      "gen": 89,
-      "best_speed_mm_s": 322.6,
-      "gen_best_speed_mm_s": 303.34,
-      "gen_mean_speed_mm_s": 281.73,
-      "elapsed_s": 972.9
-    },
-    {
-      "gen": 90,
-      "best_speed_mm_s": 322.6,
-      "gen_best_speed_mm_s": 312.19,
-      "gen_mean_speed_mm_s": 287.2,
-      "elapsed_s": 980.2
-    },
-    {
-      "gen": 91,
-      "best_speed_mm_s": 329.25,
-      "gen_best_speed_mm_s": 329.25,
-      "gen_mean_speed_mm_s": 284.79,
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 59.34,
+      "gen_mean_speed_mm_s": 53.91,
       "elapsed_s": 987.7
     },
     {
+      "gen": 64,
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 60.14,
+      "gen_mean_speed_mm_s": 56.54,
+      "elapsed_s": 1003.4
+    },
+    {
+      "gen": 65,
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 60.6,
+      "gen_mean_speed_mm_s": 56.6,
+      "elapsed_s": 1019.1
+    },
+    {
+      "gen": 66,
+      "best_speed_mm_s": 60.88,
+      "gen_best_speed_mm_s": 59.91,
+      "gen_mean_speed_mm_s": 56.53,
+      "elapsed_s": 1034.9
+    },
+    {
+      "gen": 67,
+      "best_speed_mm_s": 61.25,
+      "gen_best_speed_mm_s": 61.25,
+      "gen_mean_speed_mm_s": 57.33,
+      "elapsed_s": 1050.8
+    },
+    {
+      "gen": 68,
+      "best_speed_mm_s": 61.35,
+      "gen_best_speed_mm_s": 61.35,
+      "gen_mean_speed_mm_s": 58.09,
+      "elapsed_s": 1067.3
+    },
+    {
+      "gen": 69,
+      "best_speed_mm_s": 61.58,
+      "gen_best_speed_mm_s": 61.58,
+      "gen_mean_speed_mm_s": 58.77,
+      "elapsed_s": 1084.5
+    },
+    {
+      "gen": 70,
+      "best_speed_mm_s": 61.58,
+      "gen_best_speed_mm_s": 60.76,
+      "gen_mean_speed_mm_s": 58.59,
+      "elapsed_s": 1101.4
+    },
+    {
+      "gen": 71,
+      "best_speed_mm_s": 61.58,
+      "gen_best_speed_mm_s": 61.47,
+      "gen_mean_speed_mm_s": 57.27,
+      "elapsed_s": 1118.3
+    },
+    {
+      "gen": 72,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 62.09,
+      "gen_mean_speed_mm_s": 58.57,
+      "elapsed_s": 1135.2
+    },
+    {
+      "gen": 73,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 61.51,
+      "gen_mean_speed_mm_s": 60.06,
+      "elapsed_s": 1152.1
+    },
+    {
+      "gen": 74,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 61.54,
+      "gen_mean_speed_mm_s": 58.91,
+      "elapsed_s": 1168.9
+    },
+    {
+      "gen": 75,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 61.08,
+      "gen_mean_speed_mm_s": 59.38,
+      "elapsed_s": 1185.8
+    },
+    {
+      "gen": 76,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 62.02,
+      "gen_mean_speed_mm_s": 60.05,
+      "elapsed_s": 1202.4
+    },
+    {
+      "gen": 77,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 62.01,
+      "gen_mean_speed_mm_s": 60.62,
+      "elapsed_s": 1219.4
+    },
+    {
+      "gen": 78,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 61.21,
+      "gen_mean_speed_mm_s": 60.27,
+      "elapsed_s": 1236.3
+    },
+    {
+      "gen": 79,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 61.41,
+      "gen_mean_speed_mm_s": 60.52,
+      "elapsed_s": 1252.9
+    },
+    {
+      "gen": 80,
+      "best_speed_mm_s": 62.09,
+      "gen_best_speed_mm_s": 61.78,
+      "gen_mean_speed_mm_s": 60.87,
+      "elapsed_s": 1269.1
+    },
+    {
+      "gen": 81,
+      "best_speed_mm_s": 62.39,
+      "gen_best_speed_mm_s": 62.39,
+      "gen_mean_speed_mm_s": 61.17,
+      "elapsed_s": 1285.0
+    },
+    {
+      "gen": 82,
+      "best_speed_mm_s": 62.39,
+      "gen_best_speed_mm_s": 62.0,
+      "gen_mean_speed_mm_s": 60.39,
+      "elapsed_s": 1301.3
+    },
+    {
+      "gen": 83,
+      "best_speed_mm_s": 62.39,
+      "gen_best_speed_mm_s": 62.07,
+      "gen_mean_speed_mm_s": 60.78,
+      "elapsed_s": 1317.9
+    },
+    {
+      "gen": 84,
+      "best_speed_mm_s": 62.47,
+      "gen_best_speed_mm_s": 62.47,
+      "gen_mean_speed_mm_s": 60.77,
+      "elapsed_s": 1334.4
+    },
+    {
+      "gen": 85,
+      "best_speed_mm_s": 62.48,
+      "gen_best_speed_mm_s": 62.48,
+      "gen_mean_speed_mm_s": 61.22,
+      "elapsed_s": 1350.8
+    },
+    {
+      "gen": 86,
+      "best_speed_mm_s": 62.85,
+      "gen_best_speed_mm_s": 62.85,
+      "gen_mean_speed_mm_s": 61.05,
+      "elapsed_s": 1367.4
+    },
+    {
+      "gen": 87,
+      "best_speed_mm_s": 62.85,
+      "gen_best_speed_mm_s": 62.19,
+      "gen_mean_speed_mm_s": 60.85,
+      "elapsed_s": 1383.8
+    },
+    {
+      "gen": 88,
+      "best_speed_mm_s": 62.85,
+      "gen_best_speed_mm_s": 62.06,
+      "gen_mean_speed_mm_s": 60.64,
+      "elapsed_s": 1400.0
+    },
+    {
+      "gen": 89,
+      "best_speed_mm_s": 62.85,
+      "gen_best_speed_mm_s": 62.09,
+      "gen_mean_speed_mm_s": 61.24,
+      "elapsed_s": 1416.5
+    },
+    {
+      "gen": 90,
+      "best_speed_mm_s": 62.85,
+      "gen_best_speed_mm_s": 61.87,
+      "gen_mean_speed_mm_s": 60.68,
+      "elapsed_s": 1432.7
+    },
+    {
+      "gen": 91,
+      "best_speed_mm_s": 63.14,
+      "gen_best_speed_mm_s": 63.14,
+      "gen_mean_speed_mm_s": 60.97,
+      "elapsed_s": 1448.7
+    },
+    {
       "gen": 92,
-      "best_speed_mm_s": 329.25,
-      "gen_best_speed_mm_s": 312.44,
-      "gen_mean_speed_mm_s": 281.89,
-      "elapsed_s": 995.1
-    },
-    {
-      "gen": 93,
-      "best_speed_mm_s": 329.25,
-      "gen_best_speed_mm_s": 311.31,
-      "gen_mean_speed_mm_s": 280.94,
-      "elapsed_s": 1002.7
-    },
-    {
-      "gen": 94,
-      "best_speed_mm_s": 329.56,
-      "gen_best_speed_mm_s": 329.56,
-      "gen_mean_speed_mm_s": 288.97,
-      "elapsed_s": 1010.0
-    },
-    {
-      "gen": 95,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 339.58,
-      "gen_mean_speed_mm_s": 303.23,
-      "elapsed_s": 1017.5
-    },
-    {
-      "gen": 96,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 331.19,
-      "gen_mean_speed_mm_s": 302.91,
-      "elapsed_s": 1025.5
-    },
-    {
-      "gen": 97,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 322.24,
-      "gen_mean_speed_mm_s": 295.92,
-      "elapsed_s": 1033.0
-    },
-    {
-      "gen": 98,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 317.04,
-      "gen_mean_speed_mm_s": 298.93,
-      "elapsed_s": 1040.6
-    },
-    {
-      "gen": 99,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 310.09,
-      "gen_mean_speed_mm_s": 297.53,
-      "elapsed_s": 1048.5
-    },
-    {
-      "gen": 100,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 326.49,
-      "gen_mean_speed_mm_s": 306.53,
-      "elapsed_s": 1055.8
-    },
-    {
-      "gen": 101,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 328.56,
-      "gen_mean_speed_mm_s": 302.66,
-      "elapsed_s": 1063.1
-    },
-    {
-      "gen": 102,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 336.5,
-      "gen_mean_speed_mm_s": 310.07,
-      "elapsed_s": 1070.4
-    },
-    {
-      "gen": 103,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 329.78,
-      "gen_mean_speed_mm_s": 310.16,
-      "elapsed_s": 1078.3
-    },
-    {
-      "gen": 104,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 323.83,
-      "gen_mean_speed_mm_s": 306.85,
-      "elapsed_s": 1087.6
-    },
-    {
-      "gen": 105,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 328.53,
-      "gen_mean_speed_mm_s": 312.24,
-      "elapsed_s": 1095.2
-    },
-    {
-      "gen": 106,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 333.07,
-      "gen_mean_speed_mm_s": 311.36,
-      "elapsed_s": 1102.7
-    },
-    {
-      "gen": 107,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 333.73,
-      "gen_mean_speed_mm_s": 314.01,
-      "elapsed_s": 1110.2
-    },
-    {
-      "gen": 108,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 327.85,
-      "gen_mean_speed_mm_s": 308.9,
-      "elapsed_s": 1117.6
-    },
-    {
-      "gen": 109,
-      "best_speed_mm_s": 339.58,
-      "gen_best_speed_mm_s": 326.52,
-      "gen_mean_speed_mm_s": 312.46,
-      "elapsed_s": 1124.8
-    },
-    {
-      "gen": 110,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 342.98,
-      "gen_mean_speed_mm_s": 311.02,
-      "elapsed_s": 1132.3
-    },
-    {
-      "gen": 111,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 323.52,
-      "gen_mean_speed_mm_s": 314.53,
-      "elapsed_s": 1140.0
-    },
-    {
-      "gen": 112,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 326.97,
-      "gen_mean_speed_mm_s": 308.91,
-      "elapsed_s": 1147.8
-    },
-    {
-      "gen": 113,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.9,
-      "gen_mean_speed_mm_s": 312.12,
-      "elapsed_s": 1155.1
-    },
-    {
-      "gen": 114,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 327.08,
-      "gen_mean_speed_mm_s": 308.91,
-      "elapsed_s": 1162.4
-    },
-    {
-      "gen": 115,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 329.75,
-      "gen_mean_speed_mm_s": 312.21,
-      "elapsed_s": 1169.7
-    },
-    {
-      "gen": 116,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 335.98,
-      "gen_mean_speed_mm_s": 316.51,
-      "elapsed_s": 1177.2
-    },
-    {
-      "gen": 117,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 327.04,
-      "gen_mean_speed_mm_s": 312.47,
-      "elapsed_s": 1184.4
-    },
-    {
-      "gen": 118,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 339.48,
-      "gen_mean_speed_mm_s": 314.54,
-      "elapsed_s": 1191.6
-    },
-    {
-      "gen": 119,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.2,
-      "gen_mean_speed_mm_s": 310.19,
-      "elapsed_s": 1199.6
-    },
-    {
-      "gen": 120,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.34,
-      "gen_mean_speed_mm_s": 310.88,
-      "elapsed_s": 1208.3
-    },
-    {
-      "gen": 121,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.66,
-      "gen_mean_speed_mm_s": 320.91,
-      "elapsed_s": 1216.9
-    },
-    {
-      "gen": 122,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 337.57,
-      "gen_mean_speed_mm_s": 316.88,
-      "elapsed_s": 1224.1
-    },
-    {
-      "gen": 123,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 327.7,
-      "gen_mean_speed_mm_s": 315.16,
-      "elapsed_s": 1231.5
-    },
-    {
-      "gen": 124,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 329.34,
-      "gen_mean_speed_mm_s": 314.76,
-      "elapsed_s": 1239.2
-    },
-    {
-      "gen": 125,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 335.39,
-      "gen_mean_speed_mm_s": 316.71,
-      "elapsed_s": 1246.5
-    },
-    {
-      "gen": 126,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 330.2,
-      "gen_mean_speed_mm_s": 319.7,
-      "elapsed_s": 1253.9
-    },
-    {
-      "gen": 127,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 332.66,
-      "gen_mean_speed_mm_s": 317.18,
-      "elapsed_s": 1261.2
-    },
-    {
-      "gen": 128,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 338.41,
-      "gen_mean_speed_mm_s": 320.93,
-      "elapsed_s": 1268.7
-    },
-    {
-      "gen": 129,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 340.79,
-      "gen_mean_speed_mm_s": 322.36,
-      "elapsed_s": 1276.5
-    },
-    {
-      "gen": 130,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.99,
-      "gen_mean_speed_mm_s": 316.47,
-      "elapsed_s": 1284.1
-    },
-    {
-      "gen": 131,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 331.4,
-      "gen_mean_speed_mm_s": 316.61,
-      "elapsed_s": 1291.5
-    },
-    {
-      "gen": 132,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 326.84,
-      "gen_mean_speed_mm_s": 314.66,
-      "elapsed_s": 1298.8
-    },
-    {
-      "gen": 133,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 336.09,
-      "gen_mean_speed_mm_s": 315.09,
-      "elapsed_s": 1306.0
-    },
-    {
-      "gen": 134,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.16,
-      "gen_mean_speed_mm_s": 311.75,
-      "elapsed_s": 1313.4
-    },
-    {
-      "gen": 135,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.19,
-      "gen_mean_speed_mm_s": 315.14,
-      "elapsed_s": 1322.1
-    },
-    {
-      "gen": 136,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.68,
-      "gen_mean_speed_mm_s": 317.24,
-      "elapsed_s": 1330.9
-    },
-    {
-      "gen": 137,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 331.79,
-      "gen_mean_speed_mm_s": 317.96,
-      "elapsed_s": 1338.3
-    },
-    {
-      "gen": 138,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 335.51,
-      "gen_mean_speed_mm_s": 316.1,
-      "elapsed_s": 1345.6
-    },
-    {
-      "gen": 139,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 335.15,
-      "gen_mean_speed_mm_s": 318.07,
-      "elapsed_s": 1352.8
-    },
-    {
-      "gen": 140,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 332.16,
-      "gen_mean_speed_mm_s": 316.67,
-      "elapsed_s": 1360.1
-    },
-    {
-      "gen": 141,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 331.46,
-      "gen_mean_speed_mm_s": 316.57,
-      "elapsed_s": 1367.3
-    },
-    {
-      "gen": 142,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.97,
-      "gen_mean_speed_mm_s": 315.75,
-      "elapsed_s": 1374.5
-    },
-    {
-      "gen": 143,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 335.77,
-      "gen_mean_speed_mm_s": 321.91,
-      "elapsed_s": 1381.9
-    },
-    {
-      "gen": 144,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.59,
-      "gen_mean_speed_mm_s": 313.18,
-      "elapsed_s": 1389.3
-    },
-    {
-      "gen": 145,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 332.75,
-      "gen_mean_speed_mm_s": 318.73,
-      "elapsed_s": 1396.8
-    },
-    {
-      "gen": 146,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 339.19,
-      "gen_mean_speed_mm_s": 316.44,
-      "elapsed_s": 1404.1
-    },
-    {
-      "gen": 147,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 330.27,
-      "gen_mean_speed_mm_s": 316.1,
-      "elapsed_s": 1411.5
-    },
-    {
-      "gen": 148,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 332.66,
-      "gen_mean_speed_mm_s": 317.51,
-      "elapsed_s": 1419.0
-    },
-    {
-      "gen": 149,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.25,
-      "gen_mean_speed_mm_s": 315.87,
-      "elapsed_s": 1426.3
-    },
-    {
-      "gen": 150,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 332.94,
-      "gen_mean_speed_mm_s": 318.64,
-      "elapsed_s": 1433.5
-    },
-    {
-      "gen": 151,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 331.71,
-      "gen_mean_speed_mm_s": 313.39,
-      "elapsed_s": 1441.9
-    },
-    {
-      "gen": 152,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.34,
-      "gen_mean_speed_mm_s": 317.52,
-      "elapsed_s": 1450.1
-    },
-    {
-      "gen": 153,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 336.91,
-      "gen_mean_speed_mm_s": 314.65,
-      "elapsed_s": 1457.5
-    },
-    {
-      "gen": 154,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.1,
-      "gen_mean_speed_mm_s": 316.46,
+      "best_speed_mm_s": 63.14,
+      "gen_best_speed_mm_s": 62.23,
+      "gen_mean_speed_mm_s": 61.03,
       "elapsed_s": 1464.7
     },
     {
+      "gen": 93,
+      "best_speed_mm_s": 63.14,
+      "gen_best_speed_mm_s": 61.87,
+      "gen_mean_speed_mm_s": 61.09,
+      "elapsed_s": 1481.0
+    },
+    {
+      "gen": 94,
+      "best_speed_mm_s": 63.14,
+      "gen_best_speed_mm_s": 61.82,
+      "gen_mean_speed_mm_s": 60.94,
+      "elapsed_s": 1497.3
+    },
+    {
+      "gen": 95,
+      "best_speed_mm_s": 63.14,
+      "gen_best_speed_mm_s": 62.52,
+      "gen_mean_speed_mm_s": 61.09,
+      "elapsed_s": 1513.5
+    },
+    {
+      "gen": 96,
+      "best_speed_mm_s": 63.14,
+      "gen_best_speed_mm_s": 62.41,
+      "gen_mean_speed_mm_s": 61.04,
+      "elapsed_s": 1529.8
+    },
+    {
+      "gen": 97,
+      "best_speed_mm_s": 63.14,
+      "gen_best_speed_mm_s": 62.05,
+      "gen_mean_speed_mm_s": 61.25,
+      "elapsed_s": 1545.7
+    },
+    {
+      "gen": 98,
+      "best_speed_mm_s": 63.14,
+      "gen_best_speed_mm_s": 63.03,
+      "gen_mean_speed_mm_s": 61.63,
+      "elapsed_s": 1561.5
+    },
+    {
+      "gen": 99,
+      "best_speed_mm_s": 63.19,
+      "gen_best_speed_mm_s": 63.19,
+      "gen_mean_speed_mm_s": 61.65,
+      "elapsed_s": 1577.6
+    },
+    {
+      "gen": 100,
+      "best_speed_mm_s": 63.19,
+      "gen_best_speed_mm_s": 62.67,
+      "gen_mean_speed_mm_s": 61.57,
+      "elapsed_s": 1593.7
+    },
+    {
+      "gen": 101,
+      "best_speed_mm_s": 63.19,
+      "gen_best_speed_mm_s": 63.09,
+      "gen_mean_speed_mm_s": 61.68,
+      "elapsed_s": 1609.7
+    },
+    {
+      "gen": 102,
+      "best_speed_mm_s": 63.19,
+      "gen_best_speed_mm_s": 62.88,
+      "gen_mean_speed_mm_s": 61.78,
+      "elapsed_s": 1625.7
+    },
+    {
+      "gen": 103,
+      "best_speed_mm_s": 63.28,
+      "gen_best_speed_mm_s": 63.28,
+      "gen_mean_speed_mm_s": 62.12,
+      "elapsed_s": 1641.5
+    },
+    {
+      "gen": 104,
+      "best_speed_mm_s": 63.28,
+      "gen_best_speed_mm_s": 62.68,
+      "gen_mean_speed_mm_s": 62.08,
+      "elapsed_s": 1657.5
+    },
+    {
+      "gen": 105,
+      "best_speed_mm_s": 63.28,
+      "gen_best_speed_mm_s": 63.14,
+      "gen_mean_speed_mm_s": 61.69,
+      "elapsed_s": 1673.7
+    },
+    {
+      "gen": 106,
+      "best_speed_mm_s": 63.35,
+      "gen_best_speed_mm_s": 63.35,
+      "gen_mean_speed_mm_s": 62.23,
+      "elapsed_s": 1690.1
+    },
+    {
+      "gen": 107,
+      "best_speed_mm_s": 63.35,
+      "gen_best_speed_mm_s": 63.06,
+      "gen_mean_speed_mm_s": 62.0,
+      "elapsed_s": 1706.5
+    },
+    {
+      "gen": 108,
+      "best_speed_mm_s": 63.35,
+      "gen_best_speed_mm_s": 62.99,
+      "gen_mean_speed_mm_s": 61.8,
+      "elapsed_s": 1722.6
+    },
+    {
+      "gen": 109,
+      "best_speed_mm_s": 63.35,
+      "gen_best_speed_mm_s": 63.02,
+      "gen_mean_speed_mm_s": 61.85,
+      "elapsed_s": 1738.7
+    },
+    {
+      "gen": 110,
+      "best_speed_mm_s": 63.35,
+      "gen_best_speed_mm_s": 63.17,
+      "gen_mean_speed_mm_s": 61.64,
+      "elapsed_s": 1754.7
+    },
+    {
+      "gen": 111,
+      "best_speed_mm_s": 63.35,
+      "gen_best_speed_mm_s": 63.02,
+      "gen_mean_speed_mm_s": 61.83,
+      "elapsed_s": 1770.8
+    },
+    {
+      "gen": 112,
+      "best_speed_mm_s": 63.45,
+      "gen_best_speed_mm_s": 63.45,
+      "gen_mean_speed_mm_s": 61.91,
+      "elapsed_s": 1787.0
+    },
+    {
+      "gen": 113,
+      "best_speed_mm_s": 63.45,
+      "gen_best_speed_mm_s": 63.27,
+      "gen_mean_speed_mm_s": 62.0,
+      "elapsed_s": 1802.9
+    },
+    {
+      "gen": 114,
+      "best_speed_mm_s": 63.45,
+      "gen_best_speed_mm_s": 63.12,
+      "gen_mean_speed_mm_s": 61.9,
+      "elapsed_s": 1819.0
+    },
+    {
+      "gen": 115,
+      "best_speed_mm_s": 63.45,
+      "gen_best_speed_mm_s": 63.21,
+      "gen_mean_speed_mm_s": 61.64,
+      "elapsed_s": 1835.1
+    },
+    {
+      "gen": 116,
+      "best_speed_mm_s": 63.45,
+      "gen_best_speed_mm_s": 63.09,
+      "gen_mean_speed_mm_s": 62.25,
+      "elapsed_s": 1851.0
+    },
+    {
+      "gen": 117,
+      "best_speed_mm_s": 63.45,
+      "gen_best_speed_mm_s": 63.42,
+      "gen_mean_speed_mm_s": 62.17,
+      "elapsed_s": 1866.8
+    },
+    {
+      "gen": 118,
+      "best_speed_mm_s": 63.55,
+      "gen_best_speed_mm_s": 63.55,
+      "gen_mean_speed_mm_s": 62.43,
+      "elapsed_s": 1882.7
+    },
+    {
+      "gen": 119,
+      "best_speed_mm_s": 63.55,
+      "gen_best_speed_mm_s": 63.0,
+      "gen_mean_speed_mm_s": 61.94,
+      "elapsed_s": 1898.5
+    },
+    {
+      "gen": 120,
+      "best_speed_mm_s": 63.55,
+      "gen_best_speed_mm_s": 63.04,
+      "gen_mean_speed_mm_s": 61.82,
+      "elapsed_s": 1914.2
+    },
+    {
+      "gen": 121,
+      "best_speed_mm_s": 63.55,
+      "gen_best_speed_mm_s": 63.34,
+      "gen_mean_speed_mm_s": 61.93,
+      "elapsed_s": 1930.0
+    },
+    {
+      "gen": 122,
+      "best_speed_mm_s": 63.55,
+      "gen_best_speed_mm_s": 63.31,
+      "gen_mean_speed_mm_s": 62.0,
+      "elapsed_s": 1945.5
+    },
+    {
+      "gen": 123,
+      "best_speed_mm_s": 63.55,
+      "gen_best_speed_mm_s": 63.3,
+      "gen_mean_speed_mm_s": 62.3,
+      "elapsed_s": 1960.9
+    },
+    {
+      "gen": 124,
+      "best_speed_mm_s": 63.55,
+      "gen_best_speed_mm_s": 63.42,
+      "gen_mean_speed_mm_s": 62.0,
+      "elapsed_s": 1976.5
+    },
+    {
+      "gen": 125,
+      "best_speed_mm_s": 63.57,
+      "gen_best_speed_mm_s": 63.57,
+      "gen_mean_speed_mm_s": 62.1,
+      "elapsed_s": 1992.3
+    },
+    {
+      "gen": 126,
+      "best_speed_mm_s": 63.57,
+      "gen_best_speed_mm_s": 63.38,
+      "gen_mean_speed_mm_s": 62.25,
+      "elapsed_s": 2008.0
+    },
+    {
+      "gen": 127,
+      "best_speed_mm_s": 63.57,
+      "gen_best_speed_mm_s": 63.2,
+      "gen_mean_speed_mm_s": 62.04,
+      "elapsed_s": 2023.8
+    },
+    {
+      "gen": 128,
+      "best_speed_mm_s": 63.57,
+      "gen_best_speed_mm_s": 62.88,
+      "gen_mean_speed_mm_s": 62.16,
+      "elapsed_s": 2039.3
+    },
+    {
+      "gen": 129,
+      "best_speed_mm_s": 63.57,
+      "gen_best_speed_mm_s": 63.12,
+      "gen_mean_speed_mm_s": 62.09,
+      "elapsed_s": 2054.8
+    },
+    {
+      "gen": 130,
+      "best_speed_mm_s": 63.57,
+      "gen_best_speed_mm_s": 62.98,
+      "gen_mean_speed_mm_s": 62.42,
+      "elapsed_s": 2070.6
+    },
+    {
+      "gen": 131,
+      "best_speed_mm_s": 63.57,
+      "gen_best_speed_mm_s": 63.3,
+      "gen_mean_speed_mm_s": 62.26,
+      "elapsed_s": 2086.4
+    },
+    {
+      "gen": 132,
+      "best_speed_mm_s": 63.57,
+      "gen_best_speed_mm_s": 63.13,
+      "gen_mean_speed_mm_s": 62.38,
+      "elapsed_s": 2102.2
+    },
+    {
+      "gen": 133,
+      "best_speed_mm_s": 63.65,
+      "gen_best_speed_mm_s": 63.65,
+      "gen_mean_speed_mm_s": 62.37,
+      "elapsed_s": 2118.0
+    },
+    {
+      "gen": 134,
+      "best_speed_mm_s": 63.65,
+      "gen_best_speed_mm_s": 63.12,
+      "gen_mean_speed_mm_s": 62.18,
+      "elapsed_s": 2133.8
+    },
+    {
+      "gen": 135,
+      "best_speed_mm_s": 63.65,
+      "gen_best_speed_mm_s": 63.13,
+      "gen_mean_speed_mm_s": 61.91,
+      "elapsed_s": 2149.5
+    },
+    {
+      "gen": 136,
+      "best_speed_mm_s": 63.72,
+      "gen_best_speed_mm_s": 63.72,
+      "gen_mean_speed_mm_s": 62.48,
+      "elapsed_s": 2165.4
+    },
+    {
+      "gen": 137,
+      "best_speed_mm_s": 63.72,
+      "gen_best_speed_mm_s": 63.15,
+      "gen_mean_speed_mm_s": 62.69,
+      "elapsed_s": 2181.3
+    },
+    {
+      "gen": 138,
+      "best_speed_mm_s": 63.72,
+      "gen_best_speed_mm_s": 63.41,
+      "gen_mean_speed_mm_s": 62.41,
+      "elapsed_s": 2197.1
+    },
+    {
+      "gen": 139,
+      "best_speed_mm_s": 63.72,
+      "gen_best_speed_mm_s": 63.08,
+      "gen_mean_speed_mm_s": 62.42,
+      "elapsed_s": 2212.9
+    },
+    {
+      "gen": 140,
+      "best_speed_mm_s": 63.72,
+      "gen_best_speed_mm_s": 63.28,
+      "gen_mean_speed_mm_s": 62.6,
+      "elapsed_s": 2228.8
+    },
+    {
+      "gen": 141,
+      "best_speed_mm_s": 63.72,
+      "gen_best_speed_mm_s": 62.86,
+      "gen_mean_speed_mm_s": 62.4,
+      "elapsed_s": 2244.6
+    },
+    {
+      "gen": 142,
+      "best_speed_mm_s": 63.72,
+      "gen_best_speed_mm_s": 63.37,
+      "gen_mean_speed_mm_s": 62.48,
+      "elapsed_s": 2260.4
+    },
+    {
+      "gen": 143,
+      "best_speed_mm_s": 63.91,
+      "gen_best_speed_mm_s": 63.91,
+      "gen_mean_speed_mm_s": 62.54,
+      "elapsed_s": 2275.6
+    },
+    {
+      "gen": 144,
+      "best_speed_mm_s": 63.91,
+      "gen_best_speed_mm_s": 63.42,
+      "gen_mean_speed_mm_s": 62.57,
+      "elapsed_s": 2291.0
+    },
+    {
+      "gen": 145,
+      "best_speed_mm_s": 63.91,
+      "gen_best_speed_mm_s": 63.4,
+      "gen_mean_speed_mm_s": 62.3,
+      "elapsed_s": 2306.7
+    },
+    {
+      "gen": 146,
+      "best_speed_mm_s": 63.91,
+      "gen_best_speed_mm_s": 63.4,
+      "gen_mean_speed_mm_s": 62.47,
+      "elapsed_s": 2322.5
+    },
+    {
+      "gen": 147,
+      "best_speed_mm_s": 63.91,
+      "gen_best_speed_mm_s": 63.49,
+      "gen_mean_speed_mm_s": 62.5,
+      "elapsed_s": 2338.3
+    },
+    {
+      "gen": 148,
+      "best_speed_mm_s": 63.91,
+      "gen_best_speed_mm_s": 63.4,
+      "gen_mean_speed_mm_s": 62.72,
+      "elapsed_s": 2354.3
+    },
+    {
+      "gen": 149,
+      "best_speed_mm_s": 63.91,
+      "gen_best_speed_mm_s": 63.6,
+      "gen_mean_speed_mm_s": 62.64,
+      "elapsed_s": 2370.3
+    },
+    {
+      "gen": 150,
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 64.33,
+      "gen_mean_speed_mm_s": 62.78,
+      "elapsed_s": 2386.0
+    },
+    {
+      "gen": 151,
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.59,
+      "gen_mean_speed_mm_s": 62.51,
+      "elapsed_s": 2401.8
+    },
+    {
+      "gen": 152,
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.7,
+      "gen_mean_speed_mm_s": 62.59,
+      "elapsed_s": 2417.7
+    },
+    {
+      "gen": 153,
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.54,
+      "gen_mean_speed_mm_s": 62.46,
+      "elapsed_s": 2433.4
+    },
+    {
+      "gen": 154,
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.7,
+      "gen_mean_speed_mm_s": 62.71,
+      "elapsed_s": 2449.4
+    },
+    {
       "gen": 155,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.08,
-      "gen_mean_speed_mm_s": 314.58,
-      "elapsed_s": 1471.9
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.45,
+      "gen_mean_speed_mm_s": 62.39,
+      "elapsed_s": 2465.3
     },
     {
       "gen": 156,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 328.27,
-      "gen_mean_speed_mm_s": 317.97,
-      "elapsed_s": 1479.0
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 64.02,
+      "gen_mean_speed_mm_s": 62.54,
+      "elapsed_s": 2481.0
     },
     {
       "gen": 157,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 327.97,
-      "gen_mean_speed_mm_s": 315.49,
-      "elapsed_s": 1486.4
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.72,
+      "gen_mean_speed_mm_s": 62.66,
+      "elapsed_s": 2497.0
     },
     {
       "gen": 158,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.03,
-      "gen_mean_speed_mm_s": 318.04,
-      "elapsed_s": 1493.6
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.46,
+      "gen_mean_speed_mm_s": 62.44,
+      "elapsed_s": 2513.0
     },
     {
       "gen": 159,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 329.23,
-      "gen_mean_speed_mm_s": 309.73,
-      "elapsed_s": 1500.9
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.31,
+      "gen_mean_speed_mm_s": 62.64,
+      "elapsed_s": 2528.9
     },
     {
       "gen": 160,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 335.36,
-      "gen_mean_speed_mm_s": 319.57,
-      "elapsed_s": 1508.1
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.5,
+      "gen_mean_speed_mm_s": 62.65,
+      "elapsed_s": 2545.1
     },
     {
       "gen": 161,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 336.94,
-      "gen_mean_speed_mm_s": 318.37,
-      "elapsed_s": 1515.4
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.3,
+      "gen_mean_speed_mm_s": 62.48,
+      "elapsed_s": 2561.2
     },
     {
       "gen": 162,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 338.9,
-      "gen_mean_speed_mm_s": 319.54,
-      "elapsed_s": 1522.7
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.2,
+      "gen_mean_speed_mm_s": 62.46,
+      "elapsed_s": 2577.3
     },
     {
       "gen": 163,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.82,
-      "gen_mean_speed_mm_s": 312.19,
-      "elapsed_s": 1530.0
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.41,
+      "gen_mean_speed_mm_s": 62.41,
+      "elapsed_s": 2593.3
     },
     {
       "gen": 164,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 328.11,
-      "gen_mean_speed_mm_s": 314.38,
-      "elapsed_s": 1537.5
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.55,
+      "gen_mean_speed_mm_s": 62.57,
+      "elapsed_s": 2609.3
     },
     {
       "gen": 165,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 332.98,
-      "gen_mean_speed_mm_s": 314.61,
-      "elapsed_s": 1544.7
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.37,
+      "gen_mean_speed_mm_s": 62.76,
+      "elapsed_s": 2625.4
     },
     {
       "gen": 166,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 332.37,
-      "gen_mean_speed_mm_s": 321.33,
-      "elapsed_s": 1551.8
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.68,
+      "gen_mean_speed_mm_s": 62.72,
+      "elapsed_s": 2641.5
     },
     {
       "gen": 167,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 327.62,
-      "gen_mean_speed_mm_s": 316.61,
-      "elapsed_s": 1559.8
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.62,
+      "gen_mean_speed_mm_s": 62.46,
+      "elapsed_s": 2657.9
     },
     {
       "gen": 168,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.22,
-      "gen_mean_speed_mm_s": 324.08,
-      "elapsed_s": 1568.6
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 63.68,
+      "gen_mean_speed_mm_s": 62.82,
+      "elapsed_s": 2674.4
     },
     {
       "gen": 169,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 338.28,
-      "gen_mean_speed_mm_s": 316.54,
-      "elapsed_s": 1576.4
+      "best_speed_mm_s": 64.33,
+      "gen_best_speed_mm_s": 64.32,
+      "gen_mean_speed_mm_s": 63.08,
+      "elapsed_s": 2690.9
     },
     {
       "gen": 170,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.93,
-      "gen_mean_speed_mm_s": 320.26,
-      "elapsed_s": 1583.6
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 64.35,
+      "gen_mean_speed_mm_s": 62.67,
+      "elapsed_s": 2707.6
     },
     {
       "gen": 171,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 327.19,
-      "gen_mean_speed_mm_s": 316.32,
-      "elapsed_s": 1590.8
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 63.71,
+      "gen_mean_speed_mm_s": 62.44,
+      "elapsed_s": 2723.6
     },
     {
       "gen": 172,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 331.18,
-      "gen_mean_speed_mm_s": 317.27,
-      "elapsed_s": 1598.3
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 63.5,
+      "gen_mean_speed_mm_s": 62.57,
+      "elapsed_s": 2739.6
     },
     {
       "gen": 173,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.46,
-      "gen_mean_speed_mm_s": 314.27,
-      "elapsed_s": 1605.5
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 63.28,
+      "gen_mean_speed_mm_s": 62.42,
+      "elapsed_s": 2756.3
     },
     {
       "gen": 174,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 325.39,
-      "gen_mean_speed_mm_s": 315.97,
-      "elapsed_s": 1612.7
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 63.67,
+      "gen_mean_speed_mm_s": 62.62,
+      "elapsed_s": 2772.8
     },
     {
       "gen": 175,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 329.26,
-      "gen_mean_speed_mm_s": 318.14,
-      "elapsed_s": 1619.9
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 63.88,
+      "gen_mean_speed_mm_s": 62.98,
+      "elapsed_s": 2789.1
     },
     {
       "gen": 176,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 337.63,
-      "gen_mean_speed_mm_s": 319.25,
-      "elapsed_s": 1628.0
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 63.5,
+      "gen_mean_speed_mm_s": 62.9,
+      "elapsed_s": 2805.3
     },
     {
       "gen": 177,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 328.06,
-      "gen_mean_speed_mm_s": 317.35,
-      "elapsed_s": 1641.2
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 64.02,
+      "gen_mean_speed_mm_s": 62.65,
+      "elapsed_s": 2821.6
     },
     {
       "gen": 178,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 336.2,
-      "gen_mean_speed_mm_s": 315.9,
-      "elapsed_s": 1650.6
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 63.47,
+      "gen_mean_speed_mm_s": 62.57,
+      "elapsed_s": 2837.6
     },
     {
       "gen": 179,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 330.34,
-      "gen_mean_speed_mm_s": 315.8,
-      "elapsed_s": 1661.6
+      "best_speed_mm_s": 64.35,
+      "gen_best_speed_mm_s": 63.65,
+      "gen_mean_speed_mm_s": 62.94,
+      "elapsed_s": 2853.7
     },
     {
       "gen": 180,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.34,
-      "gen_mean_speed_mm_s": 318.34,
-      "elapsed_s": 1672.8
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.76,
+      "gen_mean_speed_mm_s": 63.15,
+      "elapsed_s": 2869.7
     },
     {
       "gen": 181,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 336.27,
-      "gen_mean_speed_mm_s": 314.43,
-      "elapsed_s": 1685.0
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.28,
+      "gen_mean_speed_mm_s": 62.8,
+      "elapsed_s": 2885.6
     },
     {
       "gen": 182,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 332.13,
-      "gen_mean_speed_mm_s": 317.59,
-      "elapsed_s": 1696.3
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 63.68,
+      "gen_mean_speed_mm_s": 63.06,
+      "elapsed_s": 2901.7
     },
     {
       "gen": 183,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 334.49,
-      "gen_mean_speed_mm_s": 323.74,
-      "elapsed_s": 1708.4
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.32,
+      "gen_mean_speed_mm_s": 62.88,
+      "elapsed_s": 2917.7
     },
     {
       "gen": 184,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 329.6,
-      "gen_mean_speed_mm_s": 316.44,
-      "elapsed_s": 1720.8
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.39,
+      "gen_mean_speed_mm_s": 62.88,
+      "elapsed_s": 2933.5
     },
     {
       "gen": 185,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 324.53,
-      "gen_mean_speed_mm_s": 314.43,
-      "elapsed_s": 1732.6
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 63.54,
+      "gen_mean_speed_mm_s": 62.55,
+      "elapsed_s": 2949.2
     },
     {
       "gen": 186,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 337.39,
-      "gen_mean_speed_mm_s": 322.2,
-      "elapsed_s": 1745.8
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.22,
+      "gen_mean_speed_mm_s": 62.77,
+      "elapsed_s": 2965.0
     },
     {
       "gen": 187,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 339.28,
-      "gen_mean_speed_mm_s": 321.66,
-      "elapsed_s": 1758.1
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 63.73,
+      "gen_mean_speed_mm_s": 62.85,
+      "elapsed_s": 2981.1
     },
     {
       "gen": 188,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 337.32,
-      "gen_mean_speed_mm_s": 322.71,
-      "elapsed_s": 1771.6
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.02,
+      "gen_mean_speed_mm_s": 63.23,
+      "elapsed_s": 2997.4
     },
     {
       "gen": 189,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 333.71,
-      "gen_mean_speed_mm_s": 320.31,
-      "elapsed_s": 1782.8
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.08,
+      "gen_mean_speed_mm_s": 63.01,
+      "elapsed_s": 3014.1
     },
     {
       "gen": 190,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 339.73,
-      "gen_mean_speed_mm_s": 321.27,
-      "elapsed_s": 1795.6
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.27,
+      "gen_mean_speed_mm_s": 62.68,
+      "elapsed_s": 3030.6
     },
     {
       "gen": 191,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 337.65,
-      "gen_mean_speed_mm_s": 328.09,
-      "elapsed_s": 1808.9
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.35,
+      "gen_mean_speed_mm_s": 63.17,
+      "elapsed_s": 3046.5
     },
     {
       "gen": 192,
-      "best_speed_mm_s": 342.98,
-      "gen_best_speed_mm_s": 337.35,
-      "gen_mean_speed_mm_s": 321.22,
-      "elapsed_s": 1821.4
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.43,
+      "gen_mean_speed_mm_s": 62.74,
+      "elapsed_s": 3062.6
     },
     {
       "gen": 193,
-      "best_speed_mm_s": 343.83,
-      "gen_best_speed_mm_s": 343.83,
-      "gen_mean_speed_mm_s": 325.42,
-      "elapsed_s": 1834.1
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.26,
+      "gen_mean_speed_mm_s": 63.44,
+      "elapsed_s": 3078.6
     },
     {
       "gen": 194,
-      "best_speed_mm_s": 343.83,
-      "gen_best_speed_mm_s": 335.45,
-      "gen_mean_speed_mm_s": 325.65,
-      "elapsed_s": 1845.8
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.33,
+      "gen_mean_speed_mm_s": 63.6,
+      "elapsed_s": 3094.8
     },
     {
       "gen": 195,
-      "best_speed_mm_s": 343.83,
-      "gen_best_speed_mm_s": 335.71,
-      "gen_mean_speed_mm_s": 322.67,
-      "elapsed_s": 1856.7
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.11,
+      "gen_mean_speed_mm_s": 63.08,
+      "elapsed_s": 3110.8
     },
     {
       "gen": 196,
-      "best_speed_mm_s": 343.83,
-      "gen_best_speed_mm_s": 335.89,
-      "gen_mean_speed_mm_s": 322.52,
-      "elapsed_s": 1867.5
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.14,
+      "gen_mean_speed_mm_s": 63.05,
+      "elapsed_s": 3126.8
     },
     {
       "gen": 197,
-      "best_speed_mm_s": 343.83,
-      "gen_best_speed_mm_s": 330.81,
-      "gen_mean_speed_mm_s": 320.52,
-      "elapsed_s": 1880.3
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.44,
+      "gen_mean_speed_mm_s": 63.46,
+      "elapsed_s": 3142.9
     },
     {
       "gen": 198,
-      "best_speed_mm_s": 343.83,
-      "gen_best_speed_mm_s": 334.12,
-      "gen_mean_speed_mm_s": 322.9,
-      "elapsed_s": 1892.5
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 63.89,
+      "gen_mean_speed_mm_s": 63.11,
+      "elapsed_s": 3159.1
     },
     {
       "gen": 199,
-      "best_speed_mm_s": 343.83,
-      "gen_best_speed_mm_s": 339.69,
-      "gen_mean_speed_mm_s": 323.03,
-      "elapsed_s": 1904.2
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.5,
+      "gen_mean_speed_mm_s": 63.46,
+      "elapsed_s": 3175.2
+    },
+    {
+      "gen": 200,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.33,
+      "gen_mean_speed_mm_s": 63.62,
+      "elapsed_s": 3192.0
+    },
+    {
+      "gen": 201,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.51,
+      "gen_mean_speed_mm_s": 63.52,
+      "elapsed_s": 3211.1
+    },
+    {
+      "gen": 202,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.26,
+      "gen_mean_speed_mm_s": 63.35,
+      "elapsed_s": 3230.6
+    },
+    {
+      "gen": 203,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.08,
+      "gen_mean_speed_mm_s": 63.57,
+      "elapsed_s": 3250.1
+    },
+    {
+      "gen": 204,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.44,
+      "gen_mean_speed_mm_s": 63.63,
+      "elapsed_s": 3269.4
+    },
+    {
+      "gen": 205,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.29,
+      "gen_mean_speed_mm_s": 63.33,
+      "elapsed_s": 3288.9
+    },
+    {
+      "gen": 206,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.09,
+      "gen_mean_speed_mm_s": 63.38,
+      "elapsed_s": 3308.8
+    },
+    {
+      "gen": 207,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.29,
+      "gen_mean_speed_mm_s": 63.74,
+      "elapsed_s": 3328.4
+    },
+    {
+      "gen": 208,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.32,
+      "gen_mean_speed_mm_s": 63.71,
+      "elapsed_s": 3348.0
+    },
+    {
+      "gen": 209,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.52,
+      "gen_mean_speed_mm_s": 63.6,
+      "elapsed_s": 3367.9
+    },
+    {
+      "gen": 210,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.3,
+      "gen_mean_speed_mm_s": 63.79,
+      "elapsed_s": 3386.1
+    },
+    {
+      "gen": 211,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.61,
+      "gen_mean_speed_mm_s": 63.65,
+      "elapsed_s": 3402.5
+    },
+    {
+      "gen": 212,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.43,
+      "gen_mean_speed_mm_s": 63.74,
+      "elapsed_s": 3419.2
+    },
+    {
+      "gen": 213,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.38,
+      "gen_mean_speed_mm_s": 63.92,
+      "elapsed_s": 3436.3
+    },
+    {
+      "gen": 214,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.39,
+      "gen_mean_speed_mm_s": 63.76,
+      "elapsed_s": 3454.4
+    },
+    {
+      "gen": 215,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.46,
+      "gen_mean_speed_mm_s": 63.61,
+      "elapsed_s": 3472.2
+    },
+    {
+      "gen": 216,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.46,
+      "gen_mean_speed_mm_s": 64.02,
+      "elapsed_s": 3489.9
+    },
+    {
+      "gen": 217,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.5,
+      "gen_mean_speed_mm_s": 63.94,
+      "elapsed_s": 3506.8
+    },
+    {
+      "gen": 218,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.61,
+      "gen_mean_speed_mm_s": 64.05,
+      "elapsed_s": 3523.2
+    },
+    {
+      "gen": 219,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.6,
+      "gen_mean_speed_mm_s": 64.06,
+      "elapsed_s": 3539.7
+    },
+    {
+      "gen": 220,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.43,
+      "gen_mean_speed_mm_s": 64.12,
+      "elapsed_s": 3556.1
+    },
+    {
+      "gen": 221,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.54,
+      "gen_mean_speed_mm_s": 63.99,
+      "elapsed_s": 3572.6
+    },
+    {
+      "gen": 222,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.64,
+      "gen_mean_speed_mm_s": 64.22,
+      "elapsed_s": 3588.9
+    },
+    {
+      "gen": 223,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.65,
+      "gen_mean_speed_mm_s": 64.33,
+      "elapsed_s": 3605.1
+    },
+    {
+      "gen": 224,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.63,
+      "gen_mean_speed_mm_s": 64.26,
+      "elapsed_s": 3621.4
+    },
+    {
+      "gen": 225,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.6,
+      "gen_mean_speed_mm_s": 64.24,
+      "elapsed_s": 3637.8
+    },
+    {
+      "gen": 226,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.64,
+      "gen_mean_speed_mm_s": 64.4,
+      "elapsed_s": 3654.0
+    },
+    {
+      "gen": 227,
+      "best_speed_mm_s": 64.76,
+      "gen_best_speed_mm_s": 64.66,
+      "gen_mean_speed_mm_s": 64.22,
+      "elapsed_s": 3670.1
+    },
+    {
+      "gen": 228,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.79,
+      "gen_mean_speed_mm_s": 64.4,
+      "elapsed_s": 3686.3
+    },
+    {
+      "gen": 229,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.66,
+      "gen_mean_speed_mm_s": 64.47,
+      "elapsed_s": 3702.7
+    },
+    {
+      "gen": 230,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.67,
+      "gen_mean_speed_mm_s": 64.37,
+      "elapsed_s": 3719.2
+    },
+    {
+      "gen": 231,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.61,
+      "gen_mean_speed_mm_s": 64.36,
+      "elapsed_s": 3735.3
+    },
+    {
+      "gen": 232,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.66,
+      "gen_mean_speed_mm_s": 64.44,
+      "elapsed_s": 3750.9
+    },
+    {
+      "gen": 233,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.71,
+      "gen_mean_speed_mm_s": 64.46,
+      "elapsed_s": 3766.8
+    },
+    {
+      "gen": 234,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.67,
+      "gen_mean_speed_mm_s": 64.5,
+      "elapsed_s": 3782.7
+    },
+    {
+      "gen": 235,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.67,
+      "gen_mean_speed_mm_s": 64.5,
+      "elapsed_s": 3798.1
+    },
+    {
+      "gen": 236,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.69,
+      "gen_mean_speed_mm_s": 64.56,
+      "elapsed_s": 3813.9
+    },
+    {
+      "gen": 237,
+      "best_speed_mm_s": 64.79,
+      "gen_best_speed_mm_s": 64.69,
+      "gen_mean_speed_mm_s": 64.49,
+      "elapsed_s": 3829.7
+    },
+    {
+      "gen": 238,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.8,
+      "gen_mean_speed_mm_s": 64.56,
+      "elapsed_s": 3845.5
+    },
+    {
+      "gen": 239,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.76,
+      "gen_mean_speed_mm_s": 64.51,
+      "elapsed_s": 3861.1
+    },
+    {
+      "gen": 240,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.69,
+      "gen_mean_speed_mm_s": 64.59,
+      "elapsed_s": 3876.8
+    },
+    {
+      "gen": 241,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.71,
+      "gen_mean_speed_mm_s": 64.57,
+      "elapsed_s": 3892.3
+    },
+    {
+      "gen": 242,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.69,
+      "gen_mean_speed_mm_s": 64.53,
+      "elapsed_s": 3907.9
+    },
+    {
+      "gen": 243,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.71,
+      "gen_mean_speed_mm_s": 64.59,
+      "elapsed_s": 3923.6
+    },
+    {
+      "gen": 244,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.69,
+      "gen_mean_speed_mm_s": 64.59,
+      "elapsed_s": 3939.4
+    },
+    {
+      "gen": 245,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.7,
+      "gen_mean_speed_mm_s": 64.53,
+      "elapsed_s": 3955.0
+    },
+    {
+      "gen": 246,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.67,
+      "gen_mean_speed_mm_s": 64.59,
+      "elapsed_s": 3970.2
+    },
+    {
+      "gen": 247,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.74,
+      "gen_mean_speed_mm_s": 64.58,
+      "elapsed_s": 3985.6
+    },
+    {
+      "gen": 248,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.8,
+      "gen_mean_speed_mm_s": 64.57,
+      "elapsed_s": 4001.3
+    },
+    {
+      "gen": 249,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.75,
+      "gen_mean_speed_mm_s": 64.62,
+      "elapsed_s": 4017.0
+    },
+    {
+      "gen": 250,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.77,
+      "gen_mean_speed_mm_s": 64.44,
+      "elapsed_s": 4032.9
+    },
+    {
+      "gen": 251,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.8,
+      "gen_mean_speed_mm_s": 64.41,
+      "elapsed_s": 4048.5
+    },
+    {
+      "gen": 252,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.77,
+      "gen_mean_speed_mm_s": 64.67,
+      "elapsed_s": 4064.2
+    },
+    {
+      "gen": 253,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.74,
+      "gen_mean_speed_mm_s": 64.61,
+      "elapsed_s": 4079.9
+    },
+    {
+      "gen": 254,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.8,
+      "gen_mean_speed_mm_s": 64.65,
+      "elapsed_s": 4095.5
+    },
+    {
+      "gen": 255,
+      "best_speed_mm_s": 64.8,
+      "gen_best_speed_mm_s": 64.78,
+      "gen_mean_speed_mm_s": 64.61,
+      "elapsed_s": 4111.2
+    },
+    {
+      "gen": 256,
+      "best_speed_mm_s": 64.84,
+      "gen_best_speed_mm_s": 64.84,
+      "gen_mean_speed_mm_s": 64.33,
+      "elapsed_s": 4126.8
+    },
+    {
+      "gen": 257,
+      "best_speed_mm_s": 64.84,
+      "gen_best_speed_mm_s": 64.83,
+      "gen_mean_speed_mm_s": 64.67,
+      "elapsed_s": 4142.0
+    },
+    {
+      "gen": 258,
+      "best_speed_mm_s": 64.84,
+      "gen_best_speed_mm_s": 64.81,
+      "gen_mean_speed_mm_s": 64.51,
+      "elapsed_s": 4157.2
+    },
+    {
+      "gen": 259,
+      "best_speed_mm_s": 64.84,
+      "gen_best_speed_mm_s": 64.81,
+      "gen_mean_speed_mm_s": 64.67,
+      "elapsed_s": 4172.6
+    },
+    {
+      "gen": 260,
+      "best_speed_mm_s": 64.86,
+      "gen_best_speed_mm_s": 64.86,
+      "gen_mean_speed_mm_s": 64.56,
+      "elapsed_s": 4188.1
+    },
+    {
+      "gen": 261,
+      "best_speed_mm_s": 64.86,
+      "gen_best_speed_mm_s": 64.82,
+      "gen_mean_speed_mm_s": 64.52,
+      "elapsed_s": 4203.6
+    },
+    {
+      "gen": 262,
+      "best_speed_mm_s": 64.86,
+      "gen_best_speed_mm_s": 64.75,
+      "gen_mean_speed_mm_s": 64.61,
+      "elapsed_s": 4219.5
+    },
+    {
+      "gen": 263,
+      "best_speed_mm_s": 64.86,
+      "gen_best_speed_mm_s": 64.76,
+      "gen_mean_speed_mm_s": 64.57,
+      "elapsed_s": 4235.3
+    },
+    {
+      "gen": 264,
+      "best_speed_mm_s": 64.86,
+      "gen_best_speed_mm_s": 64.85,
+      "gen_mean_speed_mm_s": 64.7,
+      "elapsed_s": 4251.1
+    },
+    {
+      "gen": 265,
+      "best_speed_mm_s": 64.86,
+      "gen_best_speed_mm_s": 64.84,
+      "gen_mean_speed_mm_s": 64.68,
+      "elapsed_s": 4266.8
+    },
+    {
+      "gen": 266,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.89,
+      "gen_mean_speed_mm_s": 64.68,
+      "elapsed_s": 4282.3
+    },
+    {
+      "gen": 267,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.84,
+      "gen_mean_speed_mm_s": 64.69,
+      "elapsed_s": 4297.8
+    },
+    {
+      "gen": 268,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.86,
+      "gen_mean_speed_mm_s": 64.72,
+      "elapsed_s": 4313.3
+    },
+    {
+      "gen": 269,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.84,
+      "gen_mean_speed_mm_s": 64.62,
+      "elapsed_s": 4329.1
+    },
+    {
+      "gen": 270,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.61,
+      "elapsed_s": 4344.9
+    },
+    {
+      "gen": 271,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.86,
+      "gen_mean_speed_mm_s": 64.68,
+      "elapsed_s": 4360.9
+    },
+    {
+      "gen": 272,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.73,
+      "elapsed_s": 4377.0
+    },
+    {
+      "gen": 273,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.6,
+      "elapsed_s": 4392.9
+    },
+    {
+      "gen": 274,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.61,
+      "elapsed_s": 4409.0
+    },
+    {
+      "gen": 275,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.86,
+      "gen_mean_speed_mm_s": 64.66,
+      "elapsed_s": 4424.8
+    },
+    {
+      "gen": 276,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.74,
+      "elapsed_s": 4440.6
+    },
+    {
+      "gen": 277,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.85,
+      "gen_mean_speed_mm_s": 64.75,
+      "elapsed_s": 4456.6
+    },
+    {
+      "gen": 278,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.7,
+      "elapsed_s": 4472.5
+    },
+    {
+      "gen": 279,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.81,
+      "elapsed_s": 4488.3
+    },
+    {
+      "gen": 280,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.86,
+      "gen_mean_speed_mm_s": 64.76,
+      "elapsed_s": 4504.4
+    },
+    {
+      "gen": 281,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.78,
+      "elapsed_s": 4520.3
+    },
+    {
+      "gen": 282,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.86,
+      "gen_mean_speed_mm_s": 64.67,
+      "elapsed_s": 4536.3
+    },
+    {
+      "gen": 283,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.65,
+      "elapsed_s": 4552.3
+    },
+    {
+      "gen": 284,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.87,
+      "gen_mean_speed_mm_s": 64.61,
+      "elapsed_s": 4568.3
+    },
+    {
+      "gen": 285,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.85,
+      "gen_mean_speed_mm_s": 64.72,
+      "elapsed_s": 4584.4
+    },
+    {
+      "gen": 286,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.86,
+      "gen_mean_speed_mm_s": 64.79,
+      "elapsed_s": 4600.4
+    },
+    {
+      "gen": 287,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.88,
+      "gen_mean_speed_mm_s": 64.79,
+      "elapsed_s": 4616.3
+    },
+    {
+      "gen": 288,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.86,
+      "gen_mean_speed_mm_s": 64.73,
+      "elapsed_s": 4632.0
+    },
+    {
+      "gen": 289,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.84,
+      "gen_mean_speed_mm_s": 64.69,
+      "elapsed_s": 4647.6
+    },
+    {
+      "gen": 290,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.88,
+      "gen_mean_speed_mm_s": 64.72,
+      "elapsed_s": 4663.3
+    },
+    {
+      "gen": 291,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.88,
+      "gen_mean_speed_mm_s": 64.8,
+      "elapsed_s": 4679.6
+    },
+    {
+      "gen": 292,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.89,
+      "gen_mean_speed_mm_s": 64.76,
+      "elapsed_s": 4695.6
+    },
+    {
+      "gen": 293,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.88,
+      "gen_mean_speed_mm_s": 64.69,
+      "elapsed_s": 4711.6
+    },
+    {
+      "gen": 294,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.88,
+      "gen_mean_speed_mm_s": 64.75,
+      "elapsed_s": 4727.6
+    },
+    {
+      "gen": 295,
+      "best_speed_mm_s": 64.89,
+      "gen_best_speed_mm_s": 64.89,
+      "gen_mean_speed_mm_s": 64.72,
+      "elapsed_s": 4744.8
+    },
+    {
+      "gen": 296,
+      "best_speed_mm_s": 64.9,
+      "gen_best_speed_mm_s": 64.9,
+      "gen_mean_speed_mm_s": 64.67,
+      "elapsed_s": 4760.3
+    },
+    {
+      "gen": 297,
+      "best_speed_mm_s": 64.9,
+      "gen_best_speed_mm_s": 64.89,
+      "gen_mean_speed_mm_s": 64.77,
+      "elapsed_s": 4776.0
+    },
+    {
+      "gen": 298,
+      "best_speed_mm_s": 64.9,
+      "gen_best_speed_mm_s": 64.9,
+      "gen_mean_speed_mm_s": 64.8,
+      "elapsed_s": 4791.5
+    },
+    {
+      "gen": 299,
+      "best_speed_mm_s": 64.9,
+      "gen_best_speed_mm_s": 64.89,
+      "gen_mean_speed_mm_s": 64.77,
+      "elapsed_s": 4807.3
     }
   ]
 }

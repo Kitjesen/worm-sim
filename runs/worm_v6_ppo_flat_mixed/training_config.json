@@ -1,0 +1,207 @@
+{
+  "format_version": 1,
+  "created_unix_time": 1779969231.396091,
+  "algorithm": "PPO",
+  "terrain": "flat",
+  "gait_mode": "mixed",
+  "gait_blend": null,
+  "run_gait_label": "mixed",
+  "obs_dim": 80,
+  "obs_layout": {
+    "command": [
+      0,
+      3
+    ],
+    "joint_pos": [
+      3,
+      14
+    ],
+    "joint_vel": [
+      14,
+      25
+    ],
+    "previous_action": [
+      25,
+      36
+    ],
+    "segment_gravity": [
+      36,
+      57
+    ],
+    "segment_gyro": [
+      57,
+      78
+    ],
+    "phase_clock": [
+      78,
+      80
+    ]
+  },
+  "num_actuators": 11,
+  "num_imus": 7,
+  "actuator_contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf",
+  "actuator_contract": {
+    "format_version": 1,
+    "name": "worm_v6_actuator_motor_contract",
+    "actuator_count": 11,
+    "normalized_action_range": [
+      -1.0,
+      1.0
+    ],
+    "action_mapping": {
+      "slide_indices": [
+        0,
+        6
+      ],
+      "yaw_indices": [
+        6,
+        11
+      ],
+      "slide_target_m": "clip(action[i] * slide_range_m, slide_min_m, slide_max_m)",
+      "yaw_target_rad": "clip(action[i] * yaw_range_rad, yaw_min_rad, yaw_max_rad)",
+      "slide_range_m": 0.05,
+      "slide_min_m": -0.05,
+      "slide_max_m": 0.0,
+      "yaw_range_rad": 1.57,
+      "yaw_min_rad": -1.57,
+      "yaw_max_rad": 1.57
+    },
+    "actuator_groups": {
+      "slide": {
+        "indices": [
+          0,
+          6
+        ],
+        "joint_names": [
+          "back1",
+          "back2",
+          "back3",
+          "back4",
+          "back5",
+          "back6"
+        ],
+        "joint_type": "prismatic_position_servo",
+        "target_unit": "m",
+        "mechanical_range_m": [
+          -0.05,
+          0.0
+        ],
+        "normalized_command_scale_m": 0.05,
+        "mujoco_position_kp_n_per_m": 800.0,
+        "mujoco_force_limit_n": 50.0,
+        "joint_damping": 10.0,
+        "joint_stiffness": 300.0,
+        "hardware_rule": "Real controller must clip slide targets to [-0.05, 0.0] m before sending commands."
+      },
+      "yaw": {
+        "indices": [
+          6,
+          11
+        ],
+        "joint_names": [
+          "front2",
+          "front3",
+          "front4",
+          "front5",
+          "front6"
+        ],
+        "joint_type": "revolute_position_servo",
+        "target_unit": "rad",
+        "mechanical_range_rad": [
+          -1.57,
+          1.57
+        ],
+        "normalized_command_scale_rad": 1.57,
+        "mujoco_position_kp_nm_per_rad": 200.0,
+        "mujoco_torque_limit_nm": 20.0,
+        "joint_damping": 5.0,
+        "hardware_rule": "Real controller must clip yaw targets to [-1.57, 1.57] rad before sending commands."
+      }
+    },
+    "not_yet_modeled_in_sim": [
+      "motor speed limit",
+      "current and voltage limits",
+      "thermal derating",
+      "gear backlash",
+      "deadband",
+      "vendor controller internal PID"
+    ],
+    "contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
+  },
+  "deployable_observation_sources": [
+    "velocity command",
+    "yaw-rate command",
+    "continuous gait_blend command",
+    "actuated joint encoder positions",
+    "actuated joint encoder velocities",
+    "previous applied action",
+    "per-segment IMU projected gravity",
+    "per-segment IMU angular velocity",
+    "phase clock"
+  ],
+  "forbidden_policy_sources": [
+    "base linear velocity",
+    "global position",
+    "global yaw",
+    "MuJoCo freejoint state as policy input",
+    "external localization as policy input"
+  ],
+  "command_ranges": {
+    "cmd_vel_m_s": [
+      0.0,
+      0.025
+    ],
+    "cmd_yaw_rad_s": [
+      -0.3,
+      0.3
+    ],
+    "gait_blend": [
+      0.0,
+      1.0
+    ]
+  },
+  "control_timing": {
+    "control_dt_s": 0.02,
+    "control_rate_hz": 50.0,
+    "peristaltic_actuation_period_s": 1.0,
+    "phase_freq_hz": 1.0
+  },
+  "sensor_robustness": {
+    "encoder_pos_noise_std": 0.01,
+    "encoder_vel_noise_std": 0.02,
+    "imu_gravity_noise_std": 0.01,
+    "imu_gyro_noise_std": 0.01,
+    "action_delay_steps": 1,
+    "action_saturation": 1.0
+  },
+  "training": {
+    "timesteps": 1000000,
+    "train_chunk_timesteps": 600000,
+    "n_envs": 4,
+    "seed": 42,
+    "learning_rate": 0.0003,
+    "n_steps": 4096,
+    "batch_size": 1024,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.05,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "policy_net_arch": {
+      "pi": [
+        256,
+        256
+      ],
+      "vf": [
+        256,
+        256
+      ]
+    },
+    "norm_obs": true,
+    "norm_reward": false,
+    "clip_obs": 10.0
+  },
+  "resume": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_mixed\\final_model.zip"
+}

@@ -1,0 +1,187 @@
+{
+  "created_at_utc": "2026-05-28T06:18:40.619063+00:00",
+  "out_dir": "record/v6/hardware/field_trials/current",
+  "mode": "random",
+  "terrains": [
+    {
+      "terrain": "flat",
+      "bundle_dir": "record/v6/deploy_bundles/flat_random",
+      "recommended_gait_blend": 0.5,
+      "raw_template": "record/v6/hardware/field_trials/current/flat/flat_random_raw_template.csv",
+      "raw_example": "record/v6/hardware/field_trials/current/flat/flat_random_raw_example.csv",
+      "controller_stream_example": "record/v6/hardware/field_trials/current/flat/flat_random_controller_stream_example.jsonl",
+      "controller_stream_schema": "record/v6/hardware/field_trials/current/flat/flat_random_controller_stream_schema.json",
+      "policy_template": "record/v6/hardware/field_trials/current/flat/flat_random_policy_template.csv",
+      "policy_example": "record/v6/hardware/field_trials/current/flat/flat_random_policy_example.csv",
+      "readme": "record/v6/hardware/field_trials/current/flat/README.md",
+      "final_policy_log": "record/v6/hardware/flat_random_YYYYMMDD.csv",
+      "final_video": "record/v6/videos/flat_random_hardware_demo.mp4",
+      "commands": [
+        {
+          "name": "preflight deploy bundle and observation ABI",
+          "command": "python src\\v3\\preflight_hardware_deploy_v6.py --strict"
+        },
+        {
+          "name": "check controller JSONL stream before import",
+          "command": "python src\\v3\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\flat_random --strict"
+        },
+        {
+          "name": "optional: live JSONL controller bridge",
+          "command": "python src\\v3\\hardware_policy_runtime_v6.py --bundle-dir record\\v6\\deploy_bundles\\flat_random --input-jsonl - --output-jsonl - --policy-log-csv record\\v6\\hardware\\flat_random_YYYYMMDD.csv --terrain flat --mode random --gait-blend 0.500 --video-file record/v6/videos/flat_random_hardware_demo.mp4 --max-action-delta 0.2"
+        },
+        {
+          "name": "capture controller JSONL stream into raw CSV",
+          "command": "python src\\v3\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0"
+        },
+        {
+          "name": "one-command post-capture processing",
+          "command": "python src\\v3\\process_hardware_trial_v6.py --terrain flat --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0 --date YYYYMMDD"
+        },
+        {
+          "name": "import captured raw trial into audit files",
+          "command": "python src\\v3\\import_hardware_trial_v6.py --terrain flat --mode random --raw-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.500 --date YYYYMMDD"
+        },
+        {
+          "name": "run deploy policy on raw sensors and write formal audit CSV",
+          "command": "python src\\v3\\hardware_policy_runtime_v6.py --bundle-dir record\\v6\\deploy_bundles\\flat_random --input-raw-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --output-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_actions.csv --policy-log-csv record\\v6\\hardware\\flat_random_YYYYMMDD.csv --terrain flat --mode random --gait-blend 0.500 --video-file record/v6/videos/flat_random_hardware_demo.mp4 --max-action-delta 0.2 --validate-policy-log --require-video --expected-terrain flat --min-rows 5 --min-duration 0.1"
+        },
+        {
+          "name": "validate policy CSV for the paper audit",
+          "command": "python src\\v3\\validate_hardware_log_v6.py --input record\\v6\\hardware\\flat_random_YYYYMMDD.csv --expected-terrain flat --require-video --min-rows 5 --min-duration 0.1"
+        },
+        {
+          "name": "optional: replay deploy bundle on logged observations",
+          "command": "python src\\v3\\deploy_policy_v6.py replay --bundle-dir record\\v6\\deploy_bundles\\flat_random --input-csv record\\v6\\hardware\\flat_random_YYYYMMDD.csv --output-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_actions.csv"
+        },
+        {
+          "name": "show hardware trial status",
+          "command": "python src\\v3\\hardware_trial_status_v6.py --write-report"
+        },
+        {
+          "name": "refresh completion audit",
+          "command": "python src\\v3\\paper_status_v6.py --refresh-audit"
+        }
+      ]
+    },
+    {
+      "terrain": "sand",
+      "bundle_dir": "record/v6/deploy_bundles/sand_random",
+      "recommended_gait_blend": 1.0,
+      "raw_template": "record/v6/hardware/field_trials/current/sand/sand_random_raw_template.csv",
+      "raw_example": "record/v6/hardware/field_trials/current/sand/sand_random_raw_example.csv",
+      "controller_stream_example": "record/v6/hardware/field_trials/current/sand/sand_random_controller_stream_example.jsonl",
+      "controller_stream_schema": "record/v6/hardware/field_trials/current/sand/sand_random_controller_stream_schema.json",
+      "policy_template": "record/v6/hardware/field_trials/current/sand/sand_random_policy_template.csv",
+      "policy_example": "record/v6/hardware/field_trials/current/sand/sand_random_policy_example.csv",
+      "readme": "record/v6/hardware/field_trials/current/sand/README.md",
+      "final_policy_log": "record/v6/hardware/sand_random_YYYYMMDD.csv",
+      "final_video": "record/v6/videos/sand_random_hardware_demo.mp4",
+      "commands": [
+        {
+          "name": "preflight deploy bundle and observation ABI",
+          "command": "python src\\v3\\preflight_hardware_deploy_v6.py --strict"
+        },
+        {
+          "name": "check controller JSONL stream before import",
+          "command": "python src\\v3\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain sand --mode random --video-file record/v6/videos/sand_random_hardware_demo.mp4 --gait-blend 1.000 --cmd-vel 0.025 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\sand_random --strict"
+        },
+        {
+          "name": "optional: live JSONL controller bridge",
+          "command": "python src\\v3\\hardware_policy_runtime_v6.py --bundle-dir record\\v6\\deploy_bundles\\sand_random --input-jsonl - --output-jsonl - --policy-log-csv record\\v6\\hardware\\sand_random_YYYYMMDD.csv --terrain sand --mode random --gait-blend 1.000 --video-file record/v6/videos/sand_random_hardware_demo.mp4 --max-action-delta 0.2"
+        },
+        {
+          "name": "capture controller JSONL stream into raw CSV",
+          "command": "python src\\v3\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --terrain sand --mode random --video-file record/v6/videos/sand_random_hardware_demo.mp4 --gait-blend 1.000 --cmd-vel 0.025 --cmd-yaw 0.0"
+        },
+        {
+          "name": "one-command post-capture processing",
+          "command": "python src\\v3\\process_hardware_trial_v6.py --terrain sand --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --video-file record/v6/videos/sand_random_hardware_demo.mp4 --gait-blend 1.000 --cmd-vel 0.025 --cmd-yaw 0.0 --date YYYYMMDD"
+        },
+        {
+          "name": "import captured raw trial into audit files",
+          "command": "python src\\v3\\import_hardware_trial_v6.py --terrain sand --mode random --raw-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --video-file record/v6/videos/sand_random_hardware_demo.mp4 --gait-blend 1.000 --date YYYYMMDD"
+        },
+        {
+          "name": "run deploy policy on raw sensors and write formal audit CSV",
+          "command": "python src\\v3\\hardware_policy_runtime_v6.py --bundle-dir record\\v6\\deploy_bundles\\sand_random --input-raw-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --output-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_actions.csv --policy-log-csv record\\v6\\hardware\\sand_random_YYYYMMDD.csv --terrain sand --mode random --gait-blend 1.000 --video-file record/v6/videos/sand_random_hardware_demo.mp4 --max-action-delta 0.2 --validate-policy-log --require-video --expected-terrain sand --min-rows 5 --min-duration 0.1"
+        },
+        {
+          "name": "validate policy CSV for the paper audit",
+          "command": "python src\\v3\\validate_hardware_log_v6.py --input record\\v6\\hardware\\sand_random_YYYYMMDD.csv --expected-terrain sand --require-video --min-rows 5 --min-duration 0.1"
+        },
+        {
+          "name": "optional: replay deploy bundle on logged observations",
+          "command": "python src\\v3\\deploy_policy_v6.py replay --bundle-dir record\\v6\\deploy_bundles\\sand_random --input-csv record\\v6\\hardware\\sand_random_YYYYMMDD.csv --output-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_actions.csv"
+        },
+        {
+          "name": "show hardware trial status",
+          "command": "python src\\v3\\hardware_trial_status_v6.py --write-report"
+        },
+        {
+          "name": "refresh completion audit",
+          "command": "python src\\v3\\paper_status_v6.py --refresh-audit"
+        }
+      ]
+    },
+    {
+      "terrain": "slope",
+      "bundle_dir": "record/v6/deploy_bundles/slope_random",
+      "recommended_gait_blend": 0.0,
+      "raw_template": "record/v6/hardware/field_trials/current/slope/slope_random_raw_template.csv",
+      "raw_example": "record/v6/hardware/field_trials/current/slope/slope_random_raw_example.csv",
+      "controller_stream_example": "record/v6/hardware/field_trials/current/slope/slope_random_controller_stream_example.jsonl",
+      "controller_stream_schema": "record/v6/hardware/field_trials/current/slope/slope_random_controller_stream_schema.json",
+      "policy_template": "record/v6/hardware/field_trials/current/slope/slope_random_policy_template.csv",
+      "policy_example": "record/v6/hardware/field_trials/current/slope/slope_random_policy_example.csv",
+      "readme": "record/v6/hardware/field_trials/current/slope/README.md",
+      "final_policy_log": "record/v6/hardware/slope_random_YYYYMMDD.csv",
+      "final_video": "record/v6/videos/slope_random_hardware_demo.mp4",
+      "commands": [
+        {
+          "name": "preflight deploy bundle and observation ABI",
+          "command": "python src\\v3\\preflight_hardware_deploy_v6.py --strict"
+        },
+        {
+          "name": "check controller JSONL stream before import",
+          "command": "python src\\v3\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\slope_random --strict"
+        },
+        {
+          "name": "optional: live JSONL controller bridge",
+          "command": "python src\\v3\\hardware_policy_runtime_v6.py --bundle-dir record\\v6\\deploy_bundles\\slope_random --input-jsonl - --output-jsonl - --policy-log-csv record\\v6\\hardware\\slope_random_YYYYMMDD.csv --terrain slope --mode random --gait-blend 0.000 --video-file record/v6/videos/slope_random_hardware_demo.mp4 --max-action-delta 0.2"
+        },
+        {
+          "name": "capture controller JSONL stream into raw CSV",
+          "command": "python src\\v3\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0"
+        },
+        {
+          "name": "one-command post-capture processing",
+          "command": "python src\\v3\\process_hardware_trial_v6.py --terrain slope --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0 --date YYYYMMDD"
+        },
+        {
+          "name": "import captured raw trial into audit files",
+          "command": "python src\\v3\\import_hardware_trial_v6.py --terrain slope --mode random --raw-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --date YYYYMMDD"
+        },
+        {
+          "name": "run deploy policy on raw sensors and write formal audit CSV",
+          "command": "python src\\v3\\hardware_policy_runtime_v6.py --bundle-dir record\\v6\\deploy_bundles\\slope_random --input-raw-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --output-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_actions.csv --policy-log-csv record\\v6\\hardware\\slope_random_YYYYMMDD.csv --terrain slope --mode random --gait-blend 0.000 --video-file record/v6/videos/slope_random_hardware_demo.mp4 --max-action-delta 0.2 --validate-policy-log --require-video --expected-terrain slope --min-rows 5 --min-duration 0.1"
+        },
+        {
+          "name": "validate policy CSV for the paper audit",
+          "command": "python src\\v3\\validate_hardware_log_v6.py --input record\\v6\\hardware\\slope_random_YYYYMMDD.csv --expected-terrain slope --require-video --min-rows 5 --min-duration 0.1"
+        },
+        {
+          "name": "optional: replay deploy bundle on logged observations",
+          "command": "python src\\v3\\deploy_policy_v6.py replay --bundle-dir record\\v6\\deploy_bundles\\slope_random --input-csv record\\v6\\hardware\\slope_random_YYYYMMDD.csv --output-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_actions.csv"
+        },
+        {
+          "name": "show hardware trial status",
+          "command": "python src\\v3\\hardware_trial_status_v6.py --write-report"
+        },
+        {
+          "name": "refresh completion audit",
+          "command": "python src\\v3\\paper_status_v6.py --refresh-audit"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,412 @@
+{
+  "format_version": 1,
+  "name": "worm_v6_deployable_observation_abi",
+  "obs_dim": 80,
+  "obs_layout": {
+    "command": [
+      0,
+      3
+    ],
+    "joint_pos": [
+      3,
+      14
+    ],
+    "joint_vel": [
+      14,
+      25
+    ],
+    "previous_action": [
+      25,
+      36
+    ],
+    "segment_gravity": [
+      36,
+      57
+    ],
+    "segment_gyro": [
+      57,
+      78
+    ],
+    "phase_clock": [
+      78,
+      80
+    ]
+  },
+  "observation_columns": [
+    "cmd_vel_norm",
+    "cmd_yaw_norm",
+    "gait_blend",
+    "joint_pos_00",
+    "joint_pos_01",
+    "joint_pos_02",
+    "joint_pos_03",
+    "joint_pos_04",
+    "joint_pos_05",
+    "joint_pos_06",
+    "joint_pos_07",
+    "joint_pos_08",
+    "joint_pos_09",
+    "joint_pos_10",
+    "joint_vel_00",
+    "joint_vel_01",
+    "joint_vel_02",
+    "joint_vel_03",
+    "joint_vel_04",
+    "joint_vel_05",
+    "joint_vel_06",
+    "joint_vel_07",
+    "joint_vel_08",
+    "joint_vel_09",
+    "joint_vel_10",
+    "previous_action_00",
+    "previous_action_01",
+    "previous_action_02",
+    "previous_action_03",
+    "previous_action_04",
+    "previous_action_05",
+    "previous_action_06",
+    "previous_action_07",
+    "previous_action_08",
+    "previous_action_09",
+    "previous_action_10",
+    "segment_gravity_00_x",
+    "segment_gravity_00_y",
+    "segment_gravity_00_z",
+    "segment_gravity_01_x",
+    "segment_gravity_01_y",
+    "segment_gravity_01_z",
+    "segment_gravity_02_x",
+    "segment_gravity_02_y",
+    "segment_gravity_02_z",
+    "segment_gravity_03_x",
+    "segment_gravity_03_y",
+    "segment_gravity_03_z",
+    "segment_gravity_04_x",
+    "segment_gravity_04_y",
+    "segment_gravity_04_z",
+    "segment_gravity_05_x",
+    "segment_gravity_05_y",
+    "segment_gravity_05_z",
+    "segment_gravity_06_x",
+    "segment_gravity_06_y",
+    "segment_gravity_06_z",
+    "segment_gyro_00_x",
+    "segment_gyro_00_y",
+    "segment_gyro_00_z",
+    "segment_gyro_01_x",
+    "segment_gyro_01_y",
+    "segment_gyro_01_z",
+    "segment_gyro_02_x",
+    "segment_gyro_02_y",
+    "segment_gyro_02_z",
+    "segment_gyro_03_x",
+    "segment_gyro_03_y",
+    "segment_gyro_03_z",
+    "segment_gyro_04_x",
+    "segment_gyro_04_y",
+    "segment_gyro_04_z",
+    "segment_gyro_05_x",
+    "segment_gyro_05_y",
+    "segment_gyro_05_z",
+    "segment_gyro_06_x",
+    "segment_gyro_06_y",
+    "segment_gyro_06_z",
+    "phase_sin",
+    "phase_cos"
+  ],
+  "raw_hardware_columns": [
+    "time_s",
+    "terrain",
+    "mode",
+    "video_file",
+    "cmd_vel_m_s",
+    "cmd_yaw_rad_s",
+    "gait_blend",
+    "slide_pos_m_00",
+    "slide_pos_m_01",
+    "slide_pos_m_02",
+    "slide_pos_m_03",
+    "slide_pos_m_04",
+    "slide_pos_m_05",
+    "yaw_pos_rad_00",
+    "yaw_pos_rad_01",
+    "yaw_pos_rad_02",
+    "yaw_pos_rad_03",
+    "yaw_pos_rad_04",
+    "slide_vel_m_s_00",
+    "slide_vel_m_s_01",
+    "slide_vel_m_s_02",
+    "slide_vel_m_s_03",
+    "slide_vel_m_s_04",
+    "slide_vel_m_s_05",
+    "yaw_vel_rad_s_00",
+    "yaw_vel_rad_s_01",
+    "yaw_vel_rad_s_02",
+    "yaw_vel_rad_s_03",
+    "yaw_vel_rad_s_04",
+    "segment_gravity_00_x",
+    "segment_gravity_00_y",
+    "segment_gravity_00_z",
+    "segment_gravity_01_x",
+    "segment_gravity_01_y",
+    "segment_gravity_01_z",
+    "segment_gravity_02_x",
+    "segment_gravity_02_y",
+    "segment_gravity_02_z",
+    "segment_gravity_03_x",
+    "segment_gravity_03_y",
+    "segment_gravity_03_z",
+    "segment_gravity_04_x",
+    "segment_gravity_04_y",
+    "segment_gravity_04_z",
+    "segment_gravity_05_x",
+    "segment_gravity_05_y",
+    "segment_gravity_05_z",
+    "segment_gravity_06_x",
+    "segment_gravity_06_y",
+    "segment_gravity_06_z",
+    "segment_gyro_rad_s_00_x",
+    "segment_gyro_rad_s_00_y",
+    "segment_gyro_rad_s_00_z",
+    "segment_gyro_rad_s_01_x",
+    "segment_gyro_rad_s_01_y",
+    "segment_gyro_rad_s_01_z",
+    "segment_gyro_rad_s_02_x",
+    "segment_gyro_rad_s_02_y",
+    "segment_gyro_rad_s_02_z",
+    "segment_gyro_rad_s_03_x",
+    "segment_gyro_rad_s_03_y",
+    "segment_gyro_rad_s_03_z",
+    "segment_gyro_rad_s_04_x",
+    "segment_gyro_rad_s_04_y",
+    "segment_gyro_rad_s_04_z",
+    "segment_gyro_rad_s_05_x",
+    "segment_gyro_rad_s_05_y",
+    "segment_gyro_rad_s_05_z",
+    "segment_gyro_rad_s_06_x",
+    "segment_gyro_rad_s_06_y",
+    "segment_gyro_rad_s_06_z",
+    "action_00",
+    "action_01",
+    "action_02",
+    "action_03",
+    "action_04",
+    "action_05",
+    "action_06",
+    "action_07",
+    "action_08",
+    "action_09",
+    "action_10",
+    "velocity_estimate_m_s",
+    "yaw_rate_estimate_rad_s"
+  ],
+  "sensor_counts": {
+    "actuated_joints": 11,
+    "slide_joints": 6,
+    "yaw_joints": 5,
+    "segment_imus": 7
+  },
+  "control_timing": {
+    "control_dt_s": 0.02,
+    "control_rate_hz": 50.0,
+    "peristaltic_actuation_period_s": 1.0,
+    "phase_freq_hz": 1.0
+  },
+  "groups": [
+    {
+      "name": "command",
+      "range": [
+        0,
+        3
+      ],
+      "columns": [
+        "cmd_vel_norm",
+        "cmd_yaw_norm",
+        "gait_blend"
+      ],
+      "hardware_source": "high-level command interface: cmd_vel_m_s, cmd_yaw_rad_s, and gait_blend",
+      "normalization": {
+        "cmd_vel_norm": "cmd_vel_m_s / 0.025",
+        "cmd_yaw_norm": "cmd_yaw_rad_s / 0.3",
+        "gait_blend": "clipped to [0, 1]"
+      }
+    },
+    {
+      "name": "joint_pos",
+      "range": [
+        3,
+        14
+      ],
+      "columns": [
+        "joint_pos_00",
+        "joint_pos_01",
+        "joint_pos_02",
+        "joint_pos_03",
+        "joint_pos_04",
+        "joint_pos_05",
+        "joint_pos_06",
+        "joint_pos_07",
+        "joint_pos_08",
+        "joint_pos_09",
+        "joint_pos_10"
+      ],
+      "hardware_source": "11 joint encoders: 6 slide positions and 5 yaw positions",
+      "normalization": {
+        "slide": "slide_pos_m / 0.05",
+        "yaw": "yaw_pos_rad / 1.57"
+      }
+    },
+    {
+      "name": "joint_vel",
+      "range": [
+        14,
+        25
+      ],
+      "columns": [
+        "joint_vel_00",
+        "joint_vel_01",
+        "joint_vel_02",
+        "joint_vel_03",
+        "joint_vel_04",
+        "joint_vel_05",
+        "joint_vel_06",
+        "joint_vel_07",
+        "joint_vel_08",
+        "joint_vel_09",
+        "joint_vel_10"
+      ],
+      "hardware_source": "11 joint encoder velocity estimates from the actuator controller",
+      "normalization": {
+        "slide": "slide_vel_m_s / 0.1",
+        "yaw": "yaw_vel_rad_s / 3.141592653589793"
+      }
+    },
+    {
+      "name": "previous_action",
+      "range": [
+        25,
+        36
+      ],
+      "columns": [
+        "previous_action_00",
+        "previous_action_01",
+        "previous_action_02",
+        "previous_action_03",
+        "previous_action_04",
+        "previous_action_05",
+        "previous_action_06",
+        "previous_action_07",
+        "previous_action_08",
+        "previous_action_09",
+        "previous_action_10"
+      ],
+      "hardware_source": "controller memory of the previous normalized policy action",
+      "normalization": "already normalized in [-1, 1]"
+    },
+    {
+      "name": "segment_gravity",
+      "range": [
+        36,
+        57
+      ],
+      "columns": [
+        "segment_gravity_00_x",
+        "segment_gravity_00_y",
+        "segment_gravity_00_z",
+        "segment_gravity_01_x",
+        "segment_gravity_01_y",
+        "segment_gravity_01_z",
+        "segment_gravity_02_x",
+        "segment_gravity_02_y",
+        "segment_gravity_02_z",
+        "segment_gravity_03_x",
+        "segment_gravity_03_y",
+        "segment_gravity_03_z",
+        "segment_gravity_04_x",
+        "segment_gravity_04_y",
+        "segment_gravity_04_z",
+        "segment_gravity_05_x",
+        "segment_gravity_05_y",
+        "segment_gravity_05_z",
+        "segment_gravity_06_x",
+        "segment_gravity_06_y",
+        "segment_gravity_06_z"
+      ],
+      "hardware_source": "one IMU per body segment: local gravity direction from attitude/accelerometer fusion",
+      "normalization": "unit vector per segment"
+    },
+    {
+      "name": "segment_gyro",
+      "range": [
+        57,
+        78
+      ],
+      "columns": [
+        "segment_gyro_00_x",
+        "segment_gyro_00_y",
+        "segment_gyro_00_z",
+        "segment_gyro_01_x",
+        "segment_gyro_01_y",
+        "segment_gyro_01_z",
+        "segment_gyro_02_x",
+        "segment_gyro_02_y",
+        "segment_gyro_02_z",
+        "segment_gyro_03_x",
+        "segment_gyro_03_y",
+        "segment_gyro_03_z",
+        "segment_gyro_04_x",
+        "segment_gyro_04_y",
+        "segment_gyro_04_z",
+        "segment_gyro_05_x",
+        "segment_gyro_05_y",
+        "segment_gyro_05_z",
+        "segment_gyro_06_x",
+        "segment_gyro_06_y",
+        "segment_gyro_06_z"
+      ],
+      "hardware_source": "one IMU per body segment: local angular velocity",
+      "normalization": "gyro_rad_s / 6.283185307179586"
+    },
+    {
+      "name": "phase_clock",
+      "range": [
+        78,
+        80
+      ],
+      "columns": [
+        "phase_sin",
+        "phase_cos"
+      ],
+      "hardware_source": "controller clock, not a simulator state estimate",
+      "normalization": "sin/cos(2*pi*1.0*time_s)"
+    }
+  ],
+  "allowed_policy_inputs": [
+    "joint encoder positions",
+    "joint encoder velocities",
+    "per-segment IMU gravity direction",
+    "per-segment IMU angular velocity",
+    "commanded speed, commanded yaw rate, gait_blend",
+    "previous normalized action",
+    "controller phase clock"
+  ],
+  "forbidden_policy_inputs": [
+    "MuJoCo freejoint global position",
+    "MuJoCo freejoint global orientation quaternion",
+    "MuJoCo root/base linear velocity",
+    "MuJoCo root/base angular velocity as a privileged state",
+    "global pose from external tracking",
+    "motion-capture state",
+    "ground-truth terrain contact or slip labels",
+    "reward-only forward/lateral/yaw velocity measurements"
+  ],
+  "reward_only_quantities": [
+    "forward speed",
+    "yaw rate",
+    "lateral drift",
+    "energy/action cost",
+    "termination and stability diagnostics"
+  ],
+  "deployability_claim": "The policy input is reconstructable from onboard joint encoders, distributed IMUs, command metadata, controller memory, and a local clock. Training rewards may use simulator truth, but the policy observation ABI may not.",
+  "abi_fingerprint": "672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b"
+}

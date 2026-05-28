@@ -194,8 +194,14 @@ def apply_gaits(data, robots, t):
         # Slide wave (zeroed for serpentine by CMA-ES constraint)
         slide_amp = p[0] if modes[i] != 'serpentine' else 0.0
         for j in range(n_s):
-            phase = (2*math.pi*(t*p[1] - p[2]*j/n_s) + p[6+j])
-            data.ctrl[r['slide_ids'][j]] = -slide_amp * (1+math.sin(phase))
+            if modes[i] == 'peristaltic':
+                # Retrograde wave: compression travels head→tail (front→back)
+                # +j/n_s shifts later joints ahead in phase so peak hits j=0 last
+                phase = 2*math.pi*(t*1.0 + j/n_s)
+                data.ctrl[r['slide_ids'][j]] = -SLIDE_RANGE_VAL * math.sin(phase)
+            else:
+                phase = (2*math.pi*(t*p[1] - p[2]*j/n_s) + p[6+j])
+                data.ctrl[r['slide_ids'][j]] = -slide_amp * (1+math.sin(phase))
 
         # Yaw wave (zeroed for peristaltic by CMA-ES constraint)
         yaw_amp = p[3] if modes[i] != 'peristaltic' else 0.0
@@ -261,46 +267,118 @@ def inject_race_strips(scene, data, robots):
 
 
 def add_text_overlay(frame, robots, data, t):
-    """Add gait labels and speed to frame using cv2."""
+    """Paper-style text overlay — PIL-based for crisp fonts at any resolution."""
     try:
-        import cv2
+        from PIL import Image, ImageDraw, ImageFont
     except ImportError:
         return frame
 
     h, w = frame.shape[:2]
-    img = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+    sf = w / 1920.0  # scale relative to 1080p base
 
-    cma_all = apply_gaits.__cache
-    labels = [
-        f"Serpentine-only  ({cma_all['serpentine']['speed']:.0f} mm/s)",
-        f"Peristaltic-only ({cma_all['peristaltic']['speed']:.0f} mm/s)",
-        f"Full Combined    ({cma_all['full']['speed']:.0f} mm/s)",
+    def load_font(size_base, bold=False):
+        size = max(10, int(size_base * sf))
+        candidates = (
+            ["C:/Windows/Fonts/arialbd.ttf",
+             "C:/Windows/Fonts/calibrib.ttf",
+             "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]
+            if bold else
+            ["C:/Windows/Fonts/arial.ttf",
+             "C:/Windows/Fonts/calibri.ttf",
+             "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+        )
+        for p in candidates:
+            if os.path.exists(p):
+                try:
+                    return ImageFont.truetype(p, size)
+                except Exception:
+                    pass
+        try:
+            return ImageFont.load_default(size=size)
+        except TypeError:
+            return ImageFont.load_default()
+
+    cma = apply_gaits.__cache
+    GAITS = [
+        ("serpentine",  "Serpentine",    (150, 190, 255), (190, 215, 255)),
+        ("peristaltic", "Peristaltic",   (110, 215, 150), (150, 235, 185)),
+        ("full",        "Full Combined", (255, 210, 40),  (255, 240, 110)),
     ]
-    colors = [
-        (180, 180, 180),
-        (200, 200, 200),
-        (0, 220, 255),   # gold/yellow for best (BGR)
-    ]
 
-    # Title
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(img, "CMA-ES Gait Optimization Comparison", (30, 50),
-                font, 1.1, (255, 255, 255), 2, cv2.LINE_AA)
-    cv2.putText(img, f"t = {t:.1f}s", (w - 200, 50),
-                font, 0.8, (200, 200, 200), 1, cv2.LINE_AA)
+    # Build semi-transparent panel on RGBA copy
+    base    = Image.fromarray(frame).convert('RGBA')
+    overlay = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    ov      = ImageDraw.Draw(overlay)
 
-    # Lane labels (left side)
-    y_start = int(h * 0.28)
-    y_step = int(h * 0.18)
-    for i, (label, color) in enumerate(zip(labels, colors)):
-        y = y_start + i * y_step
-        thickness = 2 if i == 2 else 1
-        scale = 0.8 if i == 2 else 0.65
+    pad     = int(22 * sf)
+    row_h   = int(72 * sf)
+    panel_x = pad
+    panel_y = int(h * 0.26)
+    panel_w = int(430 * sf)
+    panel_h = row_h * 3 + int(20 * sf)
+
+    box = [panel_x - int(14*sf), panel_y - int(10*sf),
+           panel_x + panel_w,    panel_y + panel_h]
+    try:
+        ov.rounded_rectangle(box, radius=int(8*sf), fill=(6, 6, 10, 175))
+    except AttributeError:
+        ov.rectangle(box, fill=(6, 6, 10, 175))
+
+    img  = Image.alpha_composite(base, overlay).convert('RGB')
+    draw = ImageDraw.Draw(img)
+
+    f_title = load_font(28, bold=True)
+    f_sub   = load_font(15, bold=False)
+    f_label = load_font(20, bold=True)
+    f_speed = load_font(22, bold=True)
+    f_small = load_font(14, bold=False)
+    f_timer = load_font(18, bold=False)
+
+    # ── Title (top, center-left) ──────────────────────────────
+    tx, ty = int(w * 0.28), pad
+    draw.text((tx, ty),            "CMA-ES Gait Optimization",
+              font=f_title, fill=(255, 255, 255))
+    draw.text((tx, ty + int(38*sf)),
+              "Worm Robot  \u00b7  1 Hz Servo Limit  \u00b7  MuJoCo Simulation",
+              font=f_sub, fill=(160, 165, 175))
+
+    # ── Timer (top-right) ────────────────────────────────────
+    ts = f"t = {t:.1f} s"
+    try:
+        bb = draw.textbbox((0, 0), ts, font=f_timer)
+        tw = bb[2] - bb[0]
+    except AttributeError:
+        tw = int(120 * sf)
+    draw.text((w - tw - pad, pad + int(6*sf)), ts,
+              font=f_timer, fill=(170, 172, 178))
+
+    # ── Lane legend (left panel) ──────────────────────────────
+    stripe_w = int(4 * sf)
+    for i, (key, name, col, hi) in enumerate(GAITS):
+        rx = panel_x
+        ry = panel_y + i * row_h + int(10 * sf)
+        draw.rectangle([rx, ry, rx + stripe_w, ry + row_h - int(14*sf)], fill=col)
+        tx2 = rx + stripe_w + int(12*sf)
+        draw.text((tx2, ry + int(2*sf)),  name,                              font=f_label, fill=col)
+        draw.text((tx2, ry + int(30*sf)), f"{cma[key]['speed']:.0f} mm/s",   font=f_speed, fill=hi)
         if i == 2:
-            label = ">> " + label + " <<"
-        cv2.putText(img, label, (20, y), font, scale, color, thickness, cv2.LINE_AA)
+            draw.text((tx2 + int(185*sf), ry + int(34*sf)), "\u2605 FASTEST",
+                      font=f_small, fill=(255, 210, 40))
 
-    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # ── Scale bar (bottom-left, ~100 mm) ──────────────────────
+    ppm    = w / (2.0 * math.tan(math.radians(22.5)) * 2.5)
+    bar_px = int(ppm * 0.100)
+    bx, by = pad, h - int(55 * sf)
+    lw     = max(2, int(3 * sf))
+    tk     = int(9 * sf)
+    draw.rectangle([bx,            by,            bx + bar_px, by + lw],         fill=(205, 205, 205))
+    draw.rectangle([bx,            by - tk//2,    bx + lw,     by + lw + tk//2], fill=(205, 205, 205))
+    draw.rectangle([bx + bar_px - lw, by - tk//2, bx + bar_px, by + lw + tk//2], fill=(205, 205, 205))
+    draw.text((bx, by + int(8*sf)), "100 mm", font=f_small, fill=(185, 185, 185))
+
+    return np.array(img)
 
 
 def render_comparison(output_path=None, width=WIDTH, height=HEIGHT, duration=DURATION):

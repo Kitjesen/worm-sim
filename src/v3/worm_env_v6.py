@@ -7,13 +7,16 @@ for reinforcement learning training.
 Action space:  11-dim continuous [-1, 1] → scaled to joint ranges
                [slide0..5, yaw0..4]
 
-Observation:   35-dim: command(2) + joint_pos(11) + joint_vel(11)
-               + projected_gravity(3) + base_angvel(3) + base_linvel(3)
-               + phase_clock(2)
+Observation:   80-dim deployable state:
+               command(3) + joint_pos(11) + joint_vel(11)
+               + previous_action(11) + segment_gravity(7*3)
+               + segment_gyro(7*3) + phase_clock(2)
 
-Command:       [v_forward_cmd, yaw_rate_cmd]
+Command:       [v_forward_cmd, yaw_rate_cmd, gait_blend]
                - v_forward_cmd ∈ [0, 0.025] m/s   (forward speed target)
                - yaw_rate_cmd  ∈ [-0.3, 0.3] rad/s (turning rate target)
+
+               - gait_blend    in [0, 1] (0=worm, 1=snake)
 
 Reward:        velocity tracking (exp kernel) - energy - action smoothness
 
@@ -31,16 +34,21 @@ from gymnasium import spaces
 # Import model builder and constants from V6
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from worm_v6 import (
-    build_xml, inject_strips,
+    build_xml, inject_strips, setup_terrain, TERRAIN_PRESETS,
     NUM_SLIDES, NUM_YAWS, NUM_ACTUATORS,
     SLIDE_RANGE_VAL, YAW_RANGE_VAL,
-    BODY_Z,
+    BODY_Z, PERISTALTIC_ACTUATION_PERIOD_S,
+)
+from motor_contract_v6 import (
+    neutral_normalized_action,
+    normalized_action_to_ctrl,
 )
 
 # ─── Environment constants ────────────────────────────────────────────────────
-OBS_DIM     = 35                            # 2+11+11+3+3+3+2
+NUM_IMUS    = 7
+OBS_DIM     = 80                            # 3+11+11+11+21+21+2
 CTRL_DT     = 0.02                          # 50 Hz control frequency
-PHASE_FREQ  = 0.5                           # Hz — locomotion rhythm clock
+PHASE_FREQ  = 1.0 / PERISTALTIC_ACTUATION_PERIOD_S
 PHYSICS_DT  = 0.002                         # 500 Hz physics (from XML)
 N_FRAMES    = int(CTRL_DT / PHYSICS_DT)     # 10 physics steps per control step
 MAX_EP_TIME = 20.0                          # seconds per episode
@@ -51,6 +59,30 @@ SETTLE_STEPS = 250                          # 0.5s settle after reset
 CMD_VEL_RANGE   = (0.0, 0.025)   # m/s forward speed target (open-loop worm ~23 mm/s)
 CMD_YAW_RANGE   = (-0.3, 0.3)    # rad/s yaw rate target (worm turns slowly)
 CMD_RESAMPLE_P  = 0.005          # probability of resampling command each step
+
+GAIT_BLENDS = {
+    "worm": 0.0,
+    "peristaltic": 0.0,
+    "mixed": 0.5,
+    "combined": 0.5,
+    "snake": 1.0,
+    "serpentine": 1.0,
+}
+GAIT_MODES = tuple(list(GAIT_BLENDS.keys()) + ["random"])
+
+SLIDE_VEL_SCALE = 0.10
+YAW_VEL_SCALE = math.pi
+IMU_GYRO_SCALE = 2.0 * math.pi
+
+OBS_LAYOUT = {
+    "command": slice(0, 3),
+    "joint_pos": slice(3, 14),
+    "joint_vel": slice(14, 25),
+    "previous_action": slice(25, 36),
+    "segment_gravity": slice(36, 57),
+    "segment_gyro": slice(57, 78),
+    "phase_clock": slice(78, 80),
+}
 
 # Reward weights — velocity tracking with exponential kernel
 W_VEL_TRACK = 2.0       # forward speed tracking: exp(-err²/σ²)
@@ -71,9 +103,34 @@ class WormEnvV6(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, terrain='flat',
+                 gait_mode='random', gait_blend=None,
+                 encoder_pos_noise_std=0.0, encoder_vel_noise_std=0.0,
+                 imu_gravity_noise_std=0.0, imu_gyro_noise_std=0.0,
+                 action_delay_steps=0, action_saturation=1.0):
         super().__init__()
         self.render_mode = render_mode
+        self.terrain = terrain
+        self.gait_mode = gait_mode
+        self._fixed_gait_blend = gait_blend
+        self.encoder_pos_noise_std = float(encoder_pos_noise_std)
+        self.encoder_vel_noise_std = float(encoder_vel_noise_std)
+        self.imu_gravity_noise_std = float(imu_gravity_noise_std)
+        self.imu_gyro_noise_std = float(imu_gyro_noise_std)
+        self.action_delay_steps = int(action_delay_steps)
+        self.action_saturation = float(action_saturation)
+
+        if terrain not in TERRAIN_PRESETS:
+            raise ValueError(f"Unknown terrain: {terrain}")
+        if gait_mode not in GAIT_MODES:
+            raise ValueError(
+                f"Unknown gait_mode: {gait_mode}. Expected one of {GAIT_MODES}")
+        if gait_blend is not None and not 0.0 <= gait_blend <= 1.0:
+            raise ValueError("gait_blend must be in [0, 1]")
+        if self.action_delay_steps < 0:
+            raise ValueError("action_delay_steps must be >= 0")
+        if not 0.0 <= self.action_saturation <= 1.0:
+            raise ValueError("action_saturation must be in [0, 1]")
 
         # ── Build model ──
         project_root = os.path.normpath(
@@ -95,9 +152,14 @@ class WormEnvV6(gym.Env):
                     f"URDF not found at {src_urdf}. "
                     "Run worm_v6.py first to set up meshes.")
 
-        xml_str = build_xml(mesh_dir, urdf_path)
+        xml_str = build_xml(mesh_dir, urdf_path, terrain=terrain)
         self.model = mujoco.MjModel.from_xml_string(xml_str)
+        setup_terrain(self.model, terrain)
         self.data = mujoco.MjData(self.model)
+
+        # Terrain-specific z termination threshold (rough/steps need lower floor)
+        t_cfg = TERRAIN_PRESETS[terrain]
+        self._z_term_lo = t_cfg.get('z_lo', 0.03) - 0.01
 
         # ── Locate actuated joint indices ──
         self._act_qpos_idx = np.zeros(NUM_ACTUATORS, dtype=int)
@@ -124,6 +186,10 @@ class WormEnvV6(gym.Env):
         self._root_body_id = get_bid('base_link')
         self._seg_ids = [get_bid('base_link')] + \
             [get_bid(f'back{i}_Link') for i in range(1, 7)]
+        self._imu_body_ids = self._seg_ids
+        if len(self._imu_body_ids) != NUM_IMUS:
+            raise RuntimeError(
+                f"Expected {NUM_IMUS} segment IMUs, got {len(self._imu_body_ids)}")
 
         # ── Slide pairs and spacings for strip rendering ──
         self._slide_pairs = [
@@ -143,12 +209,17 @@ class WormEnvV6(gym.Env):
             low=-np.inf, high=np.inf, shape=(OBS_DIM,), dtype=np.float32)
 
         # ── State tracking ──
-        self._last_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+        self._last_action = neutral_normalized_action()
+        self._action_delay_buffer = [
+            neutral_normalized_action()
+            for _ in range(self.action_delay_steps)
+        ]
         self._step_count = 0
 
         # ── Command (sampled at reset) ──
         self._cmd_vel = 0.0       # forward speed target (m/s)
         self._cmd_yaw = 0.0       # yaw rate target (rad/s)
+        self._gait_blend = 0.5    # 0=worm/peristaltic, 1=snake/serpentine
 
         # ── Renderer (lazy init) ──
         self._renderer = None
@@ -164,6 +235,7 @@ class WormEnvV6(gym.Env):
         # Sample velocity command for this episode
         self._cmd_vel = self.np_random.uniform(*CMD_VEL_RANGE)
         self._cmd_yaw = self.np_random.uniform(*CMD_YAW_RANGE)
+        self._gait_blend = self._sample_gait_blend()
 
         # Small random noise on actuated joints
         if self.np_random is not None:
@@ -180,7 +252,11 @@ class WormEnvV6(gym.Env):
         for _ in range(SETTLE_STEPS):
             mujoco.mj_step(self.model, self.data)
 
-        self._last_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+        self._last_action = neutral_normalized_action()
+        self._action_delay_buffer = [
+            neutral_normalized_action()
+            for _ in range(self.action_delay_steps)
+        ]
         self._step_count = 0
         return self._get_obs(), {}
 
@@ -194,12 +270,18 @@ class WormEnvV6(gym.Env):
 
         # EMA filter — anti-vibration
         action = ACTION_EMA * action + (1.0 - ACTION_EMA) * self._last_action
+        applied_action = action
+        if self.action_delay_steps > 0:
+            self._action_delay_buffer.append(action.copy())
+            applied_action = self._action_delay_buffer.pop(0)
+        applied_action = np.clip(
+            applied_action,
+            -self.action_saturation,
+            self.action_saturation).astype(np.float32)
 
-        # Scale action to joint ranges
+        # Scale action to deployable joint targets; slide targets are clipped.
         # action[0:6] → slide targets, action[6:11] → yaw targets
-        ctrl = np.zeros(NUM_ACTUATORS)
-        ctrl[:NUM_SLIDES] = action[:NUM_SLIDES] * SLIDE_RANGE_VAL
-        ctrl[NUM_SLIDES:] = action[NUM_SLIDES:] * YAW_RANGE_VAL
+        ctrl = normalized_action_to_ctrl(applied_action)
         self.data.ctrl[:] = ctrl
 
         # Step physics
@@ -208,11 +290,11 @@ class WormEnvV6(gym.Env):
 
         self._step_count += 1
         obs = self._get_obs()
-        reward = self._compute_reward(action)
+        reward = self._compute_reward(applied_action)
         terminated = self._check_termination()
         truncated = self._step_count >= MAX_EP_STEPS
 
-        self._last_action = action.copy()
+        self._last_action = applied_action.copy()
         return obs, reward, terminated, truncated, {}
 
     def render(self):
@@ -245,6 +327,24 @@ class WormEnvV6(gym.Env):
             self._renderer.close()
             self._renderer = None
 
+    def set_command(self, velocity=None, yaw_rate=None, gait_blend=None):
+        """Override command values for deterministic evaluation."""
+        if velocity is not None:
+            self._cmd_vel = float(np.clip(
+                velocity, CMD_VEL_RANGE[0], CMD_VEL_RANGE[1]))
+        if yaw_rate is not None:
+            self._cmd_yaw = float(np.clip(
+                yaw_rate, CMD_YAW_RANGE[0], CMD_YAW_RANGE[1]))
+        if gait_blend is not None:
+            self._gait_blend = float(np.clip(gait_blend, 0.0, 1.0))
+
+    def _add_noise(self, values, std):
+        if std <= 0.0:
+            return values
+        rng = self.np_random if self.np_random is not None else np.random.default_rng()
+        return values + rng.normal(
+            0.0, std, size=values.shape).astype(np.float32)
+
     # ──────────────────────────────────────────────────────────────────────
     # Observation
     # ──────────────────────────────────────────────────────────────────────
@@ -255,31 +355,41 @@ class WormEnvV6(gym.Env):
         cmd = np.array([
             self._cmd_vel / max(CMD_VEL_RANGE[1], 1e-6),  # [0, 1]
             self._cmd_yaw / max(abs(CMD_YAW_RANGE[1]), 1e-6),  # [-1, 1]
+            self._gait_blend,  # [0, 1]
         ], dtype=np.float32)
 
         # Actuated joint positions (11)
         joint_pos = np.zeros(NUM_ACTUATORS, dtype=np.float32)
         for i in range(NUM_ACTUATORS):
-            joint_pos[i] = self.data.qpos[self._act_qpos_idx[i]]
+            raw = self.data.qpos[self._act_qpos_idx[i]]
+            scale = SLIDE_RANGE_VAL if i < NUM_SLIDES else YAW_RANGE_VAL
+            joint_pos[i] = raw / max(scale, 1e-6)
+        joint_pos = self._add_noise(joint_pos, self.encoder_pos_noise_std)
 
         # Actuated joint velocities (11)
         joint_vel = np.zeros(NUM_ACTUATORS, dtype=np.float32)
         for i in range(NUM_ACTUATORS):
-            joint_vel[i] = self.data.qvel[self._act_qvel_idx[i]]
+            raw = self.data.qvel[self._act_qvel_idx[i]]
+            scale = SLIDE_VEL_SCALE if i < NUM_SLIDES else YAW_VEL_SCALE
+            joint_vel[i] = raw / max(scale, 1e-6)
+        joint_vel = self._add_noise(joint_vel, self.encoder_vel_noise_std)
 
         # Root body rotation matrix (world → body)
-        root_xmat = self.data.xmat[self._root_body_id].reshape(3, 3)
-
-        # Projected gravity in body frame (3)
         gravity_world = np.array([0.0, 0.0, -1.0])
-        proj_gravity = root_xmat.T @ gravity_world
+        segment_gravity = np.zeros((NUM_IMUS, 3), dtype=np.float32)
+        segment_gyro = np.zeros((NUM_IMUS, 3), dtype=np.float32)
+        for i, body_id in enumerate(self._imu_body_ids):
+            xmat = self.data.xmat[body_id].reshape(3, 3)
+            segment_gravity[i] = (xmat.T @ gravity_world).astype(np.float32)
 
-        # Base velocities in body frame
-        # freejoint: qvel[0:3] = linear vel (world), qvel[3:6] = angular vel (world)
-        base_linvel_world = self.data.qvel[0:3].copy()
-        base_angvel_world = self.data.qvel[3:6].copy()
-        base_linvel = root_xmat.T @ base_linvel_world
-        base_angvel = root_xmat.T @ base_angvel_world
+            local_vel = np.zeros(6, dtype=np.float64)
+            mujoco.mj_objectVelocity(
+                self.model, self.data, mujoco.mjtObj.mjOBJ_BODY,
+                body_id, local_vel, 1)
+            segment_gyro[i] = (local_vel[:3] / IMU_GYRO_SCALE).astype(np.float32)
+        segment_gravity = self._add_noise(
+            segment_gravity, self.imu_gravity_noise_std)
+        segment_gyro = self._add_noise(segment_gyro, self.imu_gyro_noise_std)
 
         # Phase clock — periodic signal for locomotion rhythm
         t = self._step_count * CTRL_DT
@@ -288,15 +398,22 @@ class WormEnvV6(gym.Env):
             [math.sin(phase), math.cos(phase)], dtype=np.float32)
 
         obs = np.concatenate([
-            cmd,                                # 2  (command)
+            cmd,                                # 3
             joint_pos,                          # 11
             joint_vel,                          # 11
-            proj_gravity.astype(np.float32),    # 3
-            base_angvel.astype(np.float32),     # 3
-            base_linvel.astype(np.float32),     # 3
+            self._last_action.astype(np.float32),  # 11
+            segment_gravity.reshape(-1),        # 21
+            segment_gyro.reshape(-1),           # 21
             phase_clock,                        # 2
         ])
-        return obs
+        return obs.astype(np.float32)
+
+    def _sample_gait_blend(self):
+        if self._fixed_gait_blend is not None:
+            return float(self._fixed_gait_blend)
+        if self.gait_mode == "random":
+            return float(self.np_random.uniform(0.0, 1.0))
+        return GAIT_BLENDS[self.gait_mode]
 
     # ──────────────────────────────────────────────────────────────────────
     # Reward
@@ -357,7 +474,7 @@ class WormEnvV6(gym.Env):
     def _check_termination(self):
         # Root body too low
         z = self.data.xpos[self._root_body_id][2]
-        if z < 0.03:
+        if z < self._z_term_lo:
             return True
 
         # Body flipped
@@ -377,8 +494,18 @@ class WormEnvV6(gym.Env):
 # Quick self-test
 # ─────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("=== WormEnvV6 self-test ===")
-    env = WormEnvV6()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--terrain", default="flat",
+                    choices=list(TERRAIN_PRESETS.keys()))
+    ap.add_argument("--gait-mode", default="random", choices=GAIT_MODES)
+    ap.add_argument("--gait-blend", type=float, default=None)
+    args = ap.parse_args()
+
+    print(f"=== WormEnvV6 self-test [terrain={args.terrain}] ===")
+    env = WormEnvV6(
+        terrain=args.terrain, gait_mode=args.gait_mode,
+        gait_blend=args.gait_blend)
     print(f"  obs_space:    {env.observation_space.shape}")
     print(f"  action_space: {env.action_space.shape}")
     print(f"  model: bodies={env.model.nbody}, nv={env.model.nv}, nu={env.model.nu}")
@@ -386,6 +513,10 @@ if __name__ == "__main__":
     obs, info = env.reset(seed=42)
     print(f"  reset obs shape: {obs.shape}")
     print(f"  reset obs range: [{obs.min():.4f}, {obs.max():.4f}]")
+    print(f"  gait_blend: {obs[OBS_LAYOUT['command']][2]:.3f}")
+    assert obs.shape == (OBS_DIM,), f"Expected obs dim {OBS_DIM}, got {obs.shape}"
+    assert OBS_LAYOUT["phase_clock"].stop == OBS_DIM
+    assert np.all(np.isfinite(obs)), "Non-finite reset obs!"
 
     # Run 100 random steps
     total_reward = 0.0

@@ -1,0 +1,62 @@
+{
+  "format_version": 1,
+  "generated_at_utc": "2026-05-28T05:55:34.525243+00:00",
+  "episodes": 1,
+  "time_s": 2.0,
+  "seed": 2200,
+  "best_blend_csv": "record/v6/paper_results/best_blend_by_terrain.csv",
+  "complete": true,
+  "records": [
+    {
+      "terrain": "flat",
+      "policy_mode": "random",
+      "gait_blend": 0.5,
+      "command": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v3\\eval_v6.py --terrain flat --gait-mode random --gait-blend 0.500 --episodes 1 --time 2.0 --seed 2200 --json-out D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\v6\\paper_results\\video_eval_flat_random.json --video",
+      "video": {
+        "path": "record/v6/videos/eval_flat_random.mp4",
+        "exists": true,
+        "size_bytes": 605409
+      },
+      "metrics": {
+        "path": "record/v6/paper_results/video_eval_flat_random.json",
+        "exists": true,
+        "size_bytes": 1272
+      },
+      "status": "ok"
+    },
+    {
+      "terrain": "sand",
+      "policy_mode": "random",
+      "gait_blend": 1.0,
+      "command": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v3\\eval_v6.py --terrain sand --gait-mode random --gait-blend 1.000 --episodes 1 --time 2.0 --seed 2200 --json-out D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\v6\\paper_results\\video_eval_sand_random.json --video",
+      "video": {
+        "path": "record/v6/videos/eval_sand_random.mp4",
+        "exists": true,
+        "size_bytes": 788802
+      },
+      "metrics": {
+        "path": "record/v6/paper_results/video_eval_sand_random.json",
+        "exists": true,
+        "size_bytes": 1306
+      },
+      "status": "ok"
+    },
+    {
+      "terrain": "slope",
+      "policy_mode": "random",
+      "gait_blend": 0.0,
+      "command": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v3\\eval_v6.py --terrain slope --gait-mode random --gait-blend 0.000 --episodes 1 --time 2.0 --seed 2200 --json-out D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\v6\\paper_results\\video_eval_slope_random.json --video",
+      "video": {
+        "path": "record/v6/videos/eval_slope_random.mp4",
+        "exists": true,
+        "size_bytes": 471373
+      },
+      "metrics": {
+        "path": "record/v6/paper_results/video_eval_slope_random.json",
+        "exists": true,
+        "size_bytes": 1281
+      },
+      "status": "ok"
+    }
+  ]
+}

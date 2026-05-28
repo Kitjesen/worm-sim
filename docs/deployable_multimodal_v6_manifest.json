@@ -1,0 +1,139 @@
+{
+  "title": "Deployable multi-modal snake/worm locomotion on flat, sand, and slope",
+  "robot": {
+    "sim_entry": "src/v3/worm_v6.py",
+    "rl_env": "src/v3/worm_env_v6.py",
+    "actuators": 11,
+    "segment_imus": 7
+  },
+  "policy_observation": {
+    "dimension": 80,
+    "allowed_sources": [
+      "velocity command",
+      "yaw-rate command",
+      "continuous gait_blend command",
+      "actuated joint encoder positions",
+      "actuated joint encoder velocities",
+      "previous applied action",
+      "per-segment IMU projected gravity",
+      "per-segment IMU angular velocity",
+      "phase clock"
+    ],
+    "forbidden_sources": [
+      "base linear velocity",
+      "global position",
+      "global yaw",
+      "MuJoCo freejoint linear velocity as policy input",
+      "external localization as policy input"
+    ],
+    "layout": {
+      "command": [0, 3],
+      "joint_pos": [3, 14],
+      "joint_vel": [14, 25],
+      "previous_action": [25, 36],
+      "segment_gravity": [36, 57],
+      "segment_gyro": [57, 78],
+      "phase_clock": [78, 80]
+    }
+  },
+  "gait_modes": {
+    "worm": {
+      "gait_blend": 0.0,
+      "description": "peristaltic/extension-contraction dominated"
+    },
+    "snake": {
+      "gait_blend": 1.0,
+      "description": "serpentine/yaw dominated"
+    },
+    "mixed": {
+      "gait_blend": 0.5,
+      "description": "fixed balanced hybrid"
+    },
+    "random": {
+      "gait_blend": "sampled per episode in [0, 1]",
+      "description": "mode-conditioned policy used for continuous blend scans"
+    }
+  },
+  "main_matrix": {
+    "terrains": ["flat", "sand", "slope"],
+    "fixed_modes": ["worm", "snake", "mixed"],
+    "continuous_scan_policy": "random",
+    "scan_blends": [0.0, 0.25, 0.5, 0.75, 1.0]
+  },
+  "metrics": [
+    "mean_speed_mm_s",
+    "std_speed_mm_s",
+    "mean_lateral_drift_mm",
+    "mean_action_l2_per_step",
+    "mean_action_rate_l2_per_step",
+    "mean_action_l2_per_m",
+    "mean_path_efficiency",
+    "mean_slip_proxy",
+    "mean_propulsion_efficiency_m_per_action_l2",
+    "success_rate",
+    "slope_success_rate",
+    "sand_slip_proxy",
+    "sand_propulsion_efficiency_m_per_action_l2",
+    "termination_rate",
+    "cmaes_best_speed_mm_s"
+  ],
+  "robustness_defaults": {
+    "encoder_pos_noise_std": 0.01,
+    "encoder_vel_noise_std": 0.02,
+    "imu_gravity_noise_std": 0.01,
+    "imu_gyro_noise_std": 0.01,
+    "action_delay_steps": 1,
+    "action_saturation": 0.8
+  },
+  "outputs": {
+    "fixed_mode_eval_json": "runs/worm_v6_ppo_{terrain}_{mode}/eval_metrics.json",
+    "fixed_mode_robust_eval_json": "runs/worm_v6_ppo_{terrain}_{mode}/eval_metrics_robust.json",
+    "blend_scan_json": "runs/worm_v6_blend_scan_{terrain}_random/scan_results.json",
+    "paper_summary": "record/v6/paper_results/summary.md",
+    "paper_summary_csv": "record/v6/paper_results/fixed_mode_summary.csv",
+    "blend_scan_csv": "record/v6/paper_results/blend_scan_summary.csv",
+    "best_blend_csv": "record/v6/paper_results/best_blend_by_terrain.csv",
+    "completion_audit_json": "record/v6/paper_results/completion_audit.json",
+    "completion_audit_md": "record/v6/paper_results/completion_audit.md",
+    "paper_pipeline_manifest": "record/v6/paper_results/paper_pipeline_manifest.json",
+    "fixed_mode_speed_svg": "record/v6/paper_results/fixed_mode_speed.svg",
+    "blend_scan_speed_svg": "record/v6/paper_results/blend_scan_speed.svg",
+    "deploy_bundle_dir": "record/v6/deploy_bundles/{terrain}_{mode}",
+    "deploy_actor": "record/v6/deploy_bundles/{terrain}_{mode}/policy_actor.pt",
+    "deploy_config": "record/v6/deploy_bundles/{terrain}_{mode}/deploy_config.json",
+    "raw_hardware_log_template": "record/v6/hardware/raw_hardware_log_template.csv",
+    "raw_hardware_log_example": "record/v6/hardware/raw_hardware_log_template_example.csv",
+    "hardware_log_from_raw_example": "record/v6/hardware/hardware_log_from_raw_example.csv",
+    "sim_raw_hardware_log": "record/v6/hardware/sim_flat_mixed_raw.csv",
+    "sim_policy_input_log": "record/v6/hardware/sim_flat_mixed_raw_policy.csv",
+    "hardware_trial_import_manifest": "record/v6/hardware/hardware_trial_import_manifest.json",
+    "hardware_trial_status_json": "record/v6/hardware/hardware_trial_status.json",
+    "hardware_trial_status_md": "record/v6/hardware/hardware_trial_status.md",
+    "hardware_log_template": "record/v6/hardware/hardware_log_template.csv",
+    "hardware_log_example": "record/v6/hardware/hardware_log_template_example.csv",
+    "hardware_log_schema": "record/v6/hardware/hardware_log_template_schema.json"
+  },
+  "commands": {
+    "smoke": "python src/v3/run_paper_pipeline_v6.py --preset smoke",
+    "formal": "python src/v3/run_paper_pipeline_v6.py --preset formal --timesteps 1000000 --n-envs 4",
+    "formal_resume": "python src/v3/run_paper_pipeline_v6.py --preset formal --timesteps 1000000 --n-envs 4 --resume --resume-partial",
+    "formal_train_resume": "python src/v3/run_paper_pipeline_v6.py --preset formal --stage train --timesteps 1000000 --n-envs 4 --resume --resume-partial",
+    "formal_train_next": "python src/v3/run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes worm --timesteps 1000000 --n-envs 4 --resume --resume-partial --max-records 1",
+    "formal_train_next_chunk": "python src/v3/run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes worm --timesteps 1000000 --train-chunk-timesteps 100000 --n-envs 4 --resume --resume-partial --max-records 1",
+    "formal_eval_resume": "python src/v3/run_paper_pipeline_v6.py --preset formal --stage deploy eval scan summary audit --timesteps 1000000 --n-envs 4 --resume",
+    "formal_with_videos": "python src/v3/run_paper_pipeline_v6.py --preset formal --timesteps 1000000 --n-envs 4 --video",
+    "formal_dry_run": "python src/v3/run_paper_pipeline_v6.py --preset formal --dry-run",
+    "status": "python src/v3/paper_status_v6.py --refresh-audit",
+    "completion_audit": "python src/v3/audit_paper_goal_v6.py",
+    "hardware_trial_status": "python src/v3/hardware_trial_status_v6.py --write-report",
+    "capture_hardware_stream": "python src/v3/capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record/v6/hardware/field_trials/current/flat/flat_random_raw.csv --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.5 --cmd-vel 0.025 --cmd-yaw 0.0",
+    "validate_real_hardware_log": "python src/v3/validate_hardware_log_v6.py --input record/v6/hardware/flat_real.csv --expected-terrain flat --require-video --min-rows 5 --min-duration 0.1",
+    "import_real_hardware_trial": "python src/v3/import_hardware_trial_v6.py --terrain flat --mode random --raw-csv record/v6/hardware/field_trials/current/flat/flat_random_raw.csv --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.5 --date YYYYMMDD",
+    "robust_eval": "python src/v3/run_terrain_experiments.py --method robust-eval --terrain flat sand slope --mode worm snake mixed",
+    "build_policy_input_from_raw_hardware": "python src/v3/build_hardware_obs_v6.py --input-raw record/v6/hardware/raw_hardware_log_template_example.csv --output record/v6/hardware/hardware_log_from_raw_example.csv",
+    "collect_sim_hardware_log": "python src/v3/collect_sim_hardware_log_v6.py --terrain flat --gait-mode mixed --gait-blend 0.5 --time 0.2 --output-raw record/v6/hardware/sim_flat_mixed_raw.csv --output-policy record/v6/hardware/sim_flat_mixed_raw_policy.csv",
+    "export_random_policy": "python src/v3/run_terrain_experiments.py --method deploy-export --terrain flat sand slope --mode random",
+    "replay_hardware_log": "python src/v3/deploy_policy_v6.py replay --bundle-dir record/v6/deploy_bundles/flat_random --input-csv record/v6/hardware/hardware_log_template_example.csv",
+    "run_raw_sensor_runtime": "python src/v3/hardware_policy_runtime_v6.py --bundle-dir record/v6/deploy_bundles/flat_random --input-raw-csv record/v6/hardware/raw_hardware_log_template_example.csv"
+  }
+}

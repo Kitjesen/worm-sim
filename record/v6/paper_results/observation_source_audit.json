@@ -1,0 +1,281 @@
+{
+  "format_version": 1,
+  "generated_at_utc": "2026-05-28T12:24:11.084882+00:00",
+  "complete": true,
+  "obs_dim": 80,
+  "observation_contract_fingerprint": "672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b",
+  "layout": {
+    "command": [
+      0,
+      3
+    ],
+    "joint_pos": [
+      3,
+      14
+    ],
+    "joint_vel": [
+      14,
+      25
+    ],
+    "previous_action": [
+      25,
+      36
+    ],
+    "segment_gravity": [
+      36,
+      57
+    ],
+    "segment_gyro": [
+      57,
+      78
+    ],
+    "phase_clock": [
+      78,
+      80
+    ]
+  },
+  "layout_matches_columns": true,
+  "groups": [
+    {
+      "group": "command",
+      "range": [
+        0,
+        3
+      ],
+      "columns": [
+        "cmd_vel_norm",
+        "cmd_yaw_norm",
+        "gait_blend"
+      ],
+      "sim_source": [
+        "self._cmd_vel",
+        "self._cmd_yaw",
+        "self._gait_blend"
+      ],
+      "real_source": [
+        "controller command velocity",
+        "controller command yaw rate",
+        "controller-selected gait_blend"
+      ],
+      "policy_allowed": true
+    },
+    {
+      "group": "joint_pos",
+      "range": [
+        3,
+        14
+      ],
+      "columns": [
+        "joint_pos_00",
+        "joint_pos_01",
+        "joint_pos_02",
+        "joint_pos_03",
+        "joint_pos_04",
+        "joint_pos_05",
+        "joint_pos_06",
+        "joint_pos_07",
+        "joint_pos_08",
+        "joint_pos_09",
+        "joint_pos_10"
+      ],
+      "sim_source": [
+        "self.data.qpos[self._act_qpos_idx[i]]"
+      ],
+      "real_source": [
+        "11 joint encoder positions"
+      ],
+      "policy_allowed": true
+    },
+    {
+      "group": "joint_vel",
+      "range": [
+        14,
+        25
+      ],
+      "columns": [
+        "joint_vel_00",
+        "joint_vel_01",
+        "joint_vel_02",
+        "joint_vel_03",
+        "joint_vel_04",
+        "joint_vel_05",
+        "joint_vel_06",
+        "joint_vel_07",
+        "joint_vel_08",
+        "joint_vel_09",
+        "joint_vel_10"
+      ],
+      "sim_source": [
+        "self.data.qvel[self._act_qvel_idx[i]]"
+      ],
+      "real_source": [
+        "11 joint encoder velocity estimates"
+      ],
+      "policy_allowed": true
+    },
+    {
+      "group": "previous_action",
+      "range": [
+        25,
+        36
+      ],
+      "columns": [
+        "previous_action_00",
+        "previous_action_01",
+        "previous_action_02",
+        "previous_action_03",
+        "previous_action_04",
+        "previous_action_05",
+        "previous_action_06",
+        "previous_action_07",
+        "previous_action_08",
+        "previous_action_09",
+        "previous_action_10"
+      ],
+      "sim_source": [
+        "self._last_action"
+      ],
+      "real_source": [
+        "controller memory of previous normalized action"
+      ],
+      "policy_allowed": true
+    },
+    {
+      "group": "segment_gravity",
+      "range": [
+        36,
+        57
+      ],
+      "columns": [
+        "segment_gravity_00_x",
+        "segment_gravity_00_y",
+        "segment_gravity_00_z",
+        "segment_gravity_01_x",
+        "segment_gravity_01_y",
+        "segment_gravity_01_z",
+        "segment_gravity_02_x",
+        "segment_gravity_02_y",
+        "segment_gravity_02_z",
+        "segment_gravity_03_x",
+        "segment_gravity_03_y",
+        "segment_gravity_03_z",
+        "segment_gravity_04_x",
+        "segment_gravity_04_y",
+        "segment_gravity_04_z",
+        "segment_gravity_05_x",
+        "segment_gravity_05_y",
+        "segment_gravity_05_z",
+        "segment_gravity_06_x",
+        "segment_gravity_06_y",
+        "segment_gravity_06_z"
+      ],
+      "sim_source": [
+        "self.data.xmat[body_id] projected gravity for each IMU body"
+      ],
+      "real_source": [
+        "one IMU per segment: gravity direction from attitude fusion"
+      ],
+      "policy_allowed": true
+    },
+    {
+      "group": "segment_gyro",
+      "range": [
+        57,
+        78
+      ],
+      "columns": [
+        "segment_gyro_00_x",
+        "segment_gyro_00_y",
+        "segment_gyro_00_z",
+        "segment_gyro_01_x",
+        "segment_gyro_01_y",
+        "segment_gyro_01_z",
+        "segment_gyro_02_x",
+        "segment_gyro_02_y",
+        "segment_gyro_02_z",
+        "segment_gyro_03_x",
+        "segment_gyro_03_y",
+        "segment_gyro_03_z",
+        "segment_gyro_04_x",
+        "segment_gyro_04_y",
+        "segment_gyro_04_z",
+        "segment_gyro_05_x",
+        "segment_gyro_05_y",
+        "segment_gyro_05_z",
+        "segment_gyro_06_x",
+        "segment_gyro_06_y",
+        "segment_gyro_06_z"
+      ],
+      "sim_source": [
+        "mujoco.mj_objectVelocity(..., body_id, local_vel, 1)"
+      ],
+      "real_source": [
+        "one IMU per segment: local angular velocity"
+      ],
+      "policy_allowed": true
+    },
+    {
+      "group": "phase_clock",
+      "range": [
+        78,
+        80
+      ],
+      "columns": [
+        "phase_sin",
+        "phase_cos"
+      ],
+      "sim_source": [
+        "self._step_count * CTRL_DT"
+      ],
+      "real_source": [
+        "controller clock"
+      ],
+      "policy_allowed": true
+    }
+  ],
+  "group_source_token_checks": {
+    "command": {
+      "self._cmd_vel": true,
+      "self._cmd_yaw": true,
+      "self._gait_blend": true
+    },
+    "joint_pos": {
+      "self.data.qpos": true,
+      "self._act_qpos_idx": true
+    },
+    "joint_vel": {
+      "self.data.qvel": true,
+      "self._act_qvel_idx": true
+    },
+    "previous_action": {
+      "self._last_action": true
+    },
+    "segment_gravity": {
+      "self.data.xmat": true,
+      "gravity_world": true
+    },
+    "segment_gyro": {
+      "mujoco.mj_objectVelocity": true,
+      "local_vel[:3]": true
+    },
+    "phase_clock": {
+      "self._step_count": true,
+      "PHASE_FREQ": true
+    }
+  },
+  "missing_group_source_tokens": {},
+  "forbidden_policy_observation_hits": {},
+  "reward_only_privileged_hits": {
+    "forward_speed": 1,
+    "lateral_speed": 1,
+    "yaw_rate": 1,
+    "termination_height": 1,
+    "termination_nan_qpos": 1
+  },
+  "source_files": {
+    "environment": "src/v3/worm_env_v6.py",
+    "hardware_builder": "src/v3/build_hardware_obs_v6.py",
+    "contract": "src/v3/observation_contract_v6.py"
+  },
+  "interpretation": "MuJoCo qpos/qvel/xmat/objectVelocity are acceptable here only as simulated encoder/IMU readouts matching the hardware ABI. Privileged root velocity/pose terms may appear in reward or termination code, but must not appear in WormEnvV6._get_obs()."
+}

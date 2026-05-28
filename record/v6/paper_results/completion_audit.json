@@ -1,0 +1,198 @@
+{
+  "complete": false,
+  "obs_dim": 80,
+  "terrains": [
+    "flat",
+    "sand",
+    "slope"
+  ],
+  "fixed_modes": [
+    "worm",
+    "snake",
+    "mixed"
+  ],
+  "train_modes": [
+    "worm",
+    "snake",
+    "mixed",
+    "random"
+  ],
+  "checks": [
+    {
+      "name": "hardware template/schema",
+      "status": "ok",
+      "evidence": [
+        "record/v6/hardware/raw_hardware_log_template.csv",
+        "record/v6/hardware/raw_hardware_log_template_example.csv",
+        "record/v6/hardware/hardware_log_template.csv",
+        "record/v6/hardware/hardware_log_template_example.csv",
+        "record/v6/hardware/hardware_log_template_schema.json"
+      ]
+    },
+    {
+      "name": "online deploy runtime tools",
+      "status": "ok",
+      "evidence": [
+        "src/v3/build_hardware_obs_v6.py",
+        "src/v3/audit_observation_sources_v6.py",
+        "src/v3/check_controller_stream_v6.py",
+        "src/v3/deploy_policy_v6.py",
+        "src/v3/motor_contract_v6.py",
+        "src/v3/hardware_policy_runtime_v6.py",
+        "src/v3/preflight_hardware_deploy_v6.py",
+        "src/v3/process_hardware_trial_v6.py",
+        "src/v3/summarize_hardware_validation_v6.py",
+        "src/v3/test_observation_source_audit_v6.py",
+        "src/v3/test_controller_stream_check_v6.py",
+        "src/v3/test_hardware_validation_summary_v6.py",
+        "src/v3/test_hardware_preflight_v6.py",
+        "src/v3/test_hardware_policy_runtime_v6.py",
+        "src/v3/test_motor_contract_v6.py"
+      ]
+    },
+    {
+      "name": "hardware deploy preflight report",
+      "status": "missing",
+      "evidence": [
+        "record/v6/hardware/hardware_deploy_preflight.json",
+        "record/v6/hardware/hardware_deploy_preflight.md"
+      ],
+      "missing": [
+        "hardware deploy preflight ABI fingerprint",
+        "hardware deploy preflight actuator contract"
+      ]
+    },
+    {
+      "name": "sim sensor to hardware-policy bridge",
+      "status": "ok",
+      "evidence": [
+        "record/v6/hardware/sim_flat_mixed_raw.csv",
+        "record/v6/hardware/sim_flat_mixed_raw_policy.csv"
+      ]
+    },
+    {
+      "name": "12 PPO training model artifacts",
+      "status": "missing",
+      "evidence": [
+        "runs/worm_v6_ppo_flat_worm/best_model.zip",
+        "runs/worm_v6_ppo_flat_snake/best_model.zip",
+        "runs/worm_v6_ppo_flat_mixed/best_model.zip"
+      ],
+      "missing": [
+        "runs/worm_v6_ppo_flat_random",
+        "runs/worm_v6_ppo_sand_worm",
+        "runs/worm_v6_ppo_sand_snake",
+        "runs/worm_v6_ppo_sand_mixed",
+        "runs/worm_v6_ppo_sand_random",
+        "runs/worm_v6_ppo_slope_worm",
+        "runs/worm_v6_ppo_slope_snake",
+        "runs/worm_v6_ppo_slope_mixed",
+        "runs/worm_v6_ppo_slope_random"
+      ]
+    },
+    {
+      "name": "9 fixed-mode eval JSON files",
+      "status": "missing",
+      "missing": [
+        "runs/worm_v6_ppo_flat_worm/eval_metrics.json",
+        "runs/worm_v6_ppo_flat_snake/eval_metrics.json",
+        "runs/worm_v6_ppo_flat_mixed/eval_metrics.json",
+        "runs/worm_v6_ppo_sand_worm/eval_metrics.json",
+        "runs/worm_v6_ppo_sand_snake/eval_metrics.json",
+        "runs/worm_v6_ppo_sand_mixed/eval_metrics.json",
+        "runs/worm_v6_ppo_slope_worm/eval_metrics.json",
+        "runs/worm_v6_ppo_slope_snake/eval_metrics.json",
+        "runs/worm_v6_ppo_slope_mixed/eval_metrics.json"
+      ]
+    },
+    {
+      "name": "9 robust fixed-mode eval JSON files",
+      "status": "missing",
+      "missing": [
+        "runs/worm_v6_ppo_flat_worm/eval_metrics_robust.json",
+        "runs/worm_v6_ppo_flat_snake/eval_metrics_robust.json",
+        "runs/worm_v6_ppo_flat_mixed/eval_metrics_robust.json",
+        "runs/worm_v6_ppo_sand_worm/eval_metrics_robust.json",
+        "runs/worm_v6_ppo_sand_snake/eval_metrics_robust.json",
+        "runs/worm_v6_ppo_sand_mixed/eval_metrics_robust.json",
+        "runs/worm_v6_ppo_slope_worm/eval_metrics_robust.json",
+        "runs/worm_v6_ppo_slope_snake/eval_metrics_robust.json",
+        "runs/worm_v6_ppo_slope_mixed/eval_metrics_robust.json"
+      ]
+    },
+    {
+      "name": "9 CMA-ES open-loop baseline JSON files",
+      "status": "ok",
+      "evidence": [
+        "runs/cmaes_flat_peristaltic/best_gait.json",
+        "runs/cmaes_flat_serpentine/best_gait.json",
+        "runs/cmaes_flat_full/best_gait.json",
+        "runs/cmaes_sand_peristaltic/best_gait.json",
+        "runs/cmaes_sand_serpentine/best_gait.json",
+        "runs/cmaes_sand_full/best_gait.json",
+        "runs/cmaes_slope_peristaltic/best_gait.json",
+        "runs/cmaes_slope_serpentine/best_gait.json",
+        "runs/cmaes_slope_full/best_gait.json"
+      ],
+      "detail": {
+        "mapped_modes": {
+          "worm": "peristaltic",
+          "snake": "serpentine",
+          "mixed": "full"
+        },
+        "min_generations": 20
+      }
+    },
+    {
+      "name": "3 continuous gait_blend scan result files",
+      "status": "missing",
+      "missing": [
+        "runs/worm_v6_blend_scan_flat_random/scan_results.json",
+        "runs/worm_v6_blend_scan_sand_random/scan_results.json",
+        "runs/worm_v6_blend_scan_slope_random/scan_results.json"
+      ]
+    },
+    {
+      "name": "3 deployable random-policy bundles",
+      "status": "missing",
+      "missing": [
+        "record/v6/deploy_bundles/flat_random",
+        "record/v6/deploy_bundles/sand_random",
+        "record/v6/deploy_bundles/slope_random"
+      ]
+    },
+    {
+      "name": "paper summary tables, figures, and claim analysis",
+      "status": "ok",
+      "evidence": [
+        "record/v6/paper_results/summary.md",
+        "record/v6/paper_results/fixed_mode_summary.csv",
+        "record/v6/paper_results/blend_scan_summary.csv",
+        "record/v6/paper_results/best_blend_by_terrain.csv",
+        "record/v6/paper_results/paper_claims.json",
+        "record/v6/paper_results/paper_claims.md",
+        "record/v6/paper_results/results_index.md",
+        "record/v6/paper_results/observation_contract.json",
+        "record/v6/paper_results/observation_contract.md",
+        "record/v6/paper_results/observation_source_audit.json",
+        "record/v6/paper_results/observation_source_audit.md",
+        "record/v6/paper_results/paper_video_manifest.json",
+        "record/v6/paper_results/paper_video_manifest.md",
+        "record/v6/paper_results/hardware_validation_summary.json",
+        "record/v6/paper_results/hardware_validation_summary.md",
+        "record/v6/paper_results/hardware_validation_summary.csv",
+        "record/v6/paper_results/fixed_mode_speed.svg",
+        "record/v6/paper_results/blend_scan_speed.svg"
+      ]
+    },
+    {
+      "name": "flat/sand/slope hardware logs with video references",
+      "status": "missing",
+      "missing": [
+        "record/v6/hardware/flat_*.csv",
+        "record/v6/hardware/sand_*.csv",
+        "record/v6/hardware/slope_*.csv"
+      ]
+    }
+  ]
+}
