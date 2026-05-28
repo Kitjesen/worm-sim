@@ -13,17 +13,17 @@ Complete: `true`
 ### flat
 
 ```powershell
-C:\Users\99563\miniconda3\python.exe D:\inovxio\thirdparty\simulation\worm_project\src\v3\eval_v6.py --terrain flat --gait-mode random --gait-blend 0.500 --episodes 1 --time 2.0 --seed 2200 --json-out D:\inovxio\thirdparty\simulation\worm_project\record\v6\paper_results\video_eval_flat_random.json --video
+C:\Users\99563\miniconda3\python.exe D:\inovxio\thirdparty\simulation\worm_project\src\v6\eval_v6.py --terrain flat --gait-mode random --gait-blend 0.500 --episodes 1 --time 2.0 --seed 2200 --json-out D:\inovxio\thirdparty\simulation\worm_project\record\v6\paper_results\video_eval_flat_random.json --video
 ```
 
 ### sand
 
 ```powershell
-C:\Users\99563\miniconda3\python.exe D:\inovxio\thirdparty\simulation\worm_project\src\v3\eval_v6.py --terrain sand --gait-mode random --gait-blend 1.000 --episodes 1 --time 2.0 --seed 2200 --json-out D:\inovxio\thirdparty\simulation\worm_project\record\v6\paper_results\video_eval_sand_random.json --video
+C:\Users\99563\miniconda3\python.exe D:\inovxio\thirdparty\simulation\worm_project\src\v6\eval_v6.py --terrain sand --gait-mode random --gait-blend 1.000 --episodes 1 --time 2.0 --seed 2200 --json-out D:\inovxio\thirdparty\simulation\worm_project\record\v6\paper_results\video_eval_sand_random.json --video
 ```
 
 ### slope
 
 ```powershell
-C:\Users\99563\miniconda3\python.exe D:\inovxio\thirdparty\simulation\worm_project\src\v3\eval_v6.py --terrain slope --gait-mode random --gait-blend 0.000 --episodes 1 --time 2.0 --seed 2200 --json-out D:\inovxio\thirdparty\simulation\worm_project\record\v6\paper_results\video_eval_slope_random.json --video
+C:\Users\99563\miniconda3\python.exe D:\inovxio\thirdparty\simulation\worm_project\src\v6\eval_v6.py --terrain slope --gait-mode random --gait-blend 0.000 --episodes 1 --time 2.0 --seed 2200 --json-out D:\inovxio\thirdparty\simulation\worm_project\record\v6\paper_results\video_eval_slope_random.json --video
 ```

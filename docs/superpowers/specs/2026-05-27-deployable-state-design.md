@@ -17,9 +17,9 @@ The project already has explicit worm/snake dual-mode support in the open-loop s
 
 - `src/v3/worm_v5.py` defines `worm`, `snake`, and `combined` modes.
 - `src/v3/worm_v5_1.py` preserves the same three modes on the rigid-body/passive-wheel mesh model.
-- `src/v3/worm_v6.py` also exposes `--mode snake|worm|combined` and controls slide joints for worm/peristaltic motion and yaw joints for snake/serpentine motion.
+- `src/v6/worm_v6.py` also exposes `--mode snake|worm|combined` and controls slide joints for worm/peristaltic motion and yaw joints for snake/serpentine motion.
 
-The current RL environment is different: `src/v3/worm_env_v6.py` exposes all 11 actuators directly and does not condition the policy on a discrete locomotion mode. That means the policy can learn mixed slide+yaw behavior, but it is not currently a clean "select worm vs snake vs combined" controller.
+The current RL environment is different: `src/v6/worm_env_v6.py` exposes all 11 actuators directly and does not condition the policy on a discrete locomotion mode. That means the policy can learn mixed slide+yaw behavior, but it is not currently a clean "select worm vs snake vs combined" controller.
 
 For deployment, the recommended interface is a single full-body policy conditioned by a gait blend command:
 

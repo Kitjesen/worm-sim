@@ -27,7 +27,7 @@ segment.
 Use the generated field-trial package:
 
 ```powershell
-python src\v3\prepare_hardware_trials_v6.py --force
+python src\v6\prepare_hardware_trials_v6.py --force
 ```
 
 For each terrain, collect raw hardware data into the terrain-specific
@@ -48,53 +48,53 @@ Each CSV row must include a resolvable video reference, typically:
 Check what is still missing for each terrain:
 
 ```powershell
-python src\v3\hardware_trial_status_v6.py --write-report
+python src\v6\hardware_trial_status_v6.py --write-report
 ```
 
 Capture a controller JSONL stream into the raw CSV expected by the import
 step:
 
 ```powershell
-python src\v3\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\v6\hardware\field_trials\current\flat\flat_random_raw.csv --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.5 --cmd-vel 0.025 --cmd-yaw 0.0
+python src\v6\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\v6\hardware\field_trials\current\flat\flat_random_raw.csv --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.5 --cmd-vel 0.025 --cmd-yaw 0.0
 ```
 
 After a terrain run, import the captured raw sensor CSV and video reference into
 the paper audit layout:
 
 ```powershell
-python src\v3\import_hardware_trial_v6.py --terrain flat --mode random --raw-csv record\v6\hardware\field_trials\current\flat\flat_random_raw.csv --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.5 --date YYYYMMDD
+python src\v6\import_hardware_trial_v6.py --terrain flat --mode random --raw-csv record\v6\hardware\field_trials\current\flat\flat_random_raw.csv --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.5 --date YYYYMMDD
 ```
 
 For a live controller bridge, stream one raw sensor JSON object per line to
 stdin and read one action JSON object per line from stdout:
 
 ```powershell
-python src\v3\hardware_policy_runtime_v6.py --bundle-dir record\v6\deploy_bundles\flat_random --input-jsonl - --output-jsonl - --policy-log-csv record\v6\hardware\flat_random_YYYYMMDD.csv --terrain flat --mode random --gait-blend 0.5 --video-file record/v6/videos/flat_random_hardware_demo.mp4 --max-action-delta 0.2
+python src\v6\hardware_policy_runtime_v6.py --bundle-dir record\v6\deploy_bundles\flat_random --input-jsonl - --output-jsonl - --policy-log-csv record\v6\hardware\flat_random_YYYYMMDD.csv --terrain flat --mode random --gait-blend 0.5 --video-file record/v6/videos/flat_random_hardware_demo.mp4 --max-action-delta 0.2
 ```
 
 Run the deployed TorchScript policy on a raw hardware sensor log and write the
 formal 80-D audit CSV plus the physical target log:
 
 ```powershell
-python src\v3\hardware_policy_runtime_v6.py --bundle-dir record\v6\deploy_bundles\flat_random --input-raw-csv record\v6\hardware\field_trials\current\flat\flat_random_raw.csv --output-csv record\v6\hardware\field_trials\current\flat\flat_random_actions.csv --policy-log-csv record\v6\hardware\flat_random_YYYYMMDD.csv --terrain flat --mode random --gait-blend 0.5 --video-file record/v6/videos/flat_random_hardware_demo.mp4 --max-action-delta 0.2 --validate-policy-log --require-video --expected-terrain flat --min-rows 5 --min-duration 0.1
+python src\v6\hardware_policy_runtime_v6.py --bundle-dir record\v6\deploy_bundles\flat_random --input-raw-csv record\v6\hardware\field_trials\current\flat\flat_random_raw.csv --output-csv record\v6\hardware\field_trials\current\flat\flat_random_actions.csv --policy-log-csv record\v6\hardware\flat_random_YYYYMMDD.csv --terrain flat --mode random --gait-blend 0.5 --video-file record/v6/videos/flat_random_hardware_demo.mp4 --max-action-delta 0.2 --validate-policy-log --require-video --expected-terrain flat --min-rows 5 --min-duration 0.1
 ```
 
 Validate a final hardware log:
 
 ```powershell
-python src\v3\validate_hardware_log_v6.py --input record\v6\hardware\flat_random_YYYYMMDD.csv --expected-terrain flat --require-video --min-rows 5 --min-duration 0.1
+python src\v6\validate_hardware_log_v6.py --input record\v6\hardware\flat_random_YYYYMMDD.csv --expected-terrain flat --require-video --min-rows 5 --min-duration 0.1
 ```
 
 Replay a deploy bundle on logged observations:
 
 ```powershell
-python src\v3\deploy_policy_v6.py replay --bundle-dir record\v6\deploy_bundles\flat_random --input-csv record\v6\hardware\flat_random_YYYYMMDD.csv
+python src\v6\deploy_policy_v6.py replay --bundle-dir record\v6\deploy_bundles\flat_random --input-csv record\v6\hardware\flat_random_YYYYMMDD.csv
 ```
 
 Refresh the paper audit:
 
 ```powershell
-python src\v3\paper_status_v6.py --refresh-audit
+python src\v6\paper_status_v6.py --refresh-audit
 ```
 
 ## Pass Criteria

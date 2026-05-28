@@ -1,152 +1,262 @@
-# Earthworm-like Pipe-Crawling Robot Simulation
+# Worm Sim
 
-MuJoCo simulation of a 5-segment metameric earthworm-like robot with spring steel strip structures, capable of rectilinear locomotion, active circular turning, and passive 90° pipe navigation.
+Deployable MuJoCo simulation and RL pipeline for a snake/worm multimodal robot.
 
-## V6 — RL Training Arena (Longworm2 CAD Model)
+The current main line is **V6 deployable bimodal locomotion**: one robot body can use worm-like peristaltic extension/contraction, snake-like lateral undulation, and continuous blends between them. The paper goal is to study which mode works best on flat ground, sand, and slopes, using only sensors that can exist on the real robot.
 
-![Training Arena](record/v6/videos/training_arena.gif)
+Repository: https://github.com/Kitjesen/worm-sim
 
-20 worm robots training in parallel — 4 training stages from random exploration to converged gait. 7 body segments, 11 actuated joints (6 slide + 5 yaw), 24 passive wheels, spring steel strip deformation. MJX (GPU) and SB3 (CPU) PPO training pipelines.
+## Current Main Claim
 
-```bash
-# RL training (CPU, SB3 PPO)
-python src/v3/train_v6.py --timesteps 5000000 --n-envs 16
+This is now a **snake + worm dual-mode robot project**, not only an open-loop worm gait demo.
 
-# RL training (GPU, MJX + brax PPO)
-python src/v3/train_v6_gpu.py --timesteps 10000000
+The mode interface is:
 
-# Evaluate trained policy
-python src/v3/eval_v6.py
+| `gait_blend` | Mode | Meaning |
+| ---: | --- | --- |
+| `0.0` | `worm` | Peristaltic / extension-contraction dominant |
+| `1.0` | `snake` | Serpentine / yaw undulation dominant |
+| `0.0 < gait_blend < 1.0` | `mixed` | Continuous hybrid gait |
+| sampled during training | `random` | Continuous mode-conditioned policy for blend scans and deployment |
 
-# Render training arena video (4K)
-python src/v3/render_arena.py
-python src/v3/render_arena.py --preview  # 720p quick test
-```
+The latest paper-facing implementation is under `src/v6/`.  Old
+`src/v3/*_v6.py` paths are compatibility wrappers only; they are not the
+current project identity.
 
-## V4 — Open-Loop Gaits (Cable Composite Model)
+## Why This Version Matters
 
-### Rectilinear Locomotion (Open Field)
+The deployable RL policy is constrained to realistic inputs:
 
-![Straight crawl](record/v4/videos/worm_v4_straight.gif)
+- velocity command, yaw-rate command, and `gait_blend`
+- actuated joint encoder positions
+- actuated joint encoder velocities
+- previous action
+- per-segment IMU projected gravity
+- per-segment IMU angular velocity
+- phase clock
 
-Discrete retrograde peristalsis gait `{0,0,2|1}` — contraction wave propagates from head to tail.
+The policy observation does **not** use:
 
-| Early | Mid | End |
-|:---:|:---:|:---:|
-| ![early](record/v4/frames/straight_s_early.png) | ![mid](record/v4/frames/straight_s_mid.png) | ![end](record/v4/frames/straight_s_end.png) |
+- base linear velocity
+- global position
+- global yaw
+- MuJoCo freejoint state
+- external localization as a policy input
 
-### Pipe Crawl with 90° Bend
+Reward calculation may still use simulator truth for training, but policy inference cannot.
 
-![Pipe crawl](record/v4/videos/worm_v4_pipe.gif)
+## Robot And Actuator Contract
 
-Passive turning — rectilinear gait drives forward, pipe walls redirect heading through the bend.
+The V6 model has:
 
-| Entry | Bend | Exit |
-|:---:|:---:|:---:|
-| ![entry](record/v4/frames/pipe_p_entry.png) | ![bend](record/v4/frames/pipe_p_bend.png) | ![exit](record/v4/frames/pipe_p_exit.png) |
+- 7 segment IMUs
+- 11 actuated joints
+- 6 slide joints for extension/contraction
+- 5 yaw joints for snake-like bending
+- 80-dimensional deployable observation vector
 
-### Circular Locomotion (Active Turning)
+The current actuator contract is centralized in `src/v6/motor_contract_v6.py`:
 
-![Left turn](record/v4/videos/worm_v4_turn_left.gif)
+| Group | Target range | MuJoCo actuator abstraction |
+| --- | --- | --- |
+| slide | `[-0.05, 0.0] m` | position servo, `kp=800 N/m`, force limit `50 N` |
+| yaw | `[-1.57, 1.57] rad` | position servo, `kp=200 Nm/rad`, torque limit `20 Nm` |
 
-4-state gait with diagonal steer tendons — State 2 (left bend) and State 3 (right bend) create active heading change via asymmetric extension.
+The peristaltic actuation period is fixed at **1.0 s**. Control runs at 50 Hz.
 
-### Spring Steel Strip Structure
+These are deployability guards, not a final vendor motor model. Real hardware identification still needs speed limits, current/voltage limits, backlash, deadband, thermal derating, and controller PID details.
 
-![Strip detail](record/v4/frames/preview_new_strips.png)
+## Current Progress
 
-8 spring steel strips per segment with dynamic bow deformation — strips compress when the segment contracts.
+Last reproducibility baseline before the V6 directory migration:
+`07cdfeb Make deployable multimodal progress reproducible`.
 
-## Features
+Current status files:
 
-- **Rectilinear locomotion** — Zhan/Fang 2019 discrete retrograde peristalsis gait `{0,0,2|1}`
-- **Active circular turning** — 4-state gait with diagonal steer tendons (State 2/3 left/right bend)
-- **Passive pipe turning** — 90° bend navigation using wall contact (no active steering)
-- **Spring steel strip rendering** — Flat BOX geoms with body-axis-stable orientation and dynamic bow
-- **Cable composite physics** — MuJoCo cable composites for inter-plate spring steel mechanics
+- [current progress](record/v6/paper_results/current_progress.md)
+- [results index](record/v6/paper_results/results_index.md)
+- [completion audit](record/v6/paper_results/completion_audit.md)
+- [observation contract](record/v6/paper_results/observation_contract.md)
+- [observation source audit](record/v6/paper_results/observation_source_audit.md)
+- [hardware validation summary](record/v6/paper_results/hardware_validation_summary.md)
+
+Current status:
+
+| Terrain | Mode | Current-contract PPO status |
+| --- | --- | --- |
+| flat | worm | trained to 1,015,808 steps |
+| flat | snake | trained to 1,015,808 steps |
+| flat | mixed | trained to 1,015,808 steps |
+| flat | random | local first chunk reached 606,208 / 1,000,000 steps; final artifact not committed yet |
+| sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
+| slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
+
+Important caution: some cross-terrain summaries in `record/v6/paper_results/` still include stale sand/slope or old random-policy results. They are kept as interim evidence, not final paper numbers. Final claims should wait until retraining plus `deploy eval scan summary audit` are rerun under the current actuator contract.
+
+## Current Effect Summary
+
+The strongest current evidence is structural and flat-ground:
+
+- Deployable observation contract passes audit.
+- Flat `worm`, `snake`, and `mixed` fixed-mode PPO models have been retrained with the current 1 s peristaltic timing and actuator limits.
+- `flat/mixed` improved during the second training chunk, with a new best evaluation checkpoint near 976k steps, but its training/eval reward remains more variable than fixed modes.
+- Hardware pipeline templates and preflight checks exist, but real flat/sand/slope hardware logs are still pending.
+
+Interim result tables and figures:
+
+- [fixed-mode summary](record/v6/paper_results/fixed_mode_summary.csv)
+- [fixed-mode speed figure](record/v6/paper_results/fixed_mode_speed.svg)
+- [gait_blend scan summary](record/v6/paper_results/blend_scan_summary.csv)
+- [gait_blend speed figure](record/v6/paper_results/blend_scan_speed.svg)
+- [paper claim analysis](record/v6/paper_results/paper_claims.md)
+
+## Viewable Videos
+
+Representative committed videos:
+
+- [1 s gait mode comparison](record/v6/videos/gait_modes_comparison_1s_720p.mp4)
+- [worm mode](record/v6/videos/worm_v6_worm.mp4)
+- [snake mode](record/v6/videos/worm_v6_snake.mp4)
+- [combined/mixed mode](record/v6/videos/worm_v6_combined.mp4)
+- [gait comparison 720p](record/v6/videos/gait_comparison_1280x720.mp4)
+- [training arena 720p](record/v6/videos/training_arena_1280x720.mp4)
+- [flat random preview](record/v6/videos/eval_flat_random.mp4)
+- [sand random preview](record/v6/videos/eval_sand_random.mp4)
+- [slope random preview](record/v6/videos/eval_slope_random.mp4)
+
+Large 4K videos are intentionally not committed because ordinary GitHub repositories reject files over 100 MB without Git LFS.
+
+## Trajectory Plots
+
+Segment-level trajectory and time-history plots are under:
+
+- [trajectory folder](record/v6/trajectory/)
+- [flat trajectory report](record/v6/trajectory/flat_trajectory_report.md)
+- [sand trajectory report](record/v6/trajectory/sand_trajectory_report.md)
+- [slope trajectory report](record/v6/trajectory/slope_trajectory_report.md)
+
+These plots include absolute positions, relative motion, and per-segment trajectories. Earlier plotting bugs that made all segments appear to start from zero should be treated as invalid; current trajectory outputs separate absolute and relative views.
 
 ## Quick Start
 
-```bash
-# Open-field straight crawl
-python src/v3/worm_v4.py --video
+Install the usual Python/MuJoCo stack first:
 
-# Circular locomotion (active turning)
-python src/v3/worm_v4.py --turn left --video
-python src/v3/worm_v4.py --turn right --video
-
-# Pipe crawl with 90° bend
-python src/v3/worm_v4.py --pipe --video
-
-# Headless (no video)
-python src/v3/worm_v4.py
-python src/v3/worm_v4.py --turn left
-python src/v3/worm_v4.py --pipe
+```powershell
+pip install mujoco stable-baselines3 gymnasium torch numpy matplotlib pandas
 ```
 
-## Requirements
+Check current project status:
 
-- Python 3.10+
-- `mujoco` >= 3.0
-- `numpy`
-- `mediapy` (for video recording)
-
-## Project Structure
-
-```
-src/
-  proto/          # Early prototypes (single segment tests)
-  v1/             # V1 — basic 5-segment worm
-  v2/             # V2 — improved cable model
-  v3/
-    exp_runner.py # Model XML generator (cable composites, plates, muscles)
-    worm_v4.py    # Main simulation script (current)
-docs/             # Design notes and analysis
-record/v4/
-  videos/         # Demo videos and GIFs
-  frames/         # Keyframe snapshots
+```powershell
+python src\v6\paper_status_v6.py --refresh-audit
 ```
 
-## Design
+Run the observation-source audit:
 
-Each segment consists of:
-- **2 acrylic plates** (cylinder geoms) — structural discs
-- **8 spring steel strips** (cable composites) — passive radial elasticity
-- **4 axial muscles** (tendons at 0°/90°/180°/270°) — longitudinal contraction
-- **2 diagonal steer tendons** (cross-body) — lateral bending for turning
-- **1 ring muscle** — radial contraction
+```powershell
+python src\v6\audit_observation_sources_v6.py --strict
+```
 
-### 4-State Gait: Zhan/Fang 2019 `{n₂, n₃, n₁ | nP}`
+Train one formal chunk:
 
-| State | Action | Muscles | Effect |
-|-------|--------|---------|--------|
-| 0 | Relaxed | Ring ON | Slim profile, extends forward |
-| 1 | Anchored | All axial ON | Contracted, grips ground |
-| 2 | Left bend | Left steer ON | Extends at angle (left turn) |
-| 3 | Right bend | Right steer ON | Extends at angle (right turn) |
+```powershell
+python src\v6\run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes random --timesteps 1000000 --train-chunk-timesteps 600000 --n-envs 4 --resume --resume-partial --max-records 1
+```
 
-- Rectilinear `{0,0,2|1}`: gait `[0,0,0,1,1]` — straight crawl
-- Circular left `{1,0,2|1}`: gait `[2,0,0,1,1]` — left turn
-- Retrograde peristalsis: contraction wave travels head → tail
+Run post-training exports, evaluations, scans, summaries, and audit:
 
-### Pipe Locomotion
+```powershell
+python src\v6\run_paper_pipeline_v6.py --preset formal --stage deploy eval scan summary audit --timesteps 1000000 --n-envs 4 --resume
+```
 
-Purely passive turning — the rectilinear gait drives the worm forward, and pipe walls redirect heading through the 90° bend. Key parameters:
-- `plate_stiff_x = 0` (free lateral motion, guided by walls)
-- `plate_stiff_yaw = 0` (free heading rotation for turning)
-- `bend_stiff = 2e7` (softer cables allow body flex through bend)
+Run hardware preflight:
 
-## References
+```powershell
+python src\v6\preflight_hardware_deploy_v6.py --strict
+```
 
-1. Zhan X, Fang H, Xu J, Wang KW. **Planar locomotion of earthworm-like metameric robots.** *IJRR*, 2019. DOI: 10.1177/0278364919881687
-2. Zhou Q, Fang H, Xu J. **A CPG-Based Versatile Control Framework for Metameric Earthworm-Like Robotic Locomotion.** *Advanced Science*, 2023. DOI: 10.1002/advs.202206336
-3. Fang H, Wang C, Li S, Wang KW, Xu J. **Design and experimental gait analysis of a multi-segment in-pipe robot.** *SPIE*, 2014. DOI: 10.1117/12.2044262
-4. Riddle S, et al. **CMMWorm-SES: A MuJoCo soft worm robot model.** *Bioinspir. Biomim.*, 2025. Code: [github.com/sriddle97/3D-Soft-Worm-Robot-Model](https://github.com/sriddle97/3D-Soft-Worm-Robot-Model)
+## Main Scripts
 
-## License
+| File | Purpose |
+| --- | --- |
+| `src/v6/worm_v6.py` | V6 robot/MJCF model and gait utilities |
+| `src/v6/worm_env_v6.py` | Gymnasium environment with deployable observation design |
+| `src/v6/motor_contract_v6.py` | actuator range and mapping contract |
+| `src/v6/observation_contract_v6.py` | observation ABI and source contract |
+| `src/v6/train_v6.py` | PPO training entry point |
+| `src/v6/eval_v6.py` | fixed-mode and robust evaluation |
+| `src/v6/run_terrain_experiments.py` | terrain/mode experiment runner |
+| `src/v6/run_paper_pipeline_v6.py` | paper pipeline orchestrator |
+| `src/v6/scan_gait_blend_v6.py` | continuous `gait_blend` scan |
+| `src/v6/deploy_policy_v6.py` | export/replay deployable policy bundles |
+| `src/v6/hardware_policy_runtime_v6.py` | runtime wrapper for hardware policy inference |
+| `src/v6/check_controller_stream_v6.py` | controller stream validation |
+| `src/v6/validate_hardware_log_v6.py` | hardware log schema and evidence validation |
 
-MIT
+## Hardware Validation Path
+
+The intended hardware evidence path is:
+
+1. Export deployable random-policy bundle for each terrain.
+2. Run controller stream self-check.
+3. Capture raw encoder/IMU/action stream on flat, sand, and slope.
+4. Attach video evidence for each run.
+5. Validate each log with `validate_hardware_log_v6.py`.
+6. Summarize hardware status with `hardware_trial_status_v6.py` and `summarize_hardware_validation_v6.py`.
+
+Templates and examples are committed under:
+
+- [hardware folder](record/v6/hardware/)
+- [current field trial manifest](record/v6/hardware/field_trials/current/hardware_trial_manifest.json)
+
+## Verification Commands Used Recently
+
+```powershell
+python -m compileall -q src\v6
+python src\v6\test_motor_contract_v6.py
+python src\v6\test_deployable_obs_v6.py
+python src\v6\test_observation_contract_v6.py
+python src\v6\test_deploy_policy_v6.py
+python src\v6\test_hardware_obs_builder_v6.py
+python src\v6\test_hardware_policy_runtime_v6.py
+python src\v6\test_hardware_preflight_v6.py
+python src\v6\test_controller_stream_check_v6.py
+python src\v6\audit_observation_sources_v6.py --strict
+python src\v6\test_goal_audit_v6.py
+python src\v6\test_resume_partial_v6.py
+```
+
+## Repository Layout
+
+```text
+docs/
+  deployable_multimodal_v6_paper_plan.md
+  hardware_validation_checklist_v6.md
+record/v6/
+  hardware/          hardware templates, preflight, trial status
+  paper_results/     summaries, audits, figures, paper evidence
+  trajectory/        segment trajectory plots and CSVs
+  videos/            committed viewable videos
+runs/
+  worm_v6_ppo_flat_worm/
+  worm_v6_ppo_flat_snake/
+  worm_v6_ppo_flat_mixed/
+src/v6/
+  *_v6.py            current deployable simulation, RL, eval, hardware tools
+```
+
+## Legacy Work
+
+V4 open-loop worm and pipe-crawling demos are still useful historical prototypes, but they are no longer the paper main line. The current paper target is the V6 deployable snake/worm multimodal RL pipeline.
+
+## Remaining Work
+
+- Finish `flat/random` retraining to the formal threshold.
+- Retrain sand and slope policies under the current actuator contract.
+- Regenerate all eval, robust eval, `gait_blend` scan, summary, and audit artifacts.
+- Collect real hardware logs and videos on flat, sand, and slope.
+- Rebuild final paper figures after the above are complete.
 
 ## Author
 
-Hongsen Pang ([@Kitjesen](https://github.com/Kitjesen)) — BSRL Lab
+Hongsen Pang ([@Kitjesen](https://github.com/Kitjesen)), BSRL Lab.

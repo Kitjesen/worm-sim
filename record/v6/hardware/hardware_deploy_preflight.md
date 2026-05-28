@@ -25,5 +25,5 @@ This is a deploy-chain readiness check. It is not real hardware validation evide
 ## Reproduce
 
 ```powershell
-python src\v3\preflight_hardware_deploy_v6.py --strict
+python src\v6\preflight_hardware_deploy_v6.py --strict
 ```

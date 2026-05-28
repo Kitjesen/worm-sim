@@ -21,67 +21,67 @@
 ### preflight deploy bundle and observation ABI
 
 ```powershell
-python src\v3\preflight_hardware_deploy_v6.py --strict
+python src\v6\preflight_hardware_deploy_v6.py --strict
 ```
 
 ### check controller JSONL stream before import
 
 ```powershell
-python src\v3\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0 --bundle-dir record\v6\deploy_bundles\slope_random --strict
+python src\v6\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0 --bundle-dir record\v6\deploy_bundles\slope_random --strict
 ```
 
 ### optional: live JSONL controller bridge
 
 ```powershell
-python src\v3\hardware_policy_runtime_v6.py --bundle-dir record\v6\deploy_bundles\slope_random --input-jsonl - --output-jsonl - --policy-log-csv record\v6\hardware\slope_random_YYYYMMDD.csv --terrain slope --mode random --gait-blend 0.000 --video-file record/v6/videos/slope_random_hardware_demo.mp4 --max-action-delta 0.2
+python src\v6\hardware_policy_runtime_v6.py --bundle-dir record\v6\deploy_bundles\slope_random --input-jsonl - --output-jsonl - --policy-log-csv record\v6\hardware\slope_random_YYYYMMDD.csv --terrain slope --mode random --gait-blend 0.000 --video-file record/v6/videos/slope_random_hardware_demo.mp4 --max-action-delta 0.2
 ```
 
 ### capture controller JSONL stream into raw CSV
 
 ```powershell
-python src\v3\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\v6\hardware\field_trials\current\slope\slope_random_raw.csv --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0
+python src\v6\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\v6\hardware\field_trials\current\slope\slope_random_raw.csv --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0
 ```
 
 ### one-command post-capture processing
 
 ```powershell
-python src\v3\process_hardware_trial_v6.py --terrain slope --mode random --input-jsonl controller_stream.jsonl --raw-csv record\v6\hardware\field_trials\current\slope\slope_random_raw.csv --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0 --date YYYYMMDD
+python src\v6\process_hardware_trial_v6.py --terrain slope --mode random --input-jsonl controller_stream.jsonl --raw-csv record\v6\hardware\field_trials\current\slope\slope_random_raw.csv --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --cmd-vel 0.025 --cmd-yaw 0.0 --date YYYYMMDD
 ```
 
 ### import captured raw trial into audit files
 
 ```powershell
-python src\v3\import_hardware_trial_v6.py --terrain slope --mode random --raw-csv record\v6\hardware\field_trials\current\slope\slope_random_raw.csv --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --date YYYYMMDD
+python src\v6\import_hardware_trial_v6.py --terrain slope --mode random --raw-csv record\v6\hardware\field_trials\current\slope\slope_random_raw.csv --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.000 --date YYYYMMDD
 ```
 
 ### run deploy policy on raw sensors and write formal audit CSV
 
 ```powershell
-python src\v3\hardware_policy_runtime_v6.py --bundle-dir record\v6\deploy_bundles\slope_random --input-raw-csv record\v6\hardware\field_trials\current\slope\slope_random_raw.csv --output-csv record\v6\hardware\field_trials\current\slope\slope_random_actions.csv --policy-log-csv record\v6\hardware\slope_random_YYYYMMDD.csv --terrain slope --mode random --gait-blend 0.000 --video-file record/v6/videos/slope_random_hardware_demo.mp4 --max-action-delta 0.2 --validate-policy-log --require-video --expected-terrain slope --min-rows 5 --min-duration 0.1
+python src\v6\hardware_policy_runtime_v6.py --bundle-dir record\v6\deploy_bundles\slope_random --input-raw-csv record\v6\hardware\field_trials\current\slope\slope_random_raw.csv --output-csv record\v6\hardware\field_trials\current\slope\slope_random_actions.csv --policy-log-csv record\v6\hardware\slope_random_YYYYMMDD.csv --terrain slope --mode random --gait-blend 0.000 --video-file record/v6/videos/slope_random_hardware_demo.mp4 --max-action-delta 0.2 --validate-policy-log --require-video --expected-terrain slope --min-rows 5 --min-duration 0.1
 ```
 
 ### validate policy CSV for the paper audit
 
 ```powershell
-python src\v3\validate_hardware_log_v6.py --input record\v6\hardware\slope_random_YYYYMMDD.csv --expected-terrain slope --require-video --min-rows 5 --min-duration 0.1
+python src\v6\validate_hardware_log_v6.py --input record\v6\hardware\slope_random_YYYYMMDD.csv --expected-terrain slope --require-video --min-rows 5 --min-duration 0.1
 ```
 
 ### optional: replay deploy bundle on logged observations
 
 ```powershell
-python src\v3\deploy_policy_v6.py replay --bundle-dir record\v6\deploy_bundles\slope_random --input-csv record\v6\hardware\slope_random_YYYYMMDD.csv --output-csv record\v6\hardware\field_trials\current\slope\slope_random_actions.csv
+python src\v6\deploy_policy_v6.py replay --bundle-dir record\v6\deploy_bundles\slope_random --input-csv record\v6\hardware\slope_random_YYYYMMDD.csv --output-csv record\v6\hardware\field_trials\current\slope\slope_random_actions.csv
 ```
 
 ### show hardware trial status
 
 ```powershell
-python src\v3\hardware_trial_status_v6.py --write-report
+python src\v6\hardware_trial_status_v6.py --write-report
 ```
 
 ### refresh completion audit
 
 ```powershell
-python src\v3\paper_status_v6.py --refresh-audit
+python src\v6\paper_status_v6.py --refresh-audit
 ```
 
 ## Final Files Expected By Audit

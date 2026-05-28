@@ -17,11 +17,11 @@ reference exist for each terrain: flat, sand, and slope.
 ## Final Audit Command
 
 ```powershell
-python src\v3\paper_status_v6.py --refresh-audit
+python src\v6\paper_status_v6.py --refresh-audit
 ```
 
 ## Hardware Status Command
 
 ```powershell
-python src\v3\hardware_trial_status_v6.py --write-report
+python src\v6\hardware_trial_status_v6.py --write-report
 ```

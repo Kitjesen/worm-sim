@@ -6,7 +6,7 @@
 
 ## 方法
 
-- 使用 `src/v3/worm_env_v6.py` 的 80 维可部署观测：
+- 使用 `src/v6/worm_env_v6.py` 的 80 维可部署观测：
   - command: `cmd_vel_norm`, `cmd_yaw_norm`, `gait_blend`
   - 11 维关节位置，11 维关节速度，11 维上一时刻动作
   - 7 个体节 IMU 的局部重力方向和局部角速度
@@ -70,7 +70,7 @@
 - 校验命令：
 
 ```powershell
-python src\v3\validate_hardware_log_v6.py --input record\v6\hardware\<log>.csv
+python src\v6\validate_hardware_log_v6.py --input record\v6\hardware\<log>.csv
 ```
 
 ## 复现实验命令
@@ -78,55 +78,55 @@ python src\v3\validate_hardware_log_v6.py --input record\v6\hardware\<log>.csv
 快速检查：
 
 ```powershell
-python src\v3\run_paper_pipeline_v6.py --preset smoke
+python src\v6\run_paper_pipeline_v6.py --preset smoke
 ```
 
 正式训练、评估、扫描、汇总：
 
 ```powershell
-python src\v3\run_paper_pipeline_v6.py --preset formal --timesteps 1000000 --n-envs 4
+python src\v6\run_paper_pipeline_v6.py --preset formal --timesteps 1000000 --n-envs 4
 ```
 
 正式训练并记录代表性视频：
 
 ```powershell
-python src\v3\run_paper_pipeline_v6.py --preset formal --timesteps 1000000 --n-envs 4 --video
+python src\v6\run_paper_pipeline_v6.py --preset formal --timesteps 1000000 --n-envs 4 --video
 ```
 
 只预览正式命令：
 
 ```powershell
-python src\v3\run_paper_pipeline_v6.py --preset formal --dry-run
+python src\v6\run_paper_pipeline_v6.py --preset formal --dry-run
 ```
 
 单独运行部署鲁棒性评估：
 
 ```powershell
-python src\v3\run_terrain_experiments.py --method robust-eval --terrain flat sand slope --mode worm snake mixed
+python src\v6\run_terrain_experiments.py --method robust-eval --terrain flat sand slope --mode worm snake mixed
 ```
 
 导出可部署策略包：
 
 ```powershell
-python src\v3\run_terrain_experiments.py --method deploy-export --terrain flat sand slope --mode random
+python src\v6\run_terrain_experiments.py --method deploy-export --terrain flat sand slope --mode random
 ```
 
 用硬件观测日志回放策略动作：
 
 ```powershell
-python src\v3\deploy_policy_v6.py replay --bundle-dir record\v6\deploy_bundles\flat_random --input-csv record\v6\hardware\hardware_log_template_example.csv
+python src\v6\deploy_policy_v6.py replay --bundle-dir record\v6\deploy_bundles\flat_random --input-csv record\v6\hardware\hardware_log_template_example.csv
 ```
 
 从原始硬件传感器日志构造 80 维策略输入日志：
 
 ```powershell
-python src\v3\build_hardware_obs_v6.py --input-raw record\v6\hardware\raw_hardware_log_template_example.csv --output record\v6\hardware\hardware_log_from_raw_example.csv
+python src\v6\build_hardware_obs_v6.py --input-raw record\v6\hardware\raw_hardware_log_template_example.csv --output record\v6\hardware\hardware_log_from_raw_example.csv
 ```
 
 审计论文目标完成度：
 
 ```powershell
-python src\v3\audit_paper_goal_v6.py
+python src\v6\audit_paper_goal_v6.py
 ```
 
 ## 完成标准

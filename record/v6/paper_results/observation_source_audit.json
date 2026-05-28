@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-05-28T12:24:11.084882+00:00",
+  "generated_at_utc": "2026-05-28T12:41:47.816385+00:00",
   "complete": true,
   "obs_dim": 80,
   "observation_contract_fingerprint": "672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b",
@@ -273,9 +273,9 @@
     "termination_nan_qpos": 1
   },
   "source_files": {
-    "environment": "src/v3/worm_env_v6.py",
-    "hardware_builder": "src/v3/build_hardware_obs_v6.py",
-    "contract": "src/v3/observation_contract_v6.py"
+    "environment": "src/v6/worm_env_v6.py",
+    "hardware_builder": "src/v6/build_hardware_obs_v6.py",
+    "contract": "src/v6/observation_contract_v6.py"
   },
   "interpretation": "MuJoCo qpos/qvel/xmat/objectVelocity are acceptable here only as simulated encoder/IMU readouts matching the hardware ABI. Privileged root velocity/pose terms may appear in reward or termination code, but must not appear in WormEnvV6._get_obs()."
 }
