@@ -1,245 +1,49 @@
 {
   "format_version": 1,
-  "created_unix_time": 1779973907.1673713,
+  "created_unix_time": 1779975583.3229463,
   "preset": "formal",
   "dry_run": false,
   "resume": true,
-  "resume_partial": false,
+  "resume_partial": true,
   "terrain": [
-    "flat"
+    "sand"
   ],
   "train_modes": [
-    "worm",
-    "snake",
-    "mixed",
-    "random"
+    "worm"
   ],
   "timesteps": 1000000,
-  "train_chunk_timesteps": null,
+  "train_chunk_timesteps": 100000,
   "n_envs": 4,
   "episodes": 5,
   "eval_time_s": 20.0,
   "blends": "0.0,0.25,0.5,0.75,1.0",
   "stages": [
-    "deploy",
-    "eval",
-    "scan",
-    "summary",
-    "audit"
+    "train"
   ],
-  "max_records": null,
+  "max_records": 1,
   "records": [
     {
-      "stage": "deploy",
-      "key": "flat_random",
+      "stage": "train",
+      "key": "sand_worm",
       "cmd": [
         "C:\\Users\\99563\\miniconda3\\python.exe",
         "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
         "--method",
-        "deploy-export",
+        "rl",
         "--terrain",
-        "flat",
-        "--mode",
-        "random"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method deploy-export --terrain flat --mode random",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "eval",
-      "key": "flat_worm_nominal",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
-        "--method",
-        "rl-eval",
-        "--terrain",
-        "flat",
+        "sand",
         "--mode",
         "worm",
-        "--episodes",
-        "5",
-        "--eval-time",
-        "20.0"
+        "--timesteps",
+        "1000000",
+        "--n-envs",
+        "4",
+        "--robust",
+        "--train-chunk-timesteps",
+        "100000",
+        "--resume-partial"
       ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method rl-eval --terrain flat --mode worm --episodes 5 --eval-time 20.0",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "eval",
-      "key": "flat_snake_nominal",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
-        "--method",
-        "rl-eval",
-        "--terrain",
-        "flat",
-        "--mode",
-        "snake",
-        "--episodes",
-        "5",
-        "--eval-time",
-        "20.0"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method rl-eval --terrain flat --mode snake --episodes 5 --eval-time 20.0",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "eval",
-      "key": "flat_mixed_nominal",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
-        "--method",
-        "rl-eval",
-        "--terrain",
-        "flat",
-        "--mode",
-        "mixed",
-        "--episodes",
-        "5",
-        "--eval-time",
-        "20.0"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method rl-eval --terrain flat --mode mixed --episodes 5 --eval-time 20.0",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "eval",
-      "key": "flat_worm_robust",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
-        "--method",
-        "robust-eval",
-        "--terrain",
-        "flat",
-        "--mode",
-        "worm",
-        "--episodes",
-        "5",
-        "--eval-time",
-        "20.0"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method robust-eval --terrain flat --mode worm --episodes 5 --eval-time 20.0",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "eval",
-      "key": "flat_snake_robust",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
-        "--method",
-        "robust-eval",
-        "--terrain",
-        "flat",
-        "--mode",
-        "snake",
-        "--episodes",
-        "5",
-        "--eval-time",
-        "20.0"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method robust-eval --terrain flat --mode snake --episodes 5 --eval-time 20.0",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "eval",
-      "key": "flat_mixed_robust",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
-        "--method",
-        "robust-eval",
-        "--terrain",
-        "flat",
-        "--mode",
-        "mixed",
-        "--episodes",
-        "5",
-        "--eval-time",
-        "20.0"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method robust-eval --terrain flat --mode mixed --episodes 5 --eval-time 20.0",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "scan",
-      "key": "flat_random",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
-        "--method",
-        "blend-scan",
-        "--terrain",
-        "flat",
-        "--scan-policy-mode",
-        "random",
-        "--blends",
-        "0.0,0.25,0.5,0.75,1.0",
-        "--episodes",
-        "5",
-        "--eval-time",
-        "20.0"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method blend-scan --terrain flat --scan-policy-mode random --blends 0.0,0.25,0.5,0.75,1.0 --episodes 5 --eval-time 20.0",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "summary",
-      "key": "paper_results",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
-        "--method",
-        "summary",
-        "--scan-policy-mode",
-        "random"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method summary --scan-policy-mode random",
-      "skip_ok": false,
-      "skip_reason": "already valid",
-      "status": "ran"
-    },
-    {
-      "stage": "audit",
-      "key": "hardware_deploy_preflight",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\preflight_hardware_deploy_v6.py"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\preflight_hardware_deploy_v6.py",
-      "skip_ok": true,
-      "skip_reason": "already valid",
-      "status": "skipped"
-    },
-    {
-      "stage": "audit",
-      "key": "completion",
-      "cmd": [
-        "C:\\Users\\99563\\miniconda3\\python.exe",
-        "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\audit_paper_goal_v6.py",
-        "--allow-incomplete"
-      ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\audit_paper_goal_v6.py --allow-incomplete",
+      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method rl --terrain sand --mode worm --timesteps 1000000 --n-envs 4 --robust --train-chunk-timesteps 100000 --resume-partial",
       "skip_ok": false,
       "skip_reason": "already valid",
       "status": "ran"

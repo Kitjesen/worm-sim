@@ -22,6 +22,10 @@ Generated on 2026-05-28.
   - `record/v6/deploy_bundles/flat_random/deploy_config.json`
 - Flat fixed-mode nominal and robust evals have been regenerated under the current contract.
 - Flat random `gait_blend` scan has been regenerated under the current contract.
+- `sand/worm` current-contract retraining has started:
+  - old incompatible artifacts were archived by the training entry point
+  - new `training_config.json` includes `control_timing` and `actuator_contract_fingerprint`
+  - current progress: `114,688 / 1,000,000` PPO steps
 
 ## Effect So Far
 
@@ -37,6 +41,7 @@ Generated on 2026-05-28.
   - `snake`: `-14.457 mm/s`, success `0.0`
   - `mixed`: `31.325 mm/s`, success `1.0`
 - Current cross-terrain summary files now mark stale sand/slope artifacts as `stale` and leave their metric cells blank. They are not counted as current paper evidence.
+- `sand/worm` has moved from "stale contract" to "current contract but below formal threshold"; it should continue with `--resume-partial` until it reaches 1M steps before eval/scan/deploy are counted.
 - Hardware deploy preflight currently passes for `flat/random`, but fails for sand/slope because their deploy bundles are not current-contract bundles yet.
 
 ## Viewable Evidence
@@ -55,6 +60,7 @@ Generated on 2026-05-28.
 - `record/v6/paper_results/summary.md`
 - `record/v6/paper_results/paper_claims.md`
 - `record/v6/deploy_bundles/flat_random/`
+- `runs/worm_v6_ppo_sand_worm/` current model/config/result files
 
 Large 4K videos are intentionally not committed to Git because GitHub rejects files over 100 MB without LFS.
 

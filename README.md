@@ -88,7 +88,8 @@ Current status:
 | flat | snake | trained to 1,015,808 steps |
 | flat | mixed | trained to 1,015,808 steps |
 | flat | random | trained to 1,015,808 steps; deploy bundle, evals, and `gait_blend` scan generated |
-| sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
+| sand | worm | current-contract retraining started; 114,688 / 1,000,000 steps |
+| sand | snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 
 Important caution: cross-terrain summaries now mark stale sand/slope artifacts as `stale` and leave their metric cells blank. Final cross-terrain paper claims should wait until sand/slope retraining plus `deploy eval scan summary audit` are rerun under the current actuator contract.
@@ -102,6 +103,7 @@ The strongest current evidence is structural and flat-ground:
 - Flat `random` has reached the same 1,015,808-step threshold and now has a deployable TorchScript bundle.
 - On flat ground, the current random-policy blend scan is best at `gait_blend=0.75`: 24.832 mm/s, success 1.0. `gait_blend=1.0` is close at 24.116 mm/s, and pure worm `0.0` is weak at 1.876 mm/s.
 - Flat robust eval is mixed: `mixed` is strongest under the current noise/saturation test at 31.325 mm/s, while `snake` fails robustly with negative speed.
+- `sand/worm` current-contract retraining has started from a clean run after archiving incompatible old artifacts; the first chunk reached 114,688 steps and is not yet formal paper evidence.
 - Hardware pipeline templates and preflight checks exist; flat deploy preflight passes, but sand/slope fail until their current-contract bundles are regenerated. Real flat/sand/slope hardware logs are still pending.
 
 Interim result tables and figures:
