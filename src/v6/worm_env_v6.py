@@ -62,8 +62,8 @@ MAX_EP_STEPS = int(MAX_EP_TIME / CTRL_DT)   # 1000 steps
 SETTLE_STEPS = 250                          # 0.5s settle after reset
 
 # Command ranges (sampled randomly each episode)
-CMD_VEL_RANGE   = (0.0, 0.025)   # m/s forward speed target (open-loop worm ~23 mm/s)
-CMD_YAW_RANGE   = (-0.3, 0.3)    # rad/s yaw rate target (worm turns slowly)
+CMD_VEL_RANGE   = (0.0, 0.25)    # m/s forward speed target (CMA-ES full ~248 mm/s)
+CMD_YAW_RANGE   = (-1.0, 1.0)    # rad/s yaw rate target for directional control
 CMD_RESAMPLE_P  = 0.005          # probability of resampling command each step
 
 GAIT_BLENDS = {
@@ -106,6 +106,20 @@ W_SMOOTH    = 0.02      # low smoothness penalty (worm gait = fast alternating a
 ACTION_EMA  = 0.3       # EMA filter coefficient
 REWARD_CONTRACT_VERSION = "forward_progress_v3"
 
+# Override the older slow-tracking reward with the formal high-speed contract.
+# Keeping the assignment block local makes old checkpoints incompatible through
+# the reward contract without changing the deployable observation layout.
+SIGMA_VEL = 0.050
+SIGMA_YAW = 0.30
+W_OVERSPEED = 2.0
+W_FORWARD_DEFICIT = 0.5
+W_COMMAND_COST = 1.0
+W_LATERAL = 0.3
+W_BACKWARD = 0.5
+W_ENERGY = 0.001
+W_SMOOTH = 0.01
+REWARD_CONTRACT_VERSION = "high_speed_directional_v1"
+
 
 def reward_contract():
     return {
@@ -125,6 +139,7 @@ def reward_contract():
         },
         "normalization": {
             "speed_scale_m_s": CMD_VEL_RANGE[1],
+            "cmaes_full_combined_target_m_s": 0.24797,
             "positive_forward_required_for_vel_track": True,
             "yaw_tracking_gated_by_forward_progress": True,
             "cyclic_backslip_is_soft_penalized": True,
@@ -302,6 +317,7 @@ class WormEnvV6(gym.Env):
             neutral_normalized_action()
             for _ in range(self.action_delay_steps)
         ]
+        self._last_root_pos = self.data.xpos[self._root_body_id].copy()
         self._step_count = 0
         return self._get_obs(), {}
 
@@ -344,12 +360,14 @@ class WormEnvV6(gym.Env):
 
         self._step_count += 1
         obs = self._get_obs()
-        reward = self._compute_reward(applied_action)
+        reward = self._compute_reward(
+            applied_action, residual_action=residual_action)
         terminated = self._check_termination()
         truncated = self._step_count >= MAX_EP_STEPS
 
         self._last_action = applied_action.copy()
         self._last_residual_action = residual_action.copy()
+        self._last_root_pos = self.data.xpos[self._root_body_id].copy()
         return obs, reward, terminated, truncated, {}
 
     def render(self):
@@ -486,16 +504,22 @@ class WormEnvV6(gym.Env):
     # Reward
     # ──────────────────────────────────────────────────────────────────────
 
-    def _compute_reward(self, action):
+    def _compute_reward(self, action, residual_action=None):
         # ── Actual velocities ──
-        # Forward speed: -X direction in world frame
-        forward_speed = -self.data.qvel[0]
+        # Forward speed: -X direction in world frame. Prefer per-control-step
+        # root displacement for locomotion reward because worm gaits have large
+        # cyclic instantaneous qvel spikes and back-slip.
+        if hasattr(self, "_last_root_pos") and hasattr(self, "_root_body_id"):
+            root_pos = self.data.xpos[self._root_body_id]
+            delta_pos = root_pos - self._last_root_pos
+            forward_speed = -float(delta_pos[0]) / CTRL_DT
+            lateral_speed = abs(float(delta_pos[1])) / CTRL_DT
+        else:
+            forward_speed = -self.data.qvel[0]
+            lateral_speed = abs(self.data.qvel[1])
 
         # Yaw rate: rotation around world Z axis
         yaw_rate = self.data.qvel[5]
-
-        # Lateral speed: Y direction (for penalty)
-        lateral_speed = abs(self.data.qvel[1])
 
         # ── Velocity tracking (exp kernel) ──
         vel_err = forward_speed - self._cmd_vel
@@ -531,7 +555,13 @@ class WormEnvV6(gym.Env):
             energy += abs(
                 self.data.ctrl[i] * self.data.qvel[self._act_qvel_idx[i]])
 
-        action_rate = float(np.sum(np.square(action - self._last_action)))
+        if residual_action is None:
+            rate_source = action
+            last_rate_source = self._last_action
+        else:
+            rate_source = residual_action
+            last_rate_source = self._last_residual_action
+        action_rate = float(np.sum(np.square(rate_source - last_rate_source)))
 
         reward = (
             + W_VEL_TRACK * r_vel_track    # exp tracking (precision)

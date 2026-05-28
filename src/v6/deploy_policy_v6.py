@@ -23,13 +23,15 @@ PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 from motor_contract_v6 import (  # noqa: E402
     NUM_SLIDES,
     NUM_YAWS,
+    SLIDE_TARGET_SCALE_M,
+    YAW_TARGET_SCALE_RAD,
     action_mapping_config,
     motor_contract,
 )
 from action_adapter_v6 import (  # noqa: E402
+    CMAES_ANCHORS,
     DEFAULT_GAIT_PRIOR_SCALE,
     DEFAULT_POLICY_RESIDUAL_SCALE,
-    SNAKE_AMP_NORMALIZED,
     action_adapter_contract,
     compose_deployable_action,
     phase_from_clock,
@@ -54,13 +56,47 @@ class DeployablePPOActor(torch.nn.Module):
         self.gait_prior_scale = float(gait_prior_scale)
         self.policy_residual_scale = float(policy_residual_scale)
         self.register_buffer(
-            "slide_offsets",
-            torch.arange(NUM_SLIDES, dtype=torch.float32)
-            * (2.0 * torch.pi / float(NUM_SLIDES)))
+            "slide_fraction",
+            torch.arange(NUM_SLIDES, dtype=torch.float32) / float(NUM_SLIDES))
         self.register_buffer(
-            "yaw_offsets",
-            torch.arange(NUM_YAWS, dtype=torch.float32)
-            * (2.0 * torch.pi * 1.5 / float(NUM_YAWS)))
+            "yaw_fraction",
+            torch.arange(NUM_YAWS, dtype=torch.float32) / float(NUM_YAWS))
+        self.register_buffer(
+            "peristaltic_params",
+            torch.tensor(CMAES_ANCHORS["peristaltic"]["params"],
+                         dtype=torch.float32))
+        self.register_buffer(
+            "full_params",
+            torch.tensor(CMAES_ANCHORS["full"]["params"],
+                         dtype=torch.float32))
+        self.register_buffer(
+            "serpentine_params",
+            torch.tensor(CMAES_ANCHORS["serpentine"]["params"],
+                         dtype=torch.float32))
+        self.slide_target_scale_m = float(SLIDE_TARGET_SCALE_M)
+        self.yaw_target_scale_rad = float(YAW_TARGET_SCALE_RAD)
+
+    def _anchor_prior(self, phase_cycle_s, params, slide_enable, yaw_enable):
+        slide_phase = (
+            2.0 * torch.pi
+            * (phase_cycle_s * params[1]
+               - params[2] * self.slide_fraction.unsqueeze(0))
+            + params[6:12].unsqueeze(0))
+        slide_prior = (
+            -slide_enable
+            * (params[0] / self.slide_target_scale_m)
+            * (1.0 + torch.sin(slide_phase)))
+
+        yaw_phase = (
+            2.0 * torch.pi * params[4] * phase_cycle_s
+            + 2.0 * torch.pi * params[5] * self.yaw_fraction.unsqueeze(0)
+            + params[13] * 2.0 * torch.pi * phase_cycle_s * params[1])
+        yaw_prior = (
+            yaw_enable
+            * (params[3] / self.yaw_target_scale_rad)
+            * torch.sin(yaw_phase))
+        return torch.clamp(
+            torch.cat([slide_prior, yaw_prior], dim=1), -1.0, 1.0)
 
     def forward(self, raw_obs):
         if raw_obs.dim() == 1:
@@ -73,16 +109,21 @@ class DeployablePPOActor(torch.nn.Module):
         latent_pi = self.mlp_extractor.forward_actor(features)
         residual = torch.clamp(self.action_net(latent_pi), -1.0, 1.0)
         phase = torch.atan2(raw_obs[:, 78:79], raw_obs[:, 79:80])
+        phase_cycle_s = torch.remainder(
+            phase, 2.0 * torch.pi) / (2.0 * torch.pi)
         gait_blend = torch.clamp(raw_obs[:, 2:3], 0.0, 1.0)
-        slide_prior = (
-            -0.5
-            * (1.0 + torch.sin(phase + self.slide_offsets.unsqueeze(0)))
-            * (1.0 - gait_blend))
-        yaw_prior = (
-            float(SNAKE_AMP_NORMALIZED)
-            * torch.sin(phase + self.yaw_offsets.unsqueeze(0))
-            * gait_blend)
-        prior = torch.cat([slide_prior, yaw_prior], dim=1)
+        worm_prior = self._anchor_prior(
+            phase_cycle_s, self.peristaltic_params, 1.0, 0.0)
+        full_prior = self._anchor_prior(
+            phase_cycle_s, self.full_params, 1.0, 1.0)
+        snake_prior = self._anchor_prior(
+            phase_cycle_s, self.serpentine_params, 0.0, 1.0)
+        low_alpha = torch.clamp(gait_blend / 0.5, 0.0, 1.0)
+        high_alpha = torch.clamp((gait_blend - 0.5) / 0.5, 0.0, 1.0)
+        low_prior = (1.0 - low_alpha) * worm_prior + low_alpha * full_prior
+        high_prior = (1.0 - high_alpha) * full_prior + high_alpha * snake_prior
+        use_low = (gait_blend <= 0.5).to(dtype=torch.float32)
+        prior = use_low * low_prior + (1.0 - use_low) * high_prior
         actions = (
             self.gait_prior_scale * prior
             + self.policy_residual_scale * residual)

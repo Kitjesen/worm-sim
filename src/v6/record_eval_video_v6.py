@@ -9,6 +9,7 @@ the same deployable observation and action path as eval_v6.py.
 import argparse
 import json
 import os
+import re
 import sys
 import time
 
@@ -39,6 +40,11 @@ def infer_norm_path(model_path):
     candidates = [f"{stem}_vecnormalize.pkl"]
     base = os.path.basename(model_path)
     directory = os.path.dirname(model_path)
+    checkpoint_match = re.fullmatch(r"worm_v6_ppo_(\d+)_steps\.zip", base)
+    if checkpoint_match:
+        candidates.append(os.path.join(
+            directory,
+            f"worm_v6_ppo_vecnormalize_{checkpoint_match.group(1)}_steps.pkl"))
     if base == "best_model.zip":
         candidates.append(os.path.join(directory, "best_model_vecnormalize.pkl"))
     if base == "final_model.zip":
@@ -78,14 +84,11 @@ def main():
     ap.add_argument("--action-delay-steps", type=int, default=0)
     ap.add_argument("--action-saturation", type=float, default=1.0)
     ap.add_argument("--condition", default="nominal")
+    ap.add_argument("--prior-only", action="store_true",
+                    help="Record the deterministic gait prior with zero residual")
     ap.add_argument("--video-out", required=True)
     ap.add_argument("--json-out", required=True)
     args = ap.parse_args()
-
-    model_path = args.model or os.path.join(args.run_dir, "best_model.zip")
-    norm_path = infer_norm_path(model_path)
-    if norm_path is None:
-        raise FileNotFoundError(f"No VecNormalize file paired with {model_path}")
 
     raw_env = DummyVecEnv([make_env(
         terrain=args.terrain,
@@ -102,12 +105,23 @@ def main():
         action_delay_steps=args.action_delay_steps,
         action_saturation=args.action_saturation,
     )])
-    env = VecNormalize.load(norm_path, raw_env)
-    env.training = False
-    env.norm_reward = False
-    model = PPO.load(model_path, env=env, device="cpu")
+    model_path = None
+    norm_path = None
+    model = None
+    if args.prior_only:
+        env = raw_env
+    else:
+        model_path = args.model or os.path.join(args.run_dir, "best_model.zip")
+        norm_path = infer_norm_path(model_path)
+        if norm_path is None:
+            raise FileNotFoundError(
+                f"No VecNormalize file paired with {model_path}")
+        env = VecNormalize.load(norm_path, raw_env)
+        env.training = False
+        env.norm_reward = False
+        model = PPO.load(model_path, env=env, device="cpu")
     obs = env.reset()
-    sim_env = env.venv.envs[0].unwrapped
+    sim_env = (env.venv if hasattr(env, "venv") else env).envs[0].unwrapped
 
     renderer = mujoco.Renderer(sim_env.model, args.height, args.width)
     camera = mujoco.MjvCamera()
@@ -138,7 +152,10 @@ def main():
     started = time.time()
 
     for step in range(steps):
-        action, _ = model.predict(obs, deterministic=True)
+        if args.prior_only:
+            action = np.zeros((1, sim_env.action_space.shape[0]), dtype=np.float32)
+        else:
+            action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, _ = env.step(action)
         reward_sum += float(reward[0])
         action_vec = np.asarray(action[0], dtype=np.float64)
@@ -178,6 +195,10 @@ def main():
         ),
         "obs_dim": OBS_DIM,
         "eval_condition": args.condition,
+        "prior_only": bool(args.prior_only),
+        "action_metric_note": (
+            "mean_action_l2 is PPO residual action norm; in prior-only mode "
+            "the deployed prior action is composed inside the environment"),
         "eval_command": {
             "cmd_vel_m_s": args.cmd_vel,
             "cmd_yaw_rad_s": args.cmd_yaw,
@@ -203,7 +224,7 @@ def main():
         "mean_action_l2_per_step": float(np.mean(action_l2)) if action_l2 else 0.0,
         "mean_action_rate_l2_per_step": (
             float(np.mean(action_rate_l2)) if action_rate_l2 else 0.0),
-        "model_path": model_path,
+        "model_path": model_path or "prior_only_zero_residual",
         "vecnormalize": norm_path,
         "video": args.video_out,
         "wall_time_s": time.time() - started,

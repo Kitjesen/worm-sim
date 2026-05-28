@@ -12,23 +12,26 @@ Generated on 2026-05-29.
   - slide targets: `[-0.05, 0.0] m`
   - yaw targets: `[-1.57, 1.57] rad`
   - peristaltic actuation period: `1.0 s`
-- The current training/evaluation line is stricter than the older 1M-step artifacts:
-  - reward contract: `forward_progress_v3`
-  - action adapter: `gait_prior_residual_v1`
-  - residual exploration: `low_noise_residual_v1`
-  - fixed eval command: `cmd_vel=0.025 m/s`, `cmd_yaw=0`, no command resampling
-- Old flat/sand/slope 1M-step artifacts are now treated as stale when they do not match the current reward, action-adapter, actuator, timing, or residual-exploration contract.
+- The current training/evaluation line has been corrected against the stronger 4K CMA-ES comparison video:
+  - reward contract: `high_speed_directional_v1`
+  - action adapter: `cmaes_tri_anchor_residual_v1`
+  - residual policy scale: `0.35`
+  - command range: `cmd_vel in [0.0, 0.25] m/s`, `cmd_yaw in [-1.0, 1.0] rad/s`
+  - gait anchors: peristaltic at `gait_blend=0.0`, full combined at `0.5`, serpentine at `1.0`
+- The 4K comparison video is an open-loop CMA-ES baseline, not a PPO result. Its strongest flat full-combined gait is `247.97 mm/s` from `runs/cmaes_speed_full/best_gait.json`.
+- Old PPO artifacts trained under `forward_progress_v3` and `cmd_vel=0.025 m/s` are stale for paper claims because they optimized a `25 mm/s` task.
 
 ## Current Training Evidence
 
-- Fresh `flat/worm` low-noise residual PPO run:
-  - current progress: `278,528 / 1,000,000` PPO steps
+- Old `flat/worm` low-noise residual PPO run:
+  - status: finished to the 1M-step target, but stale under the new high-speed contract
   - run directory: `runs/worm_v6_ppo_flat_worm/`
   - best model: `runs/worm_v6_ppo_flat_worm/best_model.zip`
   - training result: `runs/worm_v6_ppo_flat_worm/training_result.json`
-- Training behavior improved after lowering residual exploration:
+- What the old run taught us:
   - previous high-noise residual training showed episode rewards near `-3700` and short terminated episodes
-  - current low-noise run shows episode rewards near `-750` with full `1000`-step episodes during the 65k chunk
+  - lowering residual exploration reduced instability
+  - the remaining speed ceiling came from the wrong reward target, not from an intrinsic robot limit
 - Fixed-command robust 10 s eval of the current best `flat/worm` checkpoint:
   - distance: `153.4 mm`
   - speed: `15.34 mm/s`
@@ -56,13 +59,42 @@ Generated on 2026-05-29.
   - termination: `false`
   - video: `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_278k_final_20260529.mp4`
   - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_278k_final_video.json`
+- Corrected zero-residual `flat/worm` CMA-ES-anchor prior rollout:
+  - duration: `5.0 s`
+  - command: `cmd_vel=0.25 m/s`, `cmd_yaw=0`
+  - distance: `166.8 mm`
+  - speed: `33.35 mm/s`
+  - lateral drift: `1.9 mm`
+  - termination: `false`
+  - video: `record/v6/videos/eval_flat_worm_cmaes_prior_20260529.mp4`
+  - metrics: `record/v6/paper_results/eval_flat_worm_cmaes_prior_20260529.json`
+- Corrected zero-residual `flat/mixed` CMA-ES-anchor prior rollout:
+  - duration: `5.0 s`
+  - command: `cmd_vel=0.25 m/s`, `cmd_yaw=0`
+  - distance: `695.8 mm`
+  - speed: `139.16 mm/s`
+  - lateral drift: `56.0 mm`
+  - termination: `false`
+  - video: `record/v6/videos/eval_flat_mixed_cmaes_prior_20260529.mp4`
+  - metrics: `record/v6/paper_results/eval_flat_mixed_cmaes_prior_20260529.json`
+  - interpretation: this is the corrected deployable prior baseline; PPO still needs to be retrained as a residual on top of it.
+- Corrected zero-residual `flat/snake` CMA-ES-anchor prior rollout:
+  - duration: `5.0 s`
+  - command: `cmd_vel=0.25 m/s`, `cmd_yaw=0`
+  - distance: `340.4 mm`
+  - speed: `68.09 mm/s`
+  - lateral drift: `80.3 mm`
+  - termination: `false`
+  - video: `record/v6/videos/eval_flat_snake_cmaes_prior_20260529.mp4`
+  - metrics: `record/v6/paper_results/eval_flat_snake_cmaes_prior_20260529.json`
+- Interpretation: the corrected deployable prior is materially better than the old low-speed PPO videos, but it still does not reproduce the raw 4K `247.97 mm/s` full-combined CMA-ES baseline because V6 now projects anchors through the deployable 1 s phase clock instead of hidden simulator time.
 
 ## Current Audit Result
 
 `python src/v6/paper_status_v6.py --refresh-audit` reports:
 
 - `complete: False`
-- next training target: `flat/worm`
+- next training target: fresh high-speed flat random/mixed residual PPO
 - training artifacts present: `11/12`
 - current formal training threshold met: `0/12`
 
@@ -78,6 +110,9 @@ The audit still requires:
 
 ## Viewable Evidence
 
+- `record/v6/videos/eval_flat_worm_cmaes_prior_20260529.mp4`
+- `record/v6/videos/eval_flat_mixed_cmaes_prior_20260529.mp4`
+- `record/v6/videos/eval_flat_snake_cmaes_prior_20260529.mp4`
 - `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4`
 - `record/v6/trajectory/`
 - `record/v6/paper_results/results_index.md`
@@ -87,8 +122,8 @@ Large 4K videos are intentionally not committed to Git because GitHub rejects fi
 
 ## Remaining Work
 
-- Continue `flat/worm` from `278,528` to `1,000,000` current-contract steps.
-- Retrain flat snake/mixed/random and all sand/slope modes under the current reward/action/exploration contracts.
+- Train fresh flat random/mixed residual PPO under `high_speed_directional_v1`.
+- Retrain flat worm/snake and all sand/slope modes under the current reward/action contracts.
 - Rerun deploy/export, fixed-mode eval, robust eval, `gait_blend` scan, summary, and audit.
 - Collect real flat/sand/slope hardware logs with video references.
 - Rebuild final paper figures after all current-contract evals are complete.

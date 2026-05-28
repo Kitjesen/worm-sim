@@ -47,7 +47,7 @@ Reward calculation may still use simulator truth for training, but policy infere
 
 The current RL action path is a deployable residual policy:
 
-- a phase/gait-blend gait prior generates the nominal worm/snake/mixed action
+- a CMA-ES gait-anchor prior generates the nominal worm/snake/mixed action
 - PPO outputs a bounded normalized residual
 - the deployed command is `clip(gait_prior + residual, -1, 1)`
 
@@ -78,18 +78,31 @@ These are deployability guards, not a final vendor motor model. Real hardware id
 
 ## Current Progress
 
-Last pre-residual baseline before the V6 directory migration:
-`07cdfeb Make deployable multimodal progress reproducible`.
+The latest contract correction was made after comparing PPO rollouts with the
+stronger 4K CMA-ES gait-comparison video. That video is an open-loop CMA-ES
+baseline, not a learned PPO policy. Its strongest flat full-combined gait is
+`247.97 mm/s` from `runs/cmaes_speed_full/best_gait.json`.
 
-The current training contract is stricter than that baseline:
+The old PPO reward target was too conservative:
 
-- reward contract: `forward_progress_v3`
-- action adapter: `gait_prior_residual_v1`
-- residual exploration: `low_noise_residual_v1`
-- fixed eval command: `cmd_vel=0.025 m/s`, `cmd_yaw=0`, no command resampling
+- old reward contract: `forward_progress_v3`
+- old action adapter: `gait_prior_residual_v1`
+- old fixed eval command: `cmd_vel=0.025 m/s`, `cmd_yaw=0`
 
-Older 1M-step artifacts that do not match these contracts are treated as stale
-by the audit and should not be used for paper claims.
+That trained the policy to track roughly `25 mm/s`, so it was never a fair
+attempt to beat the `247.97 mm/s` CMA-ES full-combined baseline.
+
+The corrected current contract is:
+
+- reward contract: `high_speed_directional_v1`
+- action adapter: `cmaes_tri_anchor_residual_v1`
+- residual policy scale: `0.35`
+- command range: `cmd_vel in [0.0, 0.25] m/s`, `cmd_yaw in [-1.0, 1.0] rad/s`
+- gait anchors: `gait_blend=0.0` peristaltic, `0.5` full combined, `1.0`
+  serpentine, with piecewise-linear blends between anchors
+
+Older PPO artifacts that do not match these contracts are treated as stale by
+the audit and should not be used for paper claims.
 
 Current status files:
 
@@ -104,7 +117,7 @@ Current status:
 
 | Terrain | Mode | Current-contract PPO status |
 | --- | --- | --- |
-| flat | worm | current low-noise residual contract, 278,528 / 1,000,000 steps |
+| flat | worm | old 1M low-speed run exists but is stale under the high-speed contract |
 | flat | snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
@@ -117,22 +130,27 @@ cross-terrain paper claims should wait until all modes are retrained plus
 
 ## Current Effect Summary
 
-The strongest current evidence is structural plus a fresh flat/worm smoke result:
+The strongest current evidence is structural plus a fresh corrected-prior smoke
+result:
 
 - Deployable observation contract passes audit.
 - The current policy observation is 80-D and remains limited to command,
   encoders, per-segment IMUs, previous action, and phase.
-- The residual exploration scale was reduced after diagnosing random saturated
-  residual actions as the cause of large negative training episode rewards.
-- Fresh `flat/worm` low-noise residual training has reached 278,528 steps.
-- Fixed-command robust 10 s eval of the early best `flat/worm` checkpoint:
-  153.4 mm forward, 15.34 mm/s, 3.1 mm lateral drift, success 1.0.
-- Fixed-command robust 10 s eval of the latest final checkpoint:
-  186.2 mm forward, 18.62 mm/s, 17.2 mm lateral drift, success 1.0.
-- Low-resolution video rollout of the early best checkpoint: 5.0 s, 110.1 mm
-  forward, 22.0 mm/s, no termination.
-- Low-resolution video rollout of the latest final checkpoint: 5.0 s, 121.7
-  mm forward, 24.34 mm/s, no termination.
+- The old negative PPO results are explained: saturated residuals plus a
+  low-speed `25 mm/s` reward target were the wrong training setup.
+- The action prior now reuses the three CMA-ES anchors that generated the
+  stronger comparison video.
+- Fresh zero-residual `flat/worm` CMA-ES-anchor rollout: 5.0 s, `166.8 mm`
+  forward, `33.35 mm/s`, `1.9 mm` lateral drift, no termination.
+- Fresh zero-residual `flat/mixed` CMA-ES-anchor rollout: 5.0 s, `695.8 mm`
+  forward, `139.16 mm/s`, `56.0 mm` lateral drift, no termination.
+- Fresh zero-residual `flat/snake` CMA-ES-anchor rollout: 5.0 s, `340.4 mm`
+  forward, `68.09 mm/s`, `80.3 mm` lateral drift, no termination.
+- The corrected deployable prior is still slower than the raw 4K full-combined
+  CMA-ES baseline (`247.97 mm/s`) because V6 now evaluates the anchors through
+  the deployable 1 s phase clock instead of hidden simulator time.
+- This is not yet the final PPO result. It is a corrected baseline for the new
+  residual PPO run.
 - Hardware pipeline templates and preflight checks exist; real flat/sand/slope
   hardware logs are still pending.
 
@@ -157,6 +175,9 @@ Representative committed videos:
 - [flat random preview](record/v6/videos/eval_flat_random.mp4)
 - [sand random preview](record/v6/videos/eval_sand_random.mp4)
 - [slope random preview](record/v6/videos/eval_slope_random.mp4)
+- [corrected flat/worm CMA-ES-anchor prior rollout](record/v6/videos/eval_flat_worm_cmaes_prior_20260529.mp4)
+- [corrected flat/mixed CMA-ES-anchor prior rollout](record/v6/videos/eval_flat_mixed_cmaes_prior_20260529.mp4)
+- [corrected flat/snake CMA-ES-anchor prior rollout](record/v6/videos/eval_flat_snake_cmaes_prior_20260529.mp4)
 - [current flat/worm low-noise residual rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4)
 - [current flat/worm low-noise final rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_278k_final_20260529.mp4)
 
@@ -196,7 +217,7 @@ python src\v6\audit_observation_sources_v6.py --strict
 Train one formal chunk:
 
 ```powershell
-python src\v6\run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes worm --timesteps 1000000 --train-chunk-timesteps 100000 --n-envs 4 --device cpu --resume --resume-partial --max-records 1
+python src\v6\run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes random --timesteps 1000000 --train-chunk-timesteps 100000 --n-envs 4 --device cpu --resume --resume-partial --max-records 1
 ```
 
 Run post-training exports, evaluations, scans, summaries, and audit:
@@ -267,6 +288,7 @@ python src\v6\test_controller_stream_check_v6.py
 python src\v6\audit_observation_sources_v6.py --strict
 python src\v6\test_goal_audit_v6.py
 python src\v6\test_resume_partial_v6.py
+python src\v6\test_cmaes_prior_v6.py
 python src\v6\test_reward_contract_v6.py
 python src\v6\test_paper_pipeline_plan_v6.py
 ```
@@ -283,9 +305,10 @@ record/v6/
   trajectory/        segment trajectory plots and CSVs
   videos/            committed viewable videos
 runs/
-  worm_v6_ppo_flat_worm/
-  worm_v6_ppo_flat_snake/
-  worm_v6_ppo_flat_mixed/
+  cmaes_speed_peristaltic/
+  cmaes_speed_full/
+  cmaes_speed_serpentine/
+  worm_v6_ppo_flat_random/
 src/v6/
   *_v6.py            current deployable simulation, RL, eval, hardware tools
 ```
@@ -296,8 +319,8 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Continue `flat/worm` from 278,528 to 1,000,000 current-contract steps.
-- Retrain flat snake/mixed/random plus all sand and slope policies under the current reward/action/exploration contracts.
+- Train fresh flat random/mixed residual PPO under `high_speed_directional_v1`.
+- Retrain flat worm/snake plus all sand and slope policies under the current reward/action contracts.
 - Regenerate all eval, robust eval, `gait_blend` scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.
 - Rebuild final paper figures after the above are complete.

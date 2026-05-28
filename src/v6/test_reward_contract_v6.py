@@ -38,19 +38,40 @@ class DummyData:
     def __init__(self):
         self.qvel = np.zeros(6, dtype=np.float64)
         self.ctrl = np.zeros(0, dtype=np.float64)
+        self.xpos = np.zeros((1, 3), dtype=np.float64)
 
 
-def reward_for(forward_speed, lateral_speed=0.0, cmd_vel=None):
+def reward_for(forward_speed, lateral_speed=0.0, cmd_vel=None,
+               action=None, residual_action=None):
     env = object.__new__(WormEnvV6)
     env._cmd_vel = CMD_VEL_RANGE[1] if cmd_vel is None else cmd_vel
     env._cmd_yaw = 0.0
     env._last_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._last_residual_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
     env._act_qvel_idx = []
     env.model = DummyModel()
     env.data = DummyData()
     env.data.qvel[0] = -forward_speed
     env.data.qvel[1] = lateral_speed
     env.data.qvel[5] = 0.0
+    if action is None:
+        action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    return WormEnvV6._compute_reward(
+        env, action, residual_action=residual_action)
+
+
+def reward_for_displacement(forward_delta_m):
+    env = object.__new__(WormEnvV6)
+    env._cmd_vel = CMD_VEL_RANGE[1]
+    env._cmd_yaw = 0.0
+    env._last_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._last_residual_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._act_qvel_idx = []
+    env._root_body_id = 0
+    env._last_root_pos = np.zeros(3, dtype=np.float64)
+    env.model = DummyModel()
+    env.data = DummyData()
+    env.data.xpos[0, 0] = -forward_delta_m
     return WormEnvV6._compute_reward(
         env, np.zeros(NUM_ACTUATORS, dtype=np.float32))
 
@@ -77,18 +98,35 @@ def config_stub(contract):
 
 
 def main():
+    assert CMD_VEL_RANGE[1] >= 0.20, CMD_VEL_RANGE
     forward = reward_for(CMD_VEL_RANGE[1])
+    slow = reward_for(0.025, cmd_vel=CMD_VEL_RANGE[1])
     stalled = reward_for(0.0)
     backward = reward_for(-0.005)
     lateral = reward_for(CMD_VEL_RANGE[1], lateral_speed=CMD_VEL_RANGE[1])
+    prior_action = np.ones(NUM_ACTUATORS, dtype=np.float32)
+    residual_smooth = reward_for(
+        CMD_VEL_RANGE[1],
+        action=prior_action,
+        residual_action=np.zeros(NUM_ACTUATORS, dtype=np.float32))
+    residual_jump = reward_for(
+        CMD_VEL_RANGE[1],
+        action=prior_action,
+        residual_action=np.ones(NUM_ACTUATORS, dtype=np.float32))
+    displacement_reward = reward_for_displacement(
+        CMD_VEL_RANGE[1] * 0.02)
 
     assert forward > 8.0, forward
+    assert forward > slow + 4.0, (forward, slow)
     assert stalled < 0.0, stalled
     assert backward < stalled, (backward, stalled)
     assert lateral < forward, (lateral, forward)
+    assert residual_smooth > residual_jump, (residual_smooth, residual_jump)
+    assert displacement_reward > stalled + 4.0, (
+        displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "forward_progress_v3"
+    assert contract["version"] == "high_speed_directional_v1"
     assert contract["normalization"]["positive_forward_required_for_vel_track"]
     prior = gait_prior_from_phase(0.0, gait_blend=0.0)
     assert prior.shape == (NUM_ACTUATORS,)
