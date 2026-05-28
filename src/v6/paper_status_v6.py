@@ -153,20 +153,21 @@ def recommended_commands(audit, missing):
                 "train_next",
                 "python src/v6/run_paper_pipeline_v6.py --preset formal "
                 f"--stage train --terrain {terrain} --train-modes {mode} "
-                "--timesteps 1000000 --n-envs 4 --resume --resume-partial "
-                "--max-records 1",
+                "--timesteps 1000000 --n-envs 4 --device auto --resume "
+                "--resume-partial --max-records 1",
             ))
             commands.append((
                 "train_next_chunk",
                 "python src/v6/run_paper_pipeline_v6.py --preset formal "
                 f"--stage train --terrain {terrain} --train-modes {mode} "
                 "--timesteps 1000000 --train-chunk-timesteps 100000 "
-                "--n-envs 4 --resume --resume-partial --max-records 1",
+                "--n-envs 4 --device auto --resume --resume-partial "
+                "--max-records 1",
             ))
         commands.append((
             "train",
             "python src/v6/run_paper_pipeline_v6.py --preset formal "
-            "--stage train --timesteps 1000000 --n-envs 4 "
+            "--stage train --timesteps 1000000 --n-envs 4 --device auto "
             "--resume --resume-partial",
         ))
     if "9 CMA-ES open-loop baseline JSON files" in missing:

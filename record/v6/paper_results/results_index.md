@@ -57,7 +57,7 @@ This page indexes the current deployable multimodal snake/worm training results.
 | flat | snake | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_snake](../../../runs/worm_v6_ppo_flat_snake) |
 | flat | mixed | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_mixed](../../../runs/worm_v6_ppo_flat_mixed) |
 | flat | random | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_random](../../../runs/worm_v6_ppo_flat_random) |
-| sand | worm | ok | ok | 114688 | [runs/worm_v6_ppo_sand_worm](../../../runs/worm_v6_ppo_sand_worm) |
+| sand | worm | ok | ok | 524288 | [runs/worm_v6_ppo_sand_worm](../../../runs/worm_v6_ppo_sand_worm) |
 | sand | snake | ok | ok | 1015808 | [runs/worm_v6_ppo_sand_snake](../../../runs/worm_v6_ppo_sand_snake) |
 | sand | mixed | ok | ok | 1015808 | [runs/worm_v6_ppo_sand_mixed](../../../runs/worm_v6_ppo_sand_mixed) |
 | sand | random | ok | ok | 1015808 | [runs/worm_v6_ppo_sand_random](../../../runs/worm_v6_ppo_sand_random) |

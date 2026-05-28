@@ -59,6 +59,7 @@ def write_manifest(path, args, records):
         "timesteps": args.timesteps,
         "train_chunk_timesteps": getattr(args, "train_chunk_timesteps", None),
         "n_envs": args.n_envs,
+        "device": getattr(args, "device", "auto"),
         "episodes": args.episodes,
         "eval_time_s": args.eval_time,
         "blends": args.blends,
@@ -358,7 +359,8 @@ def build_formal_records(args):
             train_cmd = py(os.path.join(SCRIPT_DIR, "run_terrain_experiments.py"),
                            "--method", "rl", "--terrain", terrain, "--mode", mode,
                            "--timesteps", str(args.timesteps),
-                           "--n-envs", str(args.n_envs), "--robust")
+                           "--n-envs", str(args.n_envs),
+                           "--device", args.device, "--robust")
             if getattr(args, "train_chunk_timesteps", None) is not None:
                 train_cmd.extend([
                     "--train-chunk-timesteps",
@@ -450,6 +452,9 @@ def main():
                     help="For formal train stages, train at most this many "
                          "additional timesteps per selected record")
     ap.add_argument("--n-envs", type=int, default=4)
+    ap.add_argument("--device", type=str, default="auto",
+                    choices=["auto", "cpu", "cuda"],
+                    help="PPO network device for train stages")
     ap.add_argument("--episodes", type=int, default=5)
     ap.add_argument("--eval-time", type=float, default=20.0)
     ap.add_argument("--blends", default="0.0,0.25,0.5,0.75,1.0")

@@ -88,7 +88,7 @@ Current status:
 | flat | snake | trained to 1,015,808 steps |
 | flat | mixed | trained to 1,015,808 steps |
 | flat | random | trained to 1,015,808 steps; deploy bundle, evals, and `gait_blend` scan generated |
-| sand | worm | current-contract retraining started; 114,688 / 1,000,000 steps |
+| sand | worm | current-contract retraining in progress; 524,288 / 1,000,000 steps |
 | sand | snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 
@@ -103,7 +103,8 @@ The strongest current evidence is structural and flat-ground:
 - Flat `random` has reached the same 1,015,808-step threshold and now has a deployable TorchScript bundle.
 - On flat ground, the current random-policy blend scan is best at `gait_blend=0.75`: 24.832 mm/s, success 1.0. `gait_blend=1.0` is close at 24.116 mm/s, and pure worm `0.0` is weak at 1.876 mm/s.
 - Flat robust eval is mixed: `mixed` is strongest under the current noise/saturation test at 31.325 mm/s, while `snake` fails robustly with negative speed.
-- `sand/worm` current-contract retraining has started from a clean run after archiving incompatible old artifacts; the first chunk reached 114,688 steps and is not yet formal paper evidence.
+- `sand/worm` current-contract retraining has reached 524,288 steps after the latest resume chunk; it is improved training evidence, but still below the 1M formal threshold.
+- New training launches accept `--device auto/cpu/cuda`; the latest completed sand chunk was started by the older CPU-only command, while subsequent chunks can use CUDA for PPO network updates.
 - Hardware pipeline templates and preflight checks exist; flat deploy preflight passes, but sand/slope fail until their current-contract bundles are regenerated. Real flat/sand/slope hardware logs are still pending.
 
 Interim result tables and figures:
@@ -164,7 +165,7 @@ python src\v6\audit_observation_sources_v6.py --strict
 Train one formal chunk:
 
 ```powershell
-python src\v6\run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes random --timesteps 1000000 --train-chunk-timesteps 600000 --n-envs 4 --resume --resume-partial --max-records 1
+python src\v6\run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes random --timesteps 1000000 --train-chunk-timesteps 600000 --n-envs 4 --device auto --resume --resume-partial --max-records 1
 ```
 
 Run post-training exports, evaluations, scans, summaries, and audit:
@@ -178,6 +179,12 @@ Run hardware preflight:
 ```powershell
 python src\v6\preflight_hardware_deploy_v6.py --strict
 ```
+
+Training device selection:
+
+- `--device auto` uses CUDA for the PPO network when PyTorch sees a CUDA GPU, otherwise CPU.
+- `--device cuda` fails fast if CUDA is unavailable.
+- MuJoCo environment stepping is still CPU-bound, so a 3090 helps most when paired with enough CPU cores and a higher `--n-envs` setting.
 
 ## Main Scripts
 

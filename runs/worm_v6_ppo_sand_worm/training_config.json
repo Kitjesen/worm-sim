@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "created_unix_time": 1779975037.5118558,
+  "created_unix_time": 1779975902.2369184,
   "algorithm": "PPO",
   "terrain": "sand",
   "gait_mode": "worm",
@@ -176,7 +176,7 @@
   },
   "training": {
     "timesteps": 1000000,
-    "train_chunk_timesteps": 100000,
+    "train_chunk_timesteps": 400000,
     "n_envs": 4,
     "seed": 42,
     "learning_rate": 0.0003,
@@ -203,5 +203,5 @@
     "norm_reward": false,
     "clip_obs": 10.0
   },
-  "resume": null
+  "resume": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_sand_worm\\final_model.zip"
 }

@@ -4,14 +4,14 @@ Worm Robot V6 — RL Training Script
 Train the longworm2 robot with PPO using Stable-Baselines3.
 
 Usage:
-    # Quick self-test (CPU, 10k steps)
+    # Quick self-test (auto device, 10k steps)
     python train_v6.py --test
 
-    # Full local training (CPU, 1M steps, 4 envs)
-    python train_v6.py --timesteps 1000000
+    # Full local training (auto CUDA/CPU selection, 1M steps, 4 envs)
+    python train_v6.py --timesteps 1000000 --device auto
 
     # Resume from checkpoint
-    python train_v6.py --timesteps 1000000 --resume runs/worm_v6_ppo/best_model.zip
+    python train_v6.py --timesteps 1000000 --device auto --resume runs/worm_v6_ppo/best_model.zip
 """
 
 import os
@@ -32,6 +32,27 @@ SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 PAPER_TERRAINS = ("flat", "sand", "slope")
 GAIT_MODES = ("worm", "snake", "mixed", "random")
+
+
+def resolve_device(requested):
+    if requested == "cpu":
+        return "cpu"
+    try:
+        import torch
+    except ImportError as exc:
+        if requested == "cuda":
+            raise RuntimeError(
+                "--device cuda requested, but PyTorch is not importable"
+            ) from exc
+        return "cpu"
+    cuda_ok = torch.cuda.is_available()
+    if requested == "cuda" and not cuda_ok:
+        raise RuntimeError(
+            "--device cuda requested, but torch.cuda.is_available() is false"
+        )
+    if requested == "cuda":
+        return "cuda"
+    return "cuda" if cuda_ok else "cpu"
 
 
 def make_run_dirs(terrain='flat', gait_mode='random'):
@@ -207,7 +228,7 @@ def write_json(path, data):
         json.dump(data, f, indent=2)
 
 
-def build_training_config(args, run_gait_label, sensor_kwargs):
+def build_training_config(args, run_gait_label, sensor_kwargs, device):
     from motor_contract_v6 import motor_contract
     from worm_env_v6 import (
         CMD_VEL_RANGE,
@@ -271,6 +292,8 @@ def build_training_config(args, run_gait_label, sensor_kwargs):
             "timesteps": args.timesteps,
             "train_chunk_timesteps": args.train_chunk_timesteps,
             "n_envs": args.n_envs,
+            "requested_device": getattr(args, "device", "auto"),
+            "resolved_device": device,
             "seed": 42,
             "learning_rate": 3e-4,
             "n_steps": 4096,
@@ -343,12 +366,13 @@ def train(args):
     if gait_blend is not None:
         run_gait_label = f"blend_{gait_blend:.2f}".replace(".", "p")
     RUN_DIR, LOG_DIR, CKPT_DIR = make_run_dirs(terrain, run_gait_label)
+    device = resolve_device(args.device)
 
     os.makedirs(RUN_DIR, exist_ok=True)
     os.makedirs(LOG_DIR, exist_ok=True)
     os.makedirs(CKPT_DIR, exist_ok=True)
     training_config = build_training_config(
-        args, run_gait_label, sensor_kwargs)
+        args, run_gait_label, sensor_kwargs, device)
     config_path = os.path.join(RUN_DIR, "training_config.json")
     requested_resume = args.resume
     if requested_resume:
@@ -369,7 +393,7 @@ def train(args):
         os.makedirs(CKPT_DIR, exist_ok=True)
 
     training_config = build_training_config(
-        args, run_gait_label, sensor_kwargs)
+        args, run_gait_label, sensor_kwargs, device)
     write_json(config_path, training_config)
 
     n_envs = args.n_envs
@@ -378,6 +402,7 @@ def train(args):
     print(f"  gait_mode:  {gait_mode}")
     print(f"  gait_blend: {gait_blend if gait_blend is not None else 'mode/default'}")
     print(f"  sensor:     {sensor_kwargs}")
+    print(f"  device:     {device} (requested: {args.device})")
     print(f"  envs:       {n_envs}")
     print(f"  timesteps:  {args.timesteps:,}")
     print(f"  run_dir:    {RUN_DIR}")
@@ -424,7 +449,7 @@ def train(args):
                 norm_reward=False,
                 clip_obs=10.0,
             )
-        model = PPO.load(args.resume, env=vec_env, device="cpu")
+        model = PPO.load(args.resume, env=vec_env, device=device)
         start_timesteps = int(model.num_timesteps)
         learn_timesteps = max(args.timesteps - start_timesteps, 0)
         print(f"  resume_start_timesteps: {start_timesteps:,}")
@@ -454,7 +479,7 @@ def train(args):
             ),
             tensorboard_log=tb_log,
             verbose=0,
-            device="cpu",
+            device=device,
             seed=42,
         )
     if args.train_chunk_timesteps is not None:
@@ -565,6 +590,9 @@ if __name__ == "__main__":
                          "while keeping --timesteps as the formal target")
     ap.add_argument("--n-envs", type=int, default=4,
                     help="Number of parallel environments")
+    ap.add_argument("--device", type=str, default="auto",
+                    choices=["auto", "cpu", "cuda"],
+                    help="PPO network device; MuJoCo env stepping remains CPU-bound")
     ap.add_argument("--resume", type=str, default=None,
                     help="Path to model checkpoint to resume from")
     ap.add_argument("--test", action="store_true",

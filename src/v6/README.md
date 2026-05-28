@@ -11,4 +11,7 @@ Use these entry points for new work:
 - `motor_contract_v6.py` for actuator limits and normalized action mapping
 - `hardware_policy_runtime_v6.py` for hardware-side policy inference
 
+Training accepts `--device auto`, `--device cpu`, or `--device cuda`.
+This selects the PPO network device; MuJoCo stepping remains CPU-bound.
+
 The old `src/v3/*_v6.py` paths are compatibility wrappers only.

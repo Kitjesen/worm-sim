@@ -25,7 +25,11 @@ Generated on 2026-05-28.
 - `sand/worm` current-contract retraining has started:
   - old incompatible artifacts were archived by the training entry point
   - new `training_config.json` includes `control_timing` and `actuator_contract_fingerprint`
-  - current progress: `114,688 / 1,000,000` PPO steps
+  - current progress: `524,288 / 1,000,000` PPO steps
+- Training entry points now support `--device auto`, `--device cpu`, and `--device cuda`:
+  - `auto` selects CUDA for PPO network updates when PyTorch detects a CUDA GPU
+  - MuJoCo environment stepping is still CPU-bound
+  - the latest completed `sand/worm` chunk was launched before this change and therefore ran through the older CPU-only path
 
 ## Effect So Far
 
@@ -41,7 +45,7 @@ Generated on 2026-05-28.
   - `snake`: `-14.457 mm/s`, success `0.0`
   - `mixed`: `31.325 mm/s`, success `1.0`
 - Current cross-terrain summary files now mark stale sand/slope artifacts as `stale` and leave their metric cells blank. They are not counted as current paper evidence.
-- `sand/worm` has moved from "stale contract" to "current contract but below formal threshold"; it should continue with `--resume-partial` until it reaches 1M steps before eval/scan/deploy are counted.
+- `sand/worm` has moved from "stale contract" to "current contract but below formal threshold"; it should continue with `--device auto --resume-partial` until it reaches 1M steps before eval/scan/deploy are counted.
 - Hardware deploy preflight currently passes for `flat/random`, but fails for sand/slope because their deploy bundles are not current-contract bundles yet.
 
 ## Viewable Evidence

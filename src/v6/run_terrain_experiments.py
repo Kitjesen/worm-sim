@@ -246,7 +246,7 @@ def print_results_table(method):
 
 
 def run_rl(terrains, modes, timesteps, n_envs, test, dry_run, robust,
-           resume_partial=False, train_chunk_timesteps=None):
+           resume_partial=False, train_chunk_timesteps=None, device="auto"):
     total = len(terrains) * len(modes)
     done = 0
     for terrain in terrains:
@@ -259,6 +259,7 @@ def run_rl(terrains, modes, timesteps, n_envs, test, dry_run, robust,
                 "--gait-mode", mode,
                 "--timesteps", str(10_000 if test else timesteps),
                 "--n-envs", str(1 if test else n_envs),
+                "--device", device,
             ]
             if train_chunk_timesteps is not None and not test:
                 cmd.extend([
@@ -452,6 +453,9 @@ def main():
                     help="Train at most this many additional timesteps "
                          "per RL run while preserving --timesteps as target")
     ap.add_argument("--n-envs", type=int, default=4)
+    ap.add_argument("--device", type=str, default="auto",
+                    choices=["auto", "cpu", "cuda"],
+                    help="PPO network device passed to train_v6.py")
     ap.add_argument("--popsize", type=int, default=16)
     ap.add_argument("--max-gen", type=int, default=200)
     ap.add_argument("--eval", action="store_true",
@@ -482,8 +486,10 @@ def main():
     t0 = time.time()
     if args.method in ("rl", "both"):
         run_rl(args.terrain, args.mode, args.timesteps, args.n_envs,
-               args.test, args.dry_run, args.robust, args.resume_partial,
-               args.train_chunk_timesteps)
+               args.test, args.dry_run, args.robust,
+               resume_partial=args.resume_partial,
+               train_chunk_timesteps=args.train_chunk_timesteps,
+               device=args.device)
     if args.method == "rl-eval" or args.eval:
         run_eval(args.terrain, args.mode, args.episodes, args.eval_time,
                  args.video, args.dry_run)
