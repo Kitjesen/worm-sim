@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "created_unix_time": 1779962583.5092614,
+  "created_unix_time": 1779995183.8497715,
   "algorithm": "PPO",
   "terrain": "flat",
   "gait_mode": "worm",
@@ -128,6 +128,49 @@
     ],
     "contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
   },
+  "action_adapter": {
+    "version": "gait_prior_residual_v1",
+    "policy_output": "normalized_residual_action",
+    "deployed_action": "clip(gait_prior + residual, -1, 1)",
+    "gait_prior_scale": 1.0,
+    "policy_residual_scale": 0.35,
+    "phase_source": "deployable phase_clock observation",
+    "gait_blend_source": "command observation",
+    "slide_prior": "-0.5 * (1 + sin(phase + 2*pi*j/6)) * (1 - gait_blend)",
+    "yaw_prior": "(snake_amp_rad/yaw_scale_rad) * sin(phase + 2*pi*1.5*j/5) * gait_blend",
+    "snake_amp_rad": 0.4,
+    "snake_amp_normalized": 0.25477707006369427
+  },
+  "residual_exploration": {
+    "version": "low_noise_residual_v1",
+    "policy": "PPO diagonal Gaussian over normalized residual action",
+    "reason": "Residual exploration must stay small enough that the deployable gait prior remains the dominant initial behavior.",
+    "ent_coef": 0.005,
+    "log_std_init": -2.5,
+    "initial_std": 0.0820849986238988
+  },
+  "reward_contract": {
+    "version": "forward_progress_v3",
+    "forward_direction": "-world_x",
+    "weights": {
+      "vel_track": 2.0,
+      "yaw_track": 1.0,
+      "vel_lin": 8.0,
+      "overspeed": 5.0,
+      "forward_deficit": 0.5,
+      "command_cost": 0.5,
+      "lateral": 0.5,
+      "backward": 0.5,
+      "energy": 0.002,
+      "smooth": 0.02
+    },
+    "normalization": {
+      "speed_scale_m_s": 0.025,
+      "positive_forward_required_for_vel_track": true,
+      "yaw_tracking_gated_by_forward_progress": true,
+      "cyclic_backslip_is_soft_penalized": true
+    }
+  },
   "deployable_observation_sources": [
     "velocity command",
     "yaw-rate command",
@@ -160,6 +203,11 @@
       1.0
     ]
   },
+  "eval_command": {
+    "cmd_vel_m_s": 0.025,
+    "cmd_yaw_rad_s": 0.0,
+    "command_resample_prob": 0.0
+  },
   "control_timing": {
     "control_dt_s": 0.02,
     "control_rate_hz": 50.0,
@@ -176,8 +224,10 @@
   },
   "training": {
     "timesteps": 1000000,
-    "train_chunk_timesteps": 600000,
+    "train_chunk_timesteps": 50000,
     "n_envs": 4,
+    "requested_device": "cpu",
+    "resolved_device": "cpu",
     "seed": 42,
     "learning_rate": 0.0003,
     "n_steps": 4096,
@@ -186,7 +236,8 @@
     "gamma": 0.99,
     "gae_lambda": 0.95,
     "clip_range": 0.2,
-    "ent_coef": 0.05,
+    "ent_coef": 0.005,
+    "log_std_init": -2.5,
     "vf_coef": 0.5,
     "max_grad_norm": 0.5,
     "policy_net_arch": {
@@ -203,5 +254,5 @@
     "norm_reward": false,
     "clip_obs": 10.0
   },
-  "resume": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\final_model.zip"
+  "resume": null
 }

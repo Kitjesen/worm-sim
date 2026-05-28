@@ -1,0 +1,68 @@
+{
+  "terrain": "flat",
+  "gait_mode": "worm",
+  "gait_blend": 0.0,
+  "obs_dim": 80,
+  "eval_condition": "reward_v3_prior_lownoise_65k_best_video",
+  "eval_command": {
+    "cmd_vel_m_s": 0.025,
+    "cmd_yaw_rad_s": 0.0,
+    "command_resample_prob": 0.0
+  },
+  "action_adapter": {
+    "version": "gait_prior_residual_v1",
+    "policy_output": "normalized_residual_action",
+    "deployed_action": "clip(gait_prior + residual, -1, 1)",
+    "gait_prior_scale": 1.0,
+    "policy_residual_scale": 0.35,
+    "phase_source": "deployable phase_clock observation",
+    "gait_blend_source": "command observation",
+    "slide_prior": "-0.5 * (1 + sin(phase + 2*pi*j/6)) * (1 - gait_blend)",
+    "yaw_prior": "(snake_amp_rad/yaw_scale_rad) * sin(phase + 2*pi*1.5*j/5) * gait_blend",
+    "snake_amp_rad": 0.4,
+    "snake_amp_normalized": 0.25477707006369427
+  },
+  "reward_contract": {
+    "version": "forward_progress_v3",
+    "forward_direction": "-world_x",
+    "weights": {
+      "vel_track": 2.0,
+      "yaw_track": 1.0,
+      "vel_lin": 8.0,
+      "overspeed": 5.0,
+      "forward_deficit": 0.5,
+      "command_cost": 0.5,
+      "lateral": 0.5,
+      "backward": 0.5,
+      "energy": 0.002,
+      "smooth": 0.02
+    },
+    "normalization": {
+      "speed_scale_m_s": 0.025,
+      "positive_forward_required_for_vel_track": true,
+      "yaw_tracking_gated_by_forward_progress": true,
+      "cyclic_backslip_is_soft_penalized": true
+    }
+  },
+  "sensor_noise": {
+    "encoder_pos_noise_std": 0.01,
+    "encoder_vel_noise_std": 0.02,
+    "imu_gravity_noise_std": 0.01,
+    "imu_gyro_noise_std": 0.01,
+    "action_delay_steps": 1,
+    "action_saturation": 1.0
+  },
+  "time_s": 5.0,
+  "frames": 50,
+  "terminated": false,
+  "reward": 627.8406151086092,
+  "distance_mm": 110.07471692858374,
+  "speed_mm_s": 22.014943385716748,
+  "lateral_drift_mm": 2.3554365825862202,
+  "mean_action_l2_per_step": 0.01717726724138863,
+  "mean_action_rate_l2_per_step": 0.016373744981785118,
+  "model_path": "runs\\worm_v6_ppo_flat_worm\\best_model.zip",
+  "vecnormalize": "runs\\worm_v6_ppo_flat_worm\\best_model_vecnormalize.pkl",
+  "video": "record\\v6\\videos\\eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4",
+  "wall_time_s": 0.8218913078308105
+}

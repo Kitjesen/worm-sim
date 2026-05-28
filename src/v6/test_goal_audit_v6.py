@@ -29,6 +29,10 @@ def training_config(timesteps):
         "control_timing": dict(audit.CONTROL_TIMING_DEFAULTS),
         "actuator_contract_fingerprint": (
             audit.ACTUATOR_CONTRACT_FINGERPRINT),
+        "reward_contract": audit.REWARD_CONTRACT,
+        "action_adapter": audit.ACTION_ADAPTER_CONTRACT,
+        "residual_exploration": audit.RESIDUAL_EXPLORATION_CONTRACT,
+        "eval_command": dict(audit.EVAL_COMMAND_DEFAULTS),
         "sensor_robustness": dict(audit.ROBUST_SENSOR_DEFAULTS),
         "training": {"timesteps": timesteps},
     }
@@ -47,6 +51,9 @@ def eval_metrics(episodes, time_s, condition="nominal"):
         "control_timing": dict(audit.CONTROL_TIMING_DEFAULTS),
         "actuator_contract_fingerprint": (
             audit.ACTUATOR_CONTRACT_FINGERPRINT),
+        "reward_contract": audit.REWARD_CONTRACT,
+        "action_adapter": audit.ACTION_ADAPTER_CONTRACT,
+        "eval_command": dict(audit.EVAL_COMMAND_DEFAULTS),
         "episodes": episodes,
         "time_s": time_s,
         "sensor_noise": dict(sensor),

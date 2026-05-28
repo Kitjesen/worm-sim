@@ -73,14 +73,12 @@
     {
       "name": "12 PPO training model artifacts",
       "status": "missing",
-      "evidence": [
-        "runs/worm_v6_ppo_flat_worm/best_model.zip",
-        "runs/worm_v6_ppo_flat_snake/best_model.zip",
-        "runs/worm_v6_ppo_flat_mixed/best_model.zip",
-        "runs/worm_v6_ppo_flat_random/best_model.zip",
-        "runs/worm_v6_ppo_sand_worm/best_model.zip"
-      ],
       "missing": [
+        "runs/worm_v6_ppo_flat_worm",
+        "runs/worm_v6_ppo_flat_snake",
+        "runs/worm_v6_ppo_flat_mixed",
+        "runs/worm_v6_ppo_flat_random",
+        "runs/worm_v6_ppo_sand_worm",
         "runs/worm_v6_ppo_sand_snake",
         "runs/worm_v6_ppo_sand_mixed",
         "runs/worm_v6_ppo_sand_random",
@@ -93,12 +91,10 @@
     {
       "name": "9 fixed-mode eval JSON files",
       "status": "missing",
-      "evidence": [
+      "missing": [
         "runs/worm_v6_ppo_flat_worm/eval_metrics.json",
         "runs/worm_v6_ppo_flat_snake/eval_metrics.json",
-        "runs/worm_v6_ppo_flat_mixed/eval_metrics.json"
-      ],
-      "missing": [
+        "runs/worm_v6_ppo_flat_mixed/eval_metrics.json",
         "runs/worm_v6_ppo_sand_worm/eval_metrics.json",
         "runs/worm_v6_ppo_sand_snake/eval_metrics.json",
         "runs/worm_v6_ppo_sand_mixed/eval_metrics.json",
@@ -110,12 +106,10 @@
     {
       "name": "9 robust fixed-mode eval JSON files",
       "status": "missing",
-      "evidence": [
+      "missing": [
         "runs/worm_v6_ppo_flat_worm/eval_metrics_robust.json",
         "runs/worm_v6_ppo_flat_snake/eval_metrics_robust.json",
-        "runs/worm_v6_ppo_flat_mixed/eval_metrics_robust.json"
-      ],
-      "missing": [
+        "runs/worm_v6_ppo_flat_mixed/eval_metrics_robust.json",
         "runs/worm_v6_ppo_sand_worm/eval_metrics_robust.json",
         "runs/worm_v6_ppo_sand_snake/eval_metrics_robust.json",
         "runs/worm_v6_ppo_sand_mixed/eval_metrics_robust.json",
@@ -150,10 +144,8 @@
     {
       "name": "3 continuous gait_blend scan result files",
       "status": "missing",
-      "evidence": [
-        "runs/worm_v6_blend_scan_flat_random/scan_results.json"
-      ],
       "missing": [
+        "runs/worm_v6_blend_scan_flat_random/scan_results.json",
         "runs/worm_v6_blend_scan_sand_random/scan_results.json",
         "runs/worm_v6_blend_scan_slope_random/scan_results.json"
       ]

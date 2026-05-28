@@ -43,6 +43,12 @@ from motor_contract_v6 import (
     neutral_normalized_action,
     normalized_action_to_ctrl,
 )
+from action_adapter_v6 import (
+    DEFAULT_GAIT_PRIOR_SCALE,
+    DEFAULT_POLICY_RESIDUAL_SCALE,
+    action_adapter_contract,
+    compose_deployable_action,
+)
 
 # ─── Environment constants ────────────────────────────────────────────────────
 NUM_IMUS    = 7
@@ -91,11 +97,39 @@ SIGMA_VEL   = 0.010     # m/s — ~40% of CMD_VEL range for good gradient
 SIGMA_YAW   = 0.15      # rad/s
 W_VEL_LIN   = 8.0       # capped+normalized forward bonus [0,1] — MAIN exploration driver
 W_OVERSPEED = 5.0       # quadratic overspeed penalty (was 200, caused divergence)
-W_LATERAL   = 2.0       # lateral drift penalty
-W_BACKWARD  = 3.0       # backward motion penalty
+W_FORWARD_DEFICIT = 0.5 # soft penalty; cyclic gaits naturally back-slip
+W_COMMAND_COST = 0.5    # cost for nonzero forward commands without progress
+W_LATERAL   = 0.5       # normalized lateral drift penalty
+W_BACKWARD  = 0.5       # normalized backward motion penalty
 W_ENERGY    = 0.002     # energy cost
 W_SMOOTH    = 0.02      # low smoothness penalty (worm gait = fast alternating actions)
 ACTION_EMA  = 0.3       # EMA filter coefficient
+REWARD_CONTRACT_VERSION = "forward_progress_v3"
+
+
+def reward_contract():
+    return {
+        "version": REWARD_CONTRACT_VERSION,
+        "forward_direction": "-world_x",
+        "weights": {
+            "vel_track": W_VEL_TRACK,
+            "yaw_track": W_YAW_TRACK,
+            "vel_lin": W_VEL_LIN,
+            "overspeed": W_OVERSPEED,
+            "forward_deficit": W_FORWARD_DEFICIT,
+            "command_cost": W_COMMAND_COST,
+            "lateral": W_LATERAL,
+            "backward": W_BACKWARD,
+            "energy": W_ENERGY,
+            "smooth": W_SMOOTH,
+        },
+        "normalization": {
+            "speed_scale_m_s": CMD_VEL_RANGE[1],
+            "positive_forward_required_for_vel_track": True,
+            "yaw_tracking_gated_by_forward_progress": True,
+            "cyclic_backslip_is_soft_penalized": True,
+        },
+    }
 
 
 class WormEnvV6(gym.Env):
@@ -107,12 +141,21 @@ class WormEnvV6(gym.Env):
                  gait_mode='random', gait_blend=None,
                  encoder_pos_noise_std=0.0, encoder_vel_noise_std=0.0,
                  imu_gravity_noise_std=0.0, imu_gyro_noise_std=0.0,
-                 action_delay_steps=0, action_saturation=1.0):
+                 action_delay_steps=0, action_saturation=1.0,
+                 fixed_cmd_vel=None, fixed_cmd_yaw=None,
+                 command_resample_prob=CMD_RESAMPLE_P,
+                 gait_prior_scale=DEFAULT_GAIT_PRIOR_SCALE,
+                 policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE):
         super().__init__()
         self.render_mode = render_mode
         self.terrain = terrain
         self.gait_mode = gait_mode
         self._fixed_gait_blend = gait_blend
+        self._fixed_cmd_vel = fixed_cmd_vel
+        self._fixed_cmd_yaw = fixed_cmd_yaw
+        self.command_resample_prob = float(command_resample_prob)
+        self.gait_prior_scale = float(gait_prior_scale)
+        self.policy_residual_scale = float(policy_residual_scale)
         self.encoder_pos_noise_std = float(encoder_pos_noise_std)
         self.encoder_vel_noise_std = float(encoder_vel_noise_std)
         self.imu_gravity_noise_std = float(imu_gravity_noise_std)
@@ -210,6 +253,7 @@ class WormEnvV6(gym.Env):
 
         # ── State tracking ──
         self._last_action = neutral_normalized_action()
+        self._last_residual_action = neutral_normalized_action()
         self._action_delay_buffer = [
             neutral_normalized_action()
             for _ in range(self.action_delay_steps)
@@ -232,9 +276,9 @@ class WormEnvV6(gym.Env):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
 
-        # Sample velocity command for this episode
-        self._cmd_vel = self.np_random.uniform(*CMD_VEL_RANGE)
-        self._cmd_yaw = self.np_random.uniform(*CMD_YAW_RANGE)
+        # Sample velocity command for this episode, unless fixed for eval.
+        self._cmd_vel = self._sample_cmd_vel()
+        self._cmd_yaw = self._sample_cmd_yaw()
         self._gait_blend = self._sample_gait_blend()
 
         # Small random noise on actuated joints
@@ -253,6 +297,7 @@ class WormEnvV6(gym.Env):
             mujoco.mj_step(self.model, self.data)
 
         self._last_action = neutral_normalized_action()
+        self._last_residual_action = neutral_normalized_action()
         self._action_delay_buffer = [
             neutral_normalized_action()
             for _ in range(self.action_delay_steps)
@@ -264,15 +309,24 @@ class WormEnvV6(gym.Env):
         action = np.clip(action, -1.0, 1.0).astype(np.float32)
 
         # Occasionally resample command mid-episode (curriculum diversity)
-        if self.np_random.random() < CMD_RESAMPLE_P:
-            self._cmd_vel = self.np_random.uniform(*CMD_VEL_RANGE)
-            self._cmd_yaw = self.np_random.uniform(*CMD_YAW_RANGE)
+        if self.np_random.random() < self.command_resample_prob:
+            self._cmd_vel = self._sample_cmd_vel()
+            self._cmd_yaw = self._sample_cmd_yaw()
 
         # EMA filter — anti-vibration
-        action = ACTION_EMA * action + (1.0 - ACTION_EMA) * self._last_action
-        applied_action = action
+        residual_action = (
+            ACTION_EMA * action
+            + (1.0 - ACTION_EMA) * self._last_residual_action)
+        phase = 2.0 * math.pi * PHASE_FREQ * self._step_count * CTRL_DT
+        applied_action = compose_deployable_action(
+            residual_action,
+            phase=phase,
+            gait_blend=self._gait_blend,
+            gait_prior_scale=self.gait_prior_scale,
+            policy_residual_scale=self.policy_residual_scale,
+        )
         if self.action_delay_steps > 0:
-            self._action_delay_buffer.append(action.copy())
+            self._action_delay_buffer.append(applied_action.copy())
             applied_action = self._action_delay_buffer.pop(0)
         applied_action = np.clip(
             applied_action,
@@ -295,6 +349,7 @@ class WormEnvV6(gym.Env):
         truncated = self._step_count >= MAX_EP_STEPS
 
         self._last_action = applied_action.copy()
+        self._last_residual_action = residual_action.copy()
         return obs, reward, terminated, truncated, {}
 
     def render(self):
@@ -415,6 +470,18 @@ class WormEnvV6(gym.Env):
             return float(self.np_random.uniform(0.0, 1.0))
         return GAIT_BLENDS[self.gait_mode]
 
+    def _sample_cmd_vel(self):
+        if self._fixed_cmd_vel is not None:
+            return float(np.clip(
+                self._fixed_cmd_vel, CMD_VEL_RANGE[0], CMD_VEL_RANGE[1]))
+        return float(self.np_random.uniform(*CMD_VEL_RANGE))
+
+    def _sample_cmd_yaw(self):
+        if self._fixed_cmd_yaw is not None:
+            return float(np.clip(
+                self._fixed_cmd_yaw, CMD_YAW_RANGE[0], CMD_YAW_RANGE[1]))
+        return float(self.np_random.uniform(*CMD_YAW_RANGE))
+
     # ──────────────────────────────────────────────────────────────────────
     # Reward
     # ──────────────────────────────────────────────────────────────────────
@@ -433,8 +500,16 @@ class WormEnvV6(gym.Env):
         # ── Velocity tracking (exp kernel) ──
         vel_err = forward_speed - self._cmd_vel
         yaw_err = yaw_rate - self._cmd_yaw
-        r_vel_track = math.exp(-(vel_err ** 2) / (SIGMA_VEL ** 2))
+        progress_ratio = 1.0
+        if self._cmd_vel > 1e-6:
+            progress_ratio = np.clip(
+                forward_speed / max(self._cmd_vel, 1e-6), 0.0, 1.0)
+        r_vel_track = (
+            math.exp(-(vel_err ** 2) / (SIGMA_VEL ** 2))
+            if forward_speed > 0.0 else 0.0)
         r_yaw_track = math.exp(-(yaw_err ** 2) / (SIGMA_YAW ** 2))
+        if self._cmd_vel > 1e-6:
+            r_yaw_track *= 0.25 + 0.75 * progress_ratio
 
         # ── Linear forward velocity bonus (capped + normalized) ──
         # Rewards forward movement UP TO target speed, no bonus beyond.
@@ -446,7 +521,10 @@ class WormEnvV6(gym.Env):
         overspeed_sq = max(0.0, forward_speed - self._cmd_vel) ** 2
 
         # ── Other penalties ──
-        backward_speed = max(0.0, -forward_speed)  # only penalize backward
+        speed_scale = max(CMD_VEL_RANGE[1], 1e-6)
+        forward_deficit = max(0.0, self._cmd_vel - forward_speed) / speed_scale
+        backward_speed = max(0.0, -forward_speed) / speed_scale
+        lateral_speed = lateral_speed / speed_scale
 
         energy = 0.0
         for i in range(self.model.nu):
@@ -459,8 +537,10 @@ class WormEnvV6(gym.Env):
             + W_VEL_TRACK * r_vel_track    # exp tracking (precision)
             + W_YAW_TRACK * r_yaw_track    # exp tracking (turning)
             + W_VEL_LIN   * r_vel_lin      # linear bonus (exploration gradient)
-            - W_OVERSPEED * overspeed_sq   # penalize going faster than commanded
-            - W_LATERAL   * lateral_speed   # penalize sideways drift
+            - W_OVERSPEED * overspeed_sq
+            - W_FORWARD_DEFICIT * forward_deficit
+            - W_COMMAND_COST * float(self._cmd_vel > 1e-6)
+            - W_LATERAL   * lateral_speed
             - W_BACKWARD  * backward_speed  # penalize going backward
             - W_ENERGY    * energy
             - W_SMOOTH    * action_rate

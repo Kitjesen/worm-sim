@@ -4,8 +4,13 @@
   "gait_blend": 0.0,
   "cmd_vel_m_s": 0.025,
   "cmd_yaw_rad_s": 0.0,
+  "eval_command": {
+    "cmd_vel_m_s": 0.025,
+    "cmd_yaw_rad_s": 0.0,
+    "command_resample_prob": 0.0
+  },
   "obs_dim": 80,
-  "eval_condition": "robust",
+  "eval_condition": "reward_v3_prior_lownoise_65k_best",
   "actuator_contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf",
   "actuator_contract": {
     "format_version": 1,
@@ -95,6 +100,41 @@
     ],
     "contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
   },
+  "action_adapter": {
+    "version": "gait_prior_residual_v1",
+    "policy_output": "normalized_residual_action",
+    "deployed_action": "clip(gait_prior + residual, -1, 1)",
+    "gait_prior_scale": 1.0,
+    "policy_residual_scale": 0.35,
+    "phase_source": "deployable phase_clock observation",
+    "gait_blend_source": "command observation",
+    "slide_prior": "-0.5 * (1 + sin(phase + 2*pi*j/6)) * (1 - gait_blend)",
+    "yaw_prior": "(snake_amp_rad/yaw_scale_rad) * sin(phase + 2*pi*1.5*j/5) * gait_blend",
+    "snake_amp_rad": 0.4,
+    "snake_amp_normalized": 0.25477707006369427
+  },
+  "reward_contract": {
+    "version": "forward_progress_v3",
+    "forward_direction": "-world_x",
+    "weights": {
+      "vel_track": 2.0,
+      "yaw_track": 1.0,
+      "vel_lin": 8.0,
+      "overspeed": 5.0,
+      "forward_deficit": 0.5,
+      "command_cost": 0.5,
+      "lateral": 0.5,
+      "backward": 0.5,
+      "energy": 0.002,
+      "smooth": 0.02
+    },
+    "normalization": {
+      "speed_scale_m_s": 0.025,
+      "positive_forward_required_for_vel_track": true,
+      "yaw_tracking_gated_by_forward_progress": true,
+      "cyclic_backslip_is_soft_penalized": true
+    }
+  },
   "control_timing": {
     "control_dt_s": 0.02,
     "control_rate_hz": 50.0,
@@ -107,27 +147,27 @@
     "imu_gravity_noise_std": 0.01,
     "imu_gyro_noise_std": 0.01,
     "action_delay_steps": 1,
-    "action_saturation": 0.8
+    "action_saturation": 1.0
   },
-  "episodes": 5,
-  "time_s": 20.0,
-  "mean_reward": 1472.7906709502702,
-  "std_reward": 810.9626290470459,
-  "mean_distance_mm": 275.3930461734753,
-  "mean_speed_mm_s": 13.769652308673765,
-  "std_speed_mm_s": 8.203616523994075,
-  "mean_lateral_drift_mm": 266.24116385254234,
-  "mean_action_l2_per_step": 4.428397963947058,
-  "mean_action_rate_l2_per_step": 0.061711916555424254,
-  "mean_action_l2_per_m": 22795.059379272167,
-  "mean_path_efficiency": 0.05044810364756371,
-  "mean_slip_proxy": 0.9495518963524363,
-  "mean_propulsion_efficiency_m_per_action_l2": 6.319736034305272e-05,
+  "episodes": 1,
+  "time_s": 10.0,
+  "mean_reward": 1252.2644449014358,
+  "std_reward": 0.0,
+  "mean_distance_mm": 153.37800974248796,
+  "mean_speed_mm_s": 15.337800974248797,
+  "std_speed_mm_s": 0.0,
+  "mean_lateral_drift_mm": 3.0571662421273613,
+  "mean_action_l2_per_step": 2.2447617835998535,
+  "mean_action_rate_l2_per_step": 0.01626015304774046,
+  "mean_action_l2_per_m": 7317.743225931368,
+  "mean_path_efficiency": 0.14686203363232633,
+  "mean_slip_proxy": 0.8531379663676737,
+  "mean_propulsion_efficiency_m_per_action_l2": 0.00013665415267050788,
   "success_distance_m": 0.05,
   "success_rate": 1.0,
   "slope_success_rate": null,
   "sand_slip_proxy": null,
   "sand_propulsion_efficiency_m_per_action_l2": null,
   "termination_rate": 0.0,
-  "model_path": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\best_model.zip"
+  "model_path": "runs\\worm_v6_ppo_flat_worm\\best_model.zip"
 }

@@ -53,7 +53,7 @@ This page indexes the current deployable multimodal snake/worm training results.
 
 | Terrain | Mode | Model | VecNormalize | Completed steps | Run dir |
 | --- | --- | --- | --- | ---: | --- |
-| flat | worm | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_worm](../../../runs/worm_v6_ppo_flat_worm) |
+| flat | worm | ok | ok | 65536 | [runs/worm_v6_ppo_flat_worm](../../../runs/worm_v6_ppo_flat_worm) |
 | flat | snake | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_snake](../../../runs/worm_v6_ppo_flat_snake) |
 | flat | mixed | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_mixed](../../../runs/worm_v6_ppo_flat_mixed) |
 | flat | random | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_random](../../../runs/worm_v6_ppo_flat_random) |

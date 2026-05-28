@@ -29,6 +29,8 @@ from worm_env_v6 import (
     OBS_DIM,
     PERISTALTIC_ACTUATION_PERIOD_S,
     PHASE_FREQ,
+    reward_contract,
+    action_adapter_contract,
 )
 
 
@@ -84,9 +86,13 @@ def evaluate(args):
 
     raw_env = WormEnvV6(
         terrain=args.terrain, gait_mode=args.gait_mode, gait_blend=gait_blend,
+        fixed_cmd_vel=args.cmd_vel, fixed_cmd_yaw=args.cmd_yaw,
+        command_resample_prob=0.0,
         **sensor_kwargs)
     norm_env = DummyVecEnv([lambda: WormEnvV6(
         terrain=args.terrain, gait_mode=args.gait_mode, gait_blend=gait_blend,
+        fixed_cmd_vel=args.cmd_vel, fixed_cmd_yaw=args.cmd_yaw,
+        command_resample_prob=0.0,
         **sensor_kwargs)])
     norm_path = find_vecnormalize(model_path)
     if norm_path is not None:
@@ -192,11 +198,18 @@ def evaluate(args):
         "gait_blend": gait_blend,
         "cmd_vel_m_s": args.cmd_vel,
         "cmd_yaw_rad_s": args.cmd_yaw,
+        "eval_command": {
+            "cmd_vel_m_s": args.cmd_vel,
+            "cmd_yaw_rad_s": args.cmd_yaw,
+            "command_resample_prob": 0.0,
+        },
         "obs_dim": OBS_DIM,
         "eval_condition": args.eval_condition,
         "actuator_contract_fingerprint": (
             motor_contract()["contract_fingerprint"]),
         "actuator_contract": motor_contract(),
+        "action_adapter": action_adapter_contract(),
+        "reward_contract": reward_contract(),
         "control_timing": {
             "control_dt_s": CTRL_DT,
             "control_rate_hz": 1.0 / CTRL_DT,

@@ -1,18 +1,18 @@
 {
   "format_version": 1,
-  "created_unix_time": 1779985714.7892406,
+  "created_unix_time": 1779995497.6972163,
   "preset": "formal",
   "dry_run": false,
   "resume": true,
   "resume_partial": true,
   "terrain": [
-    "sand"
+    "flat"
   ],
   "train_modes": [
     "worm"
   ],
   "timesteps": 1000000,
-  "train_chunk_timesteps": 120000,
+  "train_chunk_timesteps": 50000,
   "n_envs": 4,
   "device": "cpu",
   "episodes": 5,
@@ -25,14 +25,14 @@
   "records": [
     {
       "stage": "train",
-      "key": "sand_worm",
+      "key": "flat_worm",
       "cmd": [
         "C:\\Users\\99563\\miniconda3\\python.exe",
         "D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py",
         "--method",
         "rl",
         "--terrain",
-        "sand",
+        "flat",
         "--mode",
         "worm",
         "--timesteps",
@@ -43,13 +43,13 @@
         "cpu",
         "--robust",
         "--train-chunk-timesteps",
-        "120000",
+        "50000",
         "--resume-partial"
       ],
-      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method rl --terrain sand --mode worm --timesteps 1000000 --n-envs 4 --device cpu --robust --train-chunk-timesteps 120000 --resume-partial",
-      "skip_ok": true,
+      "cmd_text": "C:\\Users\\99563\\miniconda3\\python.exe D:\\inovxio\\thirdparty\\simulation\\worm_project\\src\\v6\\run_terrain_experiments.py --method rl --terrain flat --mode worm --timesteps 1000000 --n-envs 4 --device cpu --robust --train-chunk-timesteps 50000 --resume-partial",
+      "skip_ok": false,
       "skip_reason": "already valid",
-      "status": "skipped"
+      "status": "ran"
     }
   ]
 }

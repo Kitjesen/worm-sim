@@ -26,6 +26,11 @@ from stable_baselines3.common.callbacks import (
     EvalCallback, CheckpointCallback, BaseCallback
 )
 from stable_baselines3.common.monitor import Monitor
+from training_contract_v6 import (
+    DEFAULT_ENT_COEF,
+    DEFAULT_LOG_STD_INIT,
+    residual_exploration_contract,
+)
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
@@ -140,6 +145,15 @@ def training_config_compatible(existing, expected):
             existing.get("control_timing"),
             expected.get("control_timing", {})):
         reasons.append("control_timing")
+    if existing.get("reward_contract") != expected.get("reward_contract"):
+        reasons.append("reward_contract")
+    if existing.get("eval_command") != expected.get("eval_command"):
+        reasons.append("eval_command")
+    if existing.get("action_adapter") != expected.get("action_adapter"):
+        reasons.append("action_adapter")
+    if (existing.get("residual_exploration")
+            != expected.get("residual_exploration")):
+        reasons.append("residual_exploration")
     expected_actuator = expected.get("actuator_contract_fingerprint")
     if (expected_actuator
             and existing.get("actuator_contract_fingerprint")
@@ -201,7 +215,10 @@ def archive_existing_run_artifacts(run_dir, reason):
 def make_env(terrain='flat', gait_mode='random', gait_blend=None,
              encoder_pos_noise_std=0.0, encoder_vel_noise_std=0.0,
              imu_gravity_noise_std=0.0, imu_gyro_noise_std=0.0,
-             action_delay_steps=0, action_saturation=1.0, seed=0):
+             action_delay_steps=0, action_saturation=1.0, seed=0,
+             fixed_cmd_vel=None, fixed_cmd_yaw=None,
+             command_resample_prob=None, gait_prior_scale=None,
+             policy_residual_scale=None):
     """Factory for creating a monitored WormEnvV6 instance."""
     def _init():
         from worm_env_v6 import WormEnvV6
@@ -212,7 +229,16 @@ def make_env(terrain='flat', gait_mode='random', gait_blend=None,
             imu_gravity_noise_std=imu_gravity_noise_std,
             imu_gyro_noise_std=imu_gyro_noise_std,
             action_delay_steps=action_delay_steps,
-            action_saturation=action_saturation)
+            action_saturation=action_saturation,
+            fixed_cmd_vel=fixed_cmd_vel,
+            fixed_cmd_yaw=fixed_cmd_yaw,
+            command_resample_prob=(
+                command_resample_prob
+                if command_resample_prob is not None else 0.005),
+            **({} if gait_prior_scale is None else {
+                "gait_prior_scale": gait_prior_scale}),
+            **({} if policy_residual_scale is None else {
+                "policy_residual_scale": policy_residual_scale}))
         env = Monitor(env)
         env.reset(seed=seed)
         return env
@@ -286,6 +312,8 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
         OBS_LAYOUT,
         PERISTALTIC_ACTUATION_PERIOD_S,
         PHASE_FREQ,
+        action_adapter_contract,
+        reward_contract,
     )
 
     return {
@@ -303,6 +331,11 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
         "actuator_contract_fingerprint": (
             motor_contract()["contract_fingerprint"]),
         "actuator_contract": motor_contract(),
+        "action_adapter": action_adapter_contract(
+            args.gait_prior_scale, args.policy_residual_scale),
+        "residual_exploration": residual_exploration_contract(
+            args.ent_coef, args.log_std_init),
+        "reward_contract": reward_contract(),
         "deployable_observation_sources": [
             "velocity command",
             "yaw-rate command",
@@ -326,6 +359,11 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
             "cmd_yaw_rad_s": list(CMD_YAW_RANGE),
             "gait_blend": [0.0, 1.0],
         },
+        "eval_command": {
+            "cmd_vel_m_s": CMD_VEL_RANGE[1],
+            "cmd_yaw_rad_s": 0.0,
+            "command_resample_prob": 0.0,
+        },
         "control_timing": {
             "control_dt_s": CTRL_DT,
             "control_rate_hz": 1.0 / CTRL_DT,
@@ -348,7 +386,8 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
             "gamma": 0.99,
             "gae_lambda": 0.95,
             "clip_range": 0.2,
-            "ent_coef": 0.05,
+            "ent_coef": args.ent_coef,
+            "log_std_init": args.log_std_init,
             "vf_coef": 0.5,
             "max_grad_norm": 0.5,
             "policy_net_arch": {"pi": [256, 256], "vf": [256, 256]},
@@ -420,6 +459,8 @@ class PersistentBestEvalCallback(EvalCallback):
 
 
 def train(args):
+    from worm_env_v6 import CMD_VEL_RANGE
+
     terrain = args.terrain
     gait_mode = args.gait_mode
     gait_blend = args.gait_blend
@@ -481,11 +522,17 @@ def train(args):
     if n_envs == 1:
         raw_vec_env = DummyVecEnv([make_env(
             terrain=terrain, gait_mode=gait_mode,
-            gait_blend=gait_blend, seed=42, **sensor_kwargs)])
+            gait_blend=gait_blend, seed=42,
+            gait_prior_scale=args.gait_prior_scale,
+            policy_residual_scale=args.policy_residual_scale,
+            **sensor_kwargs)])
     else:
         raw_vec_env = SubprocVecEnv(
             [make_env(terrain=terrain, gait_mode=gait_mode,
-                      gait_blend=gait_blend, seed=42 + i, **sensor_kwargs)
+                      gait_blend=gait_blend, seed=42 + i,
+                      gait_prior_scale=args.gait_prior_scale,
+                      policy_residual_scale=args.policy_residual_scale,
+                      **sensor_kwargs)
              for i in range(n_envs)])
 
     # Observation normalization — reward normalization DISABLED
@@ -540,11 +587,12 @@ def train(args):
             gamma=0.99,
             gae_lambda=0.95,
             clip_range=0.2,
-            ent_coef=0.05,         # higher exploration to discover crawling gait
+            ent_coef=args.ent_coef,
             vf_coef=0.5,
             max_grad_norm=0.5,
             policy_kwargs=dict(
                 net_arch=dict(pi=[256, 256], vf=[256, 256]),
+                log_std_init=args.log_std_init,
             ),
             tensorboard_log=tb_log,
             verbose=0,
@@ -560,7 +608,12 @@ def train(args):
     # ── Callbacks ──
     eval_env = DummyVecEnv([make_env(
         terrain=terrain, gait_mode=gait_mode,
-        gait_blend=gait_blend, seed=999, **sensor_kwargs)])
+        gait_blend=gait_blend, seed=999,
+        fixed_cmd_vel=CMD_VEL_RANGE[1], fixed_cmd_yaw=0.0,
+        command_resample_prob=0.0,
+        gait_prior_scale=args.gait_prior_scale,
+        policy_residual_scale=args.policy_residual_scale,
+        **sensor_kwargs)])
     eval_env = VecNormalize(
         eval_env, norm_obs=True, norm_reward=False,
         clip_obs=10.0, training=False)
@@ -662,6 +715,14 @@ if __name__ == "__main__":
                     help="Integer control-step delay before action is applied")
     ap.add_argument("--action-saturation", type=float, default=1.0,
                     help="Applied action limit in [0, 1] before actuator scaling")
+    ap.add_argument("--gait-prior-scale", type=float, default=1.0,
+                    help="Scale for deterministic phase/gait_blend action prior")
+    ap.add_argument("--policy-residual-scale", type=float, default=0.35,
+                    help="Scale applied to PPO residual before adding gait prior")
+    ap.add_argument("--ent-coef", type=float, default=DEFAULT_ENT_COEF,
+                    help="PPO entropy coefficient for residual exploration")
+    ap.add_argument("--log-std-init", type=float, default=DEFAULT_LOG_STD_INIT,
+                    help="Initial Gaussian log std for residual policy actions")
     ap.add_argument("--timesteps", type=int, default=1_000_000,
                     help="Total training timesteps")
     ap.add_argument("--train-chunk-timesteps", type=int, default=None,

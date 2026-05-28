@@ -1,77 +1,80 @@
 # Worm V6 Deployable Multimodal Progress
 
-Generated on 2026-05-28.
+Generated on 2026-05-29.
 
 ## Current Status
 
 - Goal is not complete yet.
+- The current main line is `src/v6`, not the legacy `src/v3` wrappers.
 - Deployable observation contract is implemented: policy observations use command, joint encoders, previous action, per-segment IMU gravity/gyro, and phase clock.
 - Forbidden policy observations are audited out: base linear velocity, global pose/yaw, and MuJoCo freejoint truth are not policy inputs.
-- Actuator contract is now explicit and enforced:
+- Actuator contract is explicit and enforced:
   - slide targets: `[-0.05, 0.0] m`
   - yaw targets: `[-1.57, 1.57] rad`
   - peristaltic actuation period: `1.0 s`
-- Flat fixed-mode policies have been retrained under the current deployable observation and actuator contract:
-  - `flat/worm`: 1,015,808 PPO steps
-  - `flat/snake`: 1,015,808 PPO steps
-  - `flat/mixed`: 1,015,808 PPO steps
-- `flat/random` continuous `gait_blend` policy has also reached the formal threshold:
-  - `flat/random`: 1,015,808 PPO steps
-- The flat random deploy bundle has been exported:
-  - `record/v6/deploy_bundles/flat_random/policy_actor.pt`
-  - `record/v6/deploy_bundles/flat_random/deploy_config.json`
-- Flat fixed-mode nominal and robust evals have been regenerated under the current contract.
-- Flat random `gait_blend` scan has been regenerated under the current contract.
-- `sand/worm` current-contract retraining has reached the formal threshold:
-  - old incompatible artifacts were archived by the training entry point
-  - new `training_config.json` includes `control_timing` and `actuator_contract_fingerprint`
-  - current progress: `1,002,592 / 1,000,000` PPO steps
-- Training entry points now support `--device auto`, `--device cpu`, and `--device cuda`:
-  - `cpu` is the current recommended device for SB3 MLP-PPO training
-  - `auto` selects CUDA for PPO network updates when PyTorch detects a CUDA GPU
-  - MuJoCo environment stepping is still CPU-bound
-  - a CUDA resume attempt reached 914,288 steps but stalled in the MLP-PPO update path; CPU resume from 904,288 completed the 1M run
+- The current training/evaluation line is stricter than the older 1M-step artifacts:
+  - reward contract: `forward_progress_v3`
+  - action adapter: `gait_prior_residual_v1`
+  - residual exploration: `low_noise_residual_v1`
+  - fixed eval command: `cmd_vel=0.025 m/s`, `cmd_yaw=0`, no command resampling
+- Old flat/sand/slope 1M-step artifacts are now treated as stale when they do not match the current reward, action-adapter, actuator, timing, or residual-exploration contract.
 
-## Effect So Far
+## Current Training Evidence
 
-- Flat fixed modes now have current-contract model artifacts and can be compared without relying on the old unrealistic actuator mapping.
-- `flat/mixed` did improve during the second training chunk: the best evaluation checkpoint was updated near 976k steps, but the evaluation reward remains more variable than the fixed modes.
-- Flat `random` blend scan result:
-  - best current blend: `gait_blend=0.75`
-  - speed: `24.832 mm/s`
+- Fresh `flat/worm` low-noise residual PPO run:
+  - current progress: `65,536 / 1,000,000` PPO steps
+  - run directory: `runs/worm_v6_ppo_flat_worm/`
+  - best model: `runs/worm_v6_ppo_flat_worm/best_model.zip`
+  - training result: `runs/worm_v6_ppo_flat_worm/training_result.json`
+- Training behavior improved after lowering residual exploration:
+  - previous high-noise residual training showed episode rewards near `-3700` and short terminated episodes
+  - current low-noise run shows episode rewards near `-750` with full `1000`-step episodes during the 65k chunk
+- Fixed-command robust 10 s eval of the current best `flat/worm` checkpoint:
+  - distance: `153.4 mm`
+  - speed: `15.34 mm/s`
+  - lateral drift: `3.1 mm`
   - success: `1.0`
-  - comparison: `gait_blend=1.0` gives `24.116 mm/s`; `gait_blend=0.5` gives `20.799 mm/s`; `gait_blend=0.0` gives `1.876 mm/s`.
-- Flat robust fixed-mode result:
-  - `worm`: `13.770 mm/s`, success `1.0`
-  - `snake`: `-14.457 mm/s`, success `0.0`
-  - `mixed`: `31.325 mm/s`, success `1.0`
-- Current cross-terrain summary files now mark stale sand/slope artifacts as `stale` and leave their metric cells blank. They are not counted as current paper evidence.
-- `sand/worm` has moved from "stale contract" to "current contract trained"; sand/snake is now the next stale terrain/mode retraining target.
-- Hardware deploy preflight currently passes for `flat/random`, but fails for sand/slope because their deploy bundles are not current-contract bundles yet.
+  - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_65k_best.json`
+- Low-resolution video rollout of the same checkpoint:
+  - duration: `5.0 s`
+  - distance: `110.1 mm`
+  - speed: `22.0 mm/s`
+  - termination: `false`
+  - video: `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4`
+  - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_65k_best_video.json`
+
+## Current Audit Result
+
+`python src/v6/paper_status_v6.py --refresh-audit` reports:
+
+- `complete: False`
+- next training target: `flat/worm`
+- training artifacts present: `11/12`
+- current formal training threshold met: `0/12`
+
+The audit still requires:
+
+- 12 current-contract PPO model artifacts at the formal threshold
+- 9 fixed-mode eval JSON files
+- 9 robust fixed-mode eval JSON files
+- 3 continuous `gait_blend` scan result files
+- 3 deployable random-policy bundles
+- hardware deploy preflight report
+- flat/sand/slope hardware logs with video references
 
 ## Viewable Evidence
 
-- `record/v6/videos/gait_modes_comparison_1s_720p.mp4`
-- `record/v6/videos/worm_v6_worm.mp4`
-- `record/v6/videos/worm_v6_snake.mp4`
-- `record/v6/videos/worm_v6_combined.mp4`
-- `record/v6/videos/gait_comparison_1280x720.mp4`
-- `record/v6/videos/eval_flat_random.mp4`
-- `record/v6/videos/eval_sand_random.mp4`
-- `record/v6/videos/eval_slope_random.mp4`
+- `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4`
 - `record/v6/trajectory/`
 - `record/v6/paper_results/results_index.md`
 - `record/v6/paper_results/completion_audit.md`
-- `record/v6/paper_results/summary.md`
-- `record/v6/paper_results/paper_claims.md`
-- `record/v6/deploy_bundles/flat_random/`
-- `runs/worm_v6_ppo_sand_worm/` current model/config/result files
 
 Large 4K videos are intentionally not committed to Git because GitHub rejects files over 100 MB without LFS.
 
 ## Remaining Work
 
-- Retrain sand and slope policies under the current actuator contract.
-- Rerun deploy/export, fixed-mode eval, robust eval, gait_blend scan, summary, and audit.
+- Continue `flat/worm` from `65,536` to `1,000,000` current-contract steps.
+- Retrain flat snake/mixed/random and all sand/slope modes under the current reward/action/exploration contracts.
+- Rerun deploy/export, fixed-mode eval, robust eval, `gait_blend` scan, summary, and audit.
 - Collect real flat/sand/slope hardware logs with video references.
-- Rebuild the final paper figures after all current-contract evals are complete.
+- Rebuild final paper figures after all current-contract evals are complete.

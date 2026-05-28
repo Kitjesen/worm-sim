@@ -14,8 +14,11 @@ from run_terrain_experiments import (  # noqa: E402
     control_timing_kwargs,
     latest_resume_model,
 )
+from action_adapter_v6 import action_adapter_contract  # noqa: E402
 from motor_contract_v6 import motor_contract  # noqa: E402
 from train_v6 import infer_vecnormalize_path  # noqa: E402
+from training_contract_v6 import residual_exploration_contract  # noqa: E402
+from worm_env_v6 import CMD_VEL_RANGE, reward_contract  # noqa: E402
 
 
 def touch(path):
@@ -28,6 +31,23 @@ def write_json(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f)
+
+
+def compatible_config(sensor_robustness, control_timing=None):
+    return {
+        "control_timing": control_timing or control_timing_kwargs(),
+        "actuator_contract_fingerprint": (
+            motor_contract()["contract_fingerprint"]),
+        "reward_contract": reward_contract(),
+        "action_adapter": action_adapter_contract(),
+        "residual_exploration": residual_exploration_contract(),
+        "eval_command": {
+            "cmd_vel_m_s": CMD_VEL_RANGE[1],
+            "cmd_yaw_rad_s": 0.0,
+            "command_resample_prob": 0.0,
+        },
+        "sensor_robustness": sensor_robustness,
+    }
 
 
 def main():
@@ -53,48 +73,39 @@ def main():
         assert infer_vecnormalize_path(ckpt_200) == ckpt_200_norm
         assert latest_resume_model(run_dir, robust=False) is None
 
-        write_json(os.path.join(run_dir, "training_config.json"), {
-            "control_timing": control_timing_kwargs(),
-            "actuator_contract_fingerprint": (
-                motor_contract()["contract_fingerprint"]),
-            "sensor_robustness": {
+        write_json(
+            os.path.join(run_dir, "training_config.json"),
+            compatible_config({
                 "encoder_pos_noise_std": 0.0,
                 "encoder_vel_noise_std": 0.0,
                 "imu_gravity_noise_std": 0.0,
                 "imu_gyro_noise_std": 0.0,
                 "action_delay_steps": 0,
-            },
-        })
+            }))
         assert latest_resume_model(run_dir, robust=False) == ckpt_200
 
         stale = dict(control_timing_kwargs())
         stale["peristaltic_actuation_period_s"] = 2.0
-        write_json(os.path.join(run_dir, "training_config.json"), {
-            "control_timing": stale,
-            "actuator_contract_fingerprint": (
-                motor_contract()["contract_fingerprint"]),
-            "sensor_robustness": {
+        write_json(
+            os.path.join(run_dir, "training_config.json"),
+            compatible_config({
                 "encoder_pos_noise_std": 0.0,
                 "encoder_vel_noise_std": 0.0,
                 "imu_gravity_noise_std": 0.0,
                 "imu_gyro_noise_std": 0.0,
                 "action_delay_steps": 0,
-            },
-        })
+            }, control_timing=stale))
         assert latest_resume_model(run_dir, robust=False) is None
 
-        write_json(os.path.join(run_dir, "training_config.json"), {
-            "control_timing": control_timing_kwargs(),
-            "actuator_contract_fingerprint": (
-                motor_contract()["contract_fingerprint"]),
-            "sensor_robustness": {
+        write_json(
+            os.path.join(run_dir, "training_config.json"),
+            compatible_config({
                 "encoder_pos_noise_std": 0.0,
                 "encoder_vel_noise_std": 0.0,
                 "imu_gravity_noise_std": 0.0,
                 "imu_gyro_noise_std": 0.0,
                 "action_delay_steps": 0,
-            },
-        })
+            }))
         assert latest_resume_model(run_dir, robust=True) is None
 
     print("resume-partial helpers passed")

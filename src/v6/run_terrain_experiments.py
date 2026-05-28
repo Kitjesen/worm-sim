@@ -123,6 +123,42 @@ def actuator_contract_compatible(config):
         == motor_contract()["contract_fingerprint"])
 
 
+def reward_contract_compatible(config):
+    from worm_env_v6 import reward_contract
+
+    return (
+        isinstance(config, dict)
+        and config.get("reward_contract") == reward_contract())
+
+
+def eval_command_compatible(config):
+    from worm_env_v6 import CMD_VEL_RANGE
+
+    expected = {
+        "cmd_vel_m_s": CMD_VEL_RANGE[1],
+        "cmd_yaw_rad_s": 0.0,
+        "command_resample_prob": 0.0,
+    }
+    return isinstance(config, dict) and config.get("eval_command") == expected
+
+
+def action_adapter_compatible(config):
+    from action_adapter_v6 import action_adapter_contract
+
+    return (
+        isinstance(config, dict)
+        and config.get("action_adapter") == action_adapter_contract())
+
+
+def residual_exploration_compatible(config):
+    from training_contract_v6 import residual_exploration_contract
+
+    return (
+        isinstance(config, dict)
+        and config.get("residual_exploration")
+        == residual_exploration_contract())
+
+
 def resume_config_compatible(run_dir, robust):
     config = read_json(os.path.join(run_dir, "training_config.json"))
     if not config:
@@ -131,7 +167,18 @@ def resume_config_compatible(run_dir, robust):
     expected = robust_sensor_kwargs(robust)
     sensors_ok = all(actual.get(key) == value for key, value in expected.items())
     actuator_ok = actuator_contract_compatible(config)
-    return sensors_ok and control_timing_compatible(config) and actuator_ok
+    reward_ok = reward_contract_compatible(config)
+    eval_command_ok = eval_command_compatible(config)
+    action_adapter_ok = action_adapter_compatible(config)
+    residual_exploration_ok = residual_exploration_compatible(config)
+    return (
+        sensors_ok
+        and control_timing_compatible(config)
+        and actuator_ok
+        and reward_ok
+        and eval_command_ok
+        and action_adapter_ok
+        and residual_exploration_ok)
 
 
 def checkpoint_step(path):
@@ -200,7 +247,10 @@ def rl_status(terrain, mode):
         with open(eval_json, "r", encoding="utf-8") as f:
             metrics = json.load(f)
         if (not control_timing_compatible(metrics)
-                or not actuator_contract_compatible(metrics)):
+                or not actuator_contract_compatible(metrics)
+                or not reward_contract_compatible(metrics)
+                or not eval_command_compatible(metrics)
+                or not action_adapter_compatible(metrics)):
             return "stale eval"
         speed = metrics.get("mean_speed_mm_s")
         if speed is not None:

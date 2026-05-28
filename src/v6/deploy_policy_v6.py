@@ -21,13 +21,26 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 
 from motor_contract_v6 import (  # noqa: E402
+    NUM_SLIDES,
+    NUM_YAWS,
     action_mapping_config,
     motor_contract,
+)
+from action_adapter_v6 import (  # noqa: E402
+    DEFAULT_GAIT_PRIOR_SCALE,
+    DEFAULT_POLICY_RESIDUAL_SCALE,
+    SNAKE_AMP_NORMALIZED,
+    action_adapter_contract,
+    compose_deployable_action,
+    phase_from_clock,
 )
 
 
 class DeployablePPOActor(torch.nn.Module):
-    def __init__(self, policy, obs_mean, obs_var, epsilon, clip_obs):
+    def __init__(
+            self, policy, obs_mean, obs_var, epsilon, clip_obs,
+            gait_prior_scale=DEFAULT_GAIT_PRIOR_SCALE,
+            policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE):
         super().__init__()
         self.features_extractor = policy.features_extractor
         self.mlp_extractor = policy.mlp_extractor
@@ -38,6 +51,16 @@ class DeployablePPOActor(torch.nn.Module):
             "obs_var", torch.as_tensor(obs_var, dtype=torch.float32))
         self.epsilon = float(epsilon)
         self.clip_obs = float(clip_obs)
+        self.gait_prior_scale = float(gait_prior_scale)
+        self.policy_residual_scale = float(policy_residual_scale)
+        self.register_buffer(
+            "slide_offsets",
+            torch.arange(NUM_SLIDES, dtype=torch.float32)
+            * (2.0 * torch.pi / float(NUM_SLIDES)))
+        self.register_buffer(
+            "yaw_offsets",
+            torch.arange(NUM_YAWS, dtype=torch.float32)
+            * (2.0 * torch.pi * 1.5 / float(NUM_YAWS)))
 
     def forward(self, raw_obs):
         if raw_obs.dim() == 1:
@@ -48,7 +71,21 @@ class DeployablePPOActor(torch.nn.Module):
         obs = torch.clamp(obs, -self.clip_obs, self.clip_obs)
         features = self.features_extractor(obs)
         latent_pi = self.mlp_extractor.forward_actor(features)
-        actions = self.action_net(latent_pi)
+        residual = torch.clamp(self.action_net(latent_pi), -1.0, 1.0)
+        phase = torch.atan2(raw_obs[:, 78:79], raw_obs[:, 79:80])
+        gait_blend = torch.clamp(raw_obs[:, 2:3], 0.0, 1.0)
+        slide_prior = (
+            -0.5
+            * (1.0 + torch.sin(phase + self.slide_offsets.unsqueeze(0)))
+            * (1.0 - gait_blend))
+        yaw_prior = (
+            float(SNAKE_AMP_NORMALIZED)
+            * torch.sin(phase + self.yaw_offsets.unsqueeze(0))
+            * gait_blend)
+        prior = torch.cat([slide_prior, yaw_prior], dim=1)
+        actions = (
+            self.gait_prior_scale * prior
+            + self.policy_residual_scale * residual)
         return torch.clamp(actions, -1.0, 1.0)
 
 
@@ -182,10 +219,15 @@ def export_policy(args):
             np.sqrt(norm["var"] + norm["epsilon"]))
         dummy_norm = np.clip(dummy_norm, -norm["clip_obs"], norm["clip_obs"])
         sb3_action, _ = model.predict(dummy_norm, deterministic=True)
-        max_diff = float(np.max(np.abs(actor_action - sb3_action)))
+        expected_action = compose_deployable_action(
+            sb3_action[0],
+            phase=phase_from_clock(dummy_raw[0, 78], dummy_raw[0, 79]),
+            gait_blend=dummy_raw[0, 2],
+        )[None, :]
+        max_diff = float(np.max(np.abs(actor_action - expected_action)))
         if max_diff > args.max_export_diff:
             raise RuntimeError(
-                f"Exported actor mismatch: max_diff={max_diff:.3g}")
+                f"Exported deployable actor mismatch: max_diff={max_diff:.3g}")
 
     os.makedirs(out_dir, exist_ok=True)
     actor_path = os.path.join(out_dir, "policy_actor.pt")
@@ -205,6 +247,7 @@ def export_policy(args):
         "action_dim": NUM_ACTUATORS,
         "action_columns": action_columns,
         "action_range": [-1.0, 1.0],
+        "action_adapter": action_adapter_contract(),
         "action_mapping": action_mapping_config(),
         "actuator_contract_fingerprint": (
             motor_contract()["contract_fingerprint"]),

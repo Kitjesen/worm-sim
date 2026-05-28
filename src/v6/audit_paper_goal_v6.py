@@ -16,16 +16,20 @@ PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 sys.path.insert(0, SCRIPT_DIR)
 
 from worm_env_v6 import (  # noqa: E402
+    CMD_VEL_RANGE,
     CTRL_DT,
     OBS_DIM,
     PERISTALTIC_ACTUATION_PERIOD_S,
     PHASE_FREQ,
+    reward_contract,
 )
 from observation_contract_v6 import observation_contract, write_contract  # noqa: E402
 from motor_contract_v6 import (  # noqa: E402
     action_mapping_matches,
     motor_contract,
 )
+from action_adapter_v6 import action_adapter_contract  # noqa: E402
+from training_contract_v6 import residual_exploration_contract  # noqa: E402
 from validate_hardware_log_v6 import (  # noqa: E402
     observation_columns,
     validate_csv,
@@ -66,6 +70,14 @@ CONTROL_TIMING_DEFAULTS = {
     "phase_freq_hz": PHASE_FREQ,
 }
 ACTUATOR_CONTRACT_FINGERPRINT = motor_contract()["contract_fingerprint"]
+REWARD_CONTRACT = reward_contract()
+ACTION_ADAPTER_CONTRACT = action_adapter_contract()
+RESIDUAL_EXPLORATION_CONTRACT = residual_exploration_contract()
+EVAL_COMMAND_DEFAULTS = {
+    "cmd_vel_m_s": CMD_VEL_RANGE[1],
+    "cmd_yaw_rad_s": 0.0,
+    "command_resample_prob": 0.0,
+}
 NOMINAL_SENSOR_DEFAULTS = {
     "encoder_pos_noise_std": 0.0,
     "encoder_vel_noise_std": 0.0,
@@ -208,6 +220,15 @@ def valid_training_run(run_path, terrain, mode):
             "actuator_contract": (
                 config.get("actuator_contract_fingerprint")
                 == ACTUATOR_CONTRACT_FINGERPRINT),
+            "reward_contract": (
+                config.get("reward_contract") == REWARD_CONTRACT),
+            "action_adapter": (
+                config.get("action_adapter") == ACTION_ADAPTER_CONTRACT),
+            "residual_exploration": (
+                config.get("residual_exploration")
+                == RESIDUAL_EXPLORATION_CONTRACT),
+            "eval_command": (
+                config.get("eval_command") == EVAL_COMMAND_DEFAULTS),
             "planned_timesteps": (
                 get_nested(config, "training", "timesteps", default=0)
                 >= REQUIRED_TRAIN_TIMESTEPS),
@@ -247,6 +268,12 @@ def valid_eval_metrics(data, terrain, mode, expected_condition):
         reasons.append("control_timing")
     if data.get("actuator_contract_fingerprint") != ACTUATOR_CONTRACT_FINGERPRINT:
         reasons.append("actuator_contract")
+    if data.get("reward_contract") != REWARD_CONTRACT:
+        reasons.append("reward_contract")
+    if data.get("action_adapter") != ACTION_ADAPTER_CONTRACT:
+        reasons.append("action_adapter")
+    if data.get("eval_command") != EVAL_COMMAND_DEFAULTS:
+        reasons.append("eval_command")
     if data.get("episodes", 0) < REQUIRED_EVAL_EPISODES:
         reasons.append("episodes")
     if float(data.get("time_s", 0.0)) < REQUIRED_EVAL_TIME_S:

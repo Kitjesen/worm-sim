@@ -45,6 +45,16 @@ The policy observation does **not** use:
 
 Reward calculation may still use simulator truth for training, but policy inference cannot.
 
+The current RL action path is a deployable residual policy:
+
+- a phase/gait-blend gait prior generates the nominal worm/snake/mixed action
+- PPO outputs a bounded normalized residual
+- the deployed command is `clip(gait_prior + residual, -1, 1)`
+
+This keeps the paper focus on a learnable, mode-conditioned policy while
+avoiding a cold-start controller that has to rediscover the entire gait from
+random saturated actions.
+
 ## Robot And Actuator Contract
 
 The V6 model has:
@@ -68,8 +78,18 @@ These are deployability guards, not a final vendor motor model. Real hardware id
 
 ## Current Progress
 
-Last reproducibility baseline before the V6 directory migration:
+Last pre-residual baseline before the V6 directory migration:
 `07cdfeb Make deployable multimodal progress reproducible`.
+
+The current training contract is stricter than that baseline:
+
+- reward contract: `forward_progress_v3`
+- action adapter: `gait_prior_residual_v1`
+- residual exploration: `low_noise_residual_v1`
+- fixed eval command: `cmd_vel=0.025 m/s`, `cmd_yaw=0`, no command resampling
+
+Older 1M-step artifacts that do not match these contracts are treated as stale
+by the audit and should not be used for paper claims.
 
 Current status files:
 
@@ -84,28 +104,33 @@ Current status:
 
 | Terrain | Mode | Current-contract PPO status |
 | --- | --- | --- |
-| flat | worm | trained to 1,015,808 steps |
-| flat | snake | trained to 1,015,808 steps |
-| flat | mixed | trained to 1,015,808 steps |
-| flat | random | trained to 1,015,808 steps; deploy bundle, evals, and `gait_blend` scan generated |
-| sand | worm | trained to 1,002,592 steps under current contract |
-| sand | snake/mixed/random | old artifacts exist, retraining under current contract still needed |
+| flat | worm | current low-noise residual contract, 65,536 / 1,000,000 steps |
+| flat | snake/mixed/random | old artifacts exist, retraining under current contract still needed |
+| sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 
-Important caution: cross-terrain summaries now mark stale sand/slope artifacts as `stale` and leave their metric cells blank. Final cross-terrain paper claims should wait until sand/slope retraining plus `deploy eval scan summary audit` are rerun under the current actuator contract.
+Important caution: the audit now marks old flat/sand/slope 1M-step artifacts as
+`stale` when their reward, action-adapter, actuator, timing, or residual
+exploration contract does not match the current deployable line. Final
+cross-terrain paper claims should wait until all modes are retrained plus
+`deploy eval scan summary audit` are rerun under the current contracts.
 
 ## Current Effect Summary
 
-The strongest current evidence is structural and flat-ground:
+The strongest current evidence is structural plus a fresh flat/worm smoke result:
 
 - Deployable observation contract passes audit.
-- Flat `worm`, `snake`, and `mixed` fixed-mode PPO models have been retrained with the current 1 s peristaltic timing and actuator limits.
-- Flat `random` has reached the same 1,015,808-step threshold and now has a deployable TorchScript bundle.
-- On flat ground, the current random-policy blend scan is best at `gait_blend=0.75`: 24.832 mm/s, success 1.0. `gait_blend=1.0` is close at 24.116 mm/s, and pure worm `0.0` is weak at 1.876 mm/s.
-- Flat robust eval is mixed: `mixed` is strongest under the current noise/saturation test at 31.325 mm/s, while `snake` fails robustly with negative speed.
-- `sand/worm` current-contract retraining has reached the formal threshold at 1,002,592 steps.
-- A CUDA resume attempt progressed to 914,288 steps but stalled in the SB3 MLP-PPO update path; the final resume used `--device cpu` from the 904,288-step checkpoint and completed reliably.
-- Hardware pipeline templates and preflight checks exist; flat deploy preflight passes, but sand/slope fail until their current-contract bundles are regenerated. Real flat/sand/slope hardware logs are still pending.
+- The current policy observation is 80-D and remains limited to command,
+  encoders, per-segment IMUs, previous action, and phase.
+- The residual exploration scale was reduced after diagnosing random saturated
+  residual actions as the cause of large negative training episode rewards.
+- Fresh `flat/worm` low-noise residual training has reached 65,536 steps.
+- Fixed-command robust 10 s eval of the current best `flat/worm` checkpoint:
+  153.4 mm forward, 15.34 mm/s, 3.1 mm lateral drift, success 1.0.
+- Low-resolution video rollout of the same checkpoint: 5.0 s, 110.1 mm
+  forward, 22.0 mm/s, no termination.
+- Hardware pipeline templates and preflight checks exist; real flat/sand/slope
+  hardware logs are still pending.
 
 Interim result tables and figures:
 
@@ -128,6 +153,7 @@ Representative committed videos:
 - [flat random preview](record/v6/videos/eval_flat_random.mp4)
 - [sand random preview](record/v6/videos/eval_sand_random.mp4)
 - [slope random preview](record/v6/videos/eval_slope_random.mp4)
+- [current flat/worm low-noise residual rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4)
 
 Large 4K videos are intentionally not committed because ordinary GitHub repositories reject files over 100 MB without Git LFS.
 
@@ -165,7 +191,7 @@ python src\v6\audit_observation_sources_v6.py --strict
 Train one formal chunk:
 
 ```powershell
-python src\v6\run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes random --timesteps 1000000 --train-chunk-timesteps 600000 --n-envs 4 --device cpu --resume --resume-partial --max-records 1
+python src\v6\run_paper_pipeline_v6.py --preset formal --stage train --terrain flat --train-modes worm --timesteps 1000000 --train-chunk-timesteps 100000 --n-envs 4 --device cpu --resume --resume-partial --max-records 1
 ```
 
 Run post-training exports, evaluations, scans, summaries, and audit:
@@ -196,6 +222,7 @@ Training device selection:
 | `src/v6/observation_contract_v6.py` | observation ABI and source contract |
 | `src/v6/train_v6.py` | PPO training entry point |
 | `src/v6/eval_v6.py` | fixed-mode and robust evaluation |
+| `src/v6/record_eval_video_v6.py` | low-overhead deterministic MP4 recorder |
 | `src/v6/run_terrain_experiments.py` | terrain/mode experiment runner |
 | `src/v6/run_paper_pipeline_v6.py` | paper pipeline orchestrator |
 | `src/v6/scan_gait_blend_v6.py` | continuous `gait_blend` scan |
@@ -235,6 +262,8 @@ python src\v6\test_controller_stream_check_v6.py
 python src\v6\audit_observation_sources_v6.py --strict
 python src\v6\test_goal_audit_v6.py
 python src\v6\test_resume_partial_v6.py
+python src\v6\test_reward_contract_v6.py
+python src\v6\test_paper_pipeline_plan_v6.py
 ```
 
 ## Repository Layout
@@ -262,7 +291,8 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Retrain sand and slope policies under the current actuator contract.
+- Continue `flat/worm` from 65,536 to 1,000,000 current-contract steps.
+- Retrain flat snake/mixed/random plus all sand and slope policies under the current reward/action/exploration contracts.
 - Regenerate all eval, robust eval, `gait_blend` scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.
 - Rebuild final paper figures after the above are complete.
