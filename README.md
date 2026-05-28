@@ -87,11 +87,11 @@ Current status:
 | flat | worm | trained to 1,015,808 steps |
 | flat | snake | trained to 1,015,808 steps |
 | flat | mixed | trained to 1,015,808 steps |
-| flat | random | local first chunk reached 606,208 / 1,000,000 steps; final artifact not committed yet |
+| flat | random | trained to 1,015,808 steps; deploy bundle, evals, and `gait_blend` scan generated |
 | sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 
-Important caution: some cross-terrain summaries in `record/v6/paper_results/` still include stale sand/slope or old random-policy results. They are kept as interim evidence, not final paper numbers. Final claims should wait until retraining plus `deploy eval scan summary audit` are rerun under the current actuator contract.
+Important caution: cross-terrain summaries now mark stale sand/slope artifacts as `stale` and leave their metric cells blank. Final cross-terrain paper claims should wait until sand/slope retraining plus `deploy eval scan summary audit` are rerun under the current actuator contract.
 
 ## Current Effect Summary
 
@@ -99,8 +99,10 @@ The strongest current evidence is structural and flat-ground:
 
 - Deployable observation contract passes audit.
 - Flat `worm`, `snake`, and `mixed` fixed-mode PPO models have been retrained with the current 1 s peristaltic timing and actuator limits.
-- `flat/mixed` improved during the second training chunk, with a new best evaluation checkpoint near 976k steps, but its training/eval reward remains more variable than fixed modes.
-- Hardware pipeline templates and preflight checks exist, but real flat/sand/slope hardware logs are still pending.
+- Flat `random` has reached the same 1,015,808-step threshold and now has a deployable TorchScript bundle.
+- On flat ground, the current random-policy blend scan is best at `gait_blend=0.75`: 24.832 mm/s, success 1.0. `gait_blend=1.0` is close at 24.116 mm/s, and pure worm `0.0` is weak at 1.876 mm/s.
+- Flat robust eval is mixed: `mixed` is strongest under the current noise/saturation test at 31.325 mm/s, while `snake` fails robustly with negative speed.
+- Hardware pipeline templates and preflight checks exist; flat deploy preflight passes, but sand/slope fail until their current-contract bundles are regenerated. Real flat/sand/slope hardware logs are still pending.
 
 Interim result tables and figures:
 
@@ -251,7 +253,6 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Finish `flat/random` retraining to the formal threshold.
 - Retrain sand and slope policies under the current actuator contract.
 - Regenerate all eval, robust eval, `gait_blend` scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.

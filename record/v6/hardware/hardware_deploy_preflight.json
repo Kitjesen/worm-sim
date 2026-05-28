@@ -1,10 +1,99 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-05-28T06:10:42.732596+00:00",
-  "complete": true,
+  "generated_at_utc": "2026-05-28T13:26:21.167978+00:00",
+  "complete": false,
   "mode": "random",
   "obs_dim": 80,
-  "observation_contract_fingerprint": "a2970eeac045b4838117f76b0381d9a4c0b0bf540a7b3834f64d700aa059fe55",
+  "observation_contract_fingerprint": "672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b",
+  "actuator_contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf",
+  "actuator_contract": {
+    "format_version": 1,
+    "name": "worm_v6_actuator_motor_contract",
+    "actuator_count": 11,
+    "normalized_action_range": [
+      -1.0,
+      1.0
+    ],
+    "action_mapping": {
+      "slide_indices": [
+        0,
+        6
+      ],
+      "yaw_indices": [
+        6,
+        11
+      ],
+      "slide_target_m": "clip(action[i] * slide_range_m, slide_min_m, slide_max_m)",
+      "yaw_target_rad": "clip(action[i] * yaw_range_rad, yaw_min_rad, yaw_max_rad)",
+      "slide_range_m": 0.05,
+      "slide_min_m": -0.05,
+      "slide_max_m": 0.0,
+      "yaw_range_rad": 1.57,
+      "yaw_min_rad": -1.57,
+      "yaw_max_rad": 1.57
+    },
+    "actuator_groups": {
+      "slide": {
+        "indices": [
+          0,
+          6
+        ],
+        "joint_names": [
+          "back1",
+          "back2",
+          "back3",
+          "back4",
+          "back5",
+          "back6"
+        ],
+        "joint_type": "prismatic_position_servo",
+        "target_unit": "m",
+        "mechanical_range_m": [
+          -0.05,
+          0.0
+        ],
+        "normalized_command_scale_m": 0.05,
+        "mujoco_position_kp_n_per_m": 800.0,
+        "mujoco_force_limit_n": 50.0,
+        "joint_damping": 10.0,
+        "joint_stiffness": 300.0,
+        "hardware_rule": "Real controller must clip slide targets to [-0.05, 0.0] m before sending commands."
+      },
+      "yaw": {
+        "indices": [
+          6,
+          11
+        ],
+        "joint_names": [
+          "front2",
+          "front3",
+          "front4",
+          "front5",
+          "front6"
+        ],
+        "joint_type": "revolute_position_servo",
+        "target_unit": "rad",
+        "mechanical_range_rad": [
+          -1.57,
+          1.57
+        ],
+        "normalized_command_scale_rad": 1.57,
+        "mujoco_position_kp_nm_per_rad": 200.0,
+        "mujoco_torque_limit_nm": 20.0,
+        "joint_damping": 5.0,
+        "hardware_rule": "Real controller must clip yaw targets to [-1.57, 1.57] rad before sending commands."
+      }
+    },
+    "not_yet_modeled_in_sim": [
+      "motor speed limit",
+      "current and voltage limits",
+      "thermal derating",
+      "gear backlash",
+      "deadband",
+      "vendor controller internal PID"
+    ],
+    "contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
+  },
   "best_blend_csv": "record/v6/paper_results/best_blend_by_terrain.csv",
   "max_action_delta": 0.2,
   "global_checks": [
@@ -32,13 +121,18 @@
         "yaw_joints": 5,
         "segment_imus": 7
       }
+    },
+    {
+      "name": "actuator_contract",
+      "status": "ok",
+      "detail": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
     }
   ],
   "terrains": [
     {
       "terrain": "flat",
       "mode": "random",
-      "recommended_gait_blend": 0.5,
+      "recommended_gait_blend": 0.75,
       "bundle_dir": "record/v6/deploy_bundles/flat_random",
       "actor": "record/v6/deploy_bundles/flat_random/policy_actor.pt",
       "config": "record/v6/deploy_bundles/flat_random/deploy_config.json",
@@ -95,13 +189,26 @@
             "yaw_indices": [
               6,
               11
-            ]
+            ],
+            "slide_target_m": "clip(action[i] * slide_range_m, slide_min_m, slide_max_m)",
+            "yaw_target_rad": "clip(action[i] * yaw_range_rad, yaw_min_rad, yaw_max_rad)",
+            "slide_range_m": 0.05,
+            "slide_min_m": -0.05,
+            "slide_max_m": 0.0,
+            "yaw_range_rad": 1.57,
+            "yaw_min_rad": -1.57,
+            "yaw_max_rad": 1.57
           }
+        },
+        {
+          "name": "actuator_contract_fingerprint",
+          "status": "ok",
+          "detail": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
         },
         {
           "name": "observation_contract_fingerprint",
           "status": "ok",
-          "detail": "a2970eeac045b4838117f76b0381d9a4c0b0bf540a7b3834f64d700aa059fe55"
+          "detail": "672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b"
         },
         {
           "name": "observation_shape",
@@ -141,10 +248,26 @@
           ]
         },
         {
+          "name": "slide_target_range",
+          "status": "ok",
+          "detail": [
+            -0.001428443007171154,
+            0.0
+          ]
+        },
+        {
           "name": "yaw_target_shape",
           "status": "ok",
           "detail": [
             5
+          ]
+        },
+        {
+          "name": "yaw_target_range",
+          "status": "ok",
+          "detail": [
+            -0.3140000104904175,
+            0.3140000104904175
           ]
         }
       ],
@@ -153,18 +276,18 @@
         "obs_dim": 80,
         "action_dim": 11,
         "max_abs_action": 0.20000000298023224,
-        "max_abs_slide_target_m": 0.010000000707805157,
+        "max_abs_slide_target_m": 0.001428443007171154,
         "max_abs_yaw_target_rad": 0.3140000104904175
       }
     },
     {
       "terrain": "sand",
       "mode": "random",
-      "recommended_gait_blend": 1.0,
+      "recommended_gait_blend": 0.5,
       "bundle_dir": "record/v6/deploy_bundles/sand_random",
       "actor": "record/v6/deploy_bundles/sand_random/policy_actor.pt",
       "config": "record/v6/deploy_bundles/sand_random/deploy_config.json",
-      "status": "ok",
+      "status": "failed",
       "checks": [
         {
           "name": "bundle_dir_exists",
@@ -208,7 +331,7 @@
         },
         {
           "name": "config_action_mapping",
-          "status": "ok",
+          "status": "failed",
           "detail": {
             "slide_indices": [
               0,
@@ -217,12 +340,20 @@
             "yaw_indices": [
               6,
               11
-            ]
+            ],
+            "slide_target_m": "action[i] * slide_range_m",
+            "yaw_target_rad": "action[i] * yaw_range_rad",
+            "slide_range_m": 0.05,
+            "yaw_range_rad": 1.57
           }
         },
         {
+          "name": "actuator_contract_fingerprint",
+          "status": "failed"
+        },
+        {
           "name": "observation_contract_fingerprint",
-          "status": "ok",
+          "status": "failed",
           "detail": "a2970eeac045b4838117f76b0381d9a4c0b0bf540a7b3834f64d700aa059fe55"
         },
         {
@@ -263,10 +394,26 @@
           ]
         },
         {
+          "name": "slide_target_range",
+          "status": "ok",
+          "detail": [
+            0.0,
+            0.0
+          ]
+        },
+        {
           "name": "yaw_target_shape",
           "status": "ok",
           "detail": [
             5
+          ]
+        },
+        {
+          "name": "yaw_target_range",
+          "status": "ok",
+          "detail": [
+            -0.3140000104904175,
+            0.3140000104904175
           ]
         }
       ],
@@ -275,18 +422,18 @@
         "obs_dim": 80,
         "action_dim": 11,
         "max_abs_action": 0.20000000298023224,
-        "max_abs_slide_target_m": 0.010000000707805157,
+        "max_abs_slide_target_m": 0.0,
         "max_abs_yaw_target_rad": 0.3140000104904175
       }
     },
     {
       "terrain": "slope",
       "mode": "random",
-      "recommended_gait_blend": 0.0,
+      "recommended_gait_blend": 0.5,
       "bundle_dir": "record/v6/deploy_bundles/slope_random",
       "actor": "record/v6/deploy_bundles/slope_random/policy_actor.pt",
       "config": "record/v6/deploy_bundles/slope_random/deploy_config.json",
-      "status": "ok",
+      "status": "failed",
       "checks": [
         {
           "name": "bundle_dir_exists",
@@ -330,7 +477,7 @@
         },
         {
           "name": "config_action_mapping",
-          "status": "ok",
+          "status": "failed",
           "detail": {
             "slide_indices": [
               0,
@@ -339,12 +486,20 @@
             "yaw_indices": [
               6,
               11
-            ]
+            ],
+            "slide_target_m": "action[i] * slide_range_m",
+            "yaw_target_rad": "action[i] * yaw_range_rad",
+            "slide_range_m": 0.05,
+            "yaw_range_rad": 1.57
           }
         },
         {
+          "name": "actuator_contract_fingerprint",
+          "status": "failed"
+        },
+        {
           "name": "observation_contract_fingerprint",
-          "status": "ok",
+          "status": "failed",
           "detail": "a2970eeac045b4838117f76b0381d9a4c0b0bf540a7b3834f64d700aa059fe55"
         },
         {
@@ -385,10 +540,26 @@
           ]
         },
         {
+          "name": "slide_target_range",
+          "status": "ok",
+          "detail": [
+            -0.010000000707805157,
+            0.0
+          ]
+        },
+        {
           "name": "yaw_target_shape",
           "status": "ok",
           "detail": [
             5
+          ]
+        },
+        {
+          "name": "yaw_target_range",
+          "status": "ok",
+          "detail": [
+            -0.3140000104904175,
+            0.3140000104904175
           ]
         }
       ],

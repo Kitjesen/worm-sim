@@ -104,11 +104,11 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
     return [
         (
             "preflight deploy bundle and observation ABI",
-            "python src\\v3\\preflight_hardware_deploy_v6.py --strict",
+            "python src\\v6\\preflight_hardware_deploy_v6.py --strict",
         ),
         (
             "check controller JSONL stream before import",
-            "python src\\v3\\check_controller_stream_v6.py "
+            "python src\\v6\\check_controller_stream_v6.py "
             "--input-jsonl controller_stream.jsonl "
             f"--terrain {terrain} --mode {mode} "
             f"--video-file {video_file} "
@@ -118,7 +118,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
         ),
         (
             "optional: live JSONL controller bridge",
-            "python src\\v3\\hardware_policy_runtime_v6.py "
+            "python src\\v6\\hardware_policy_runtime_v6.py "
             f"--bundle-dir {ps_path(bundle_dir)} "
             "--input-jsonl - --output-jsonl - "
             f"--policy-log-csv {ps_path(policy_log)} "
@@ -127,7 +127,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
         ),
         (
             "capture controller JSONL stream into raw CSV",
-            "python src\\v3\\capture_hardware_stream_v6.py "
+            "python src\\v6\\capture_hardware_stream_v6.py "
             "--input-jsonl controller_stream.jsonl "
             f"--output-csv {ps_path(raw_log)} "
             f"--terrain {terrain} --mode {mode} "
@@ -137,7 +137,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
         ),
         (
             "one-command post-capture processing",
-            "python src\\v3\\process_hardware_trial_v6.py "
+            "python src\\v6\\process_hardware_trial_v6.py "
             f"--terrain {terrain} --mode {mode} "
             "--input-jsonl controller_stream.jsonl "
             f"--raw-csv {ps_path(raw_log)} "
@@ -148,7 +148,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
         ),
         (
             "import captured raw trial into audit files",
-            "python src\\v3\\import_hardware_trial_v6.py "
+            "python src\\v6\\import_hardware_trial_v6.py "
             f"--terrain {terrain} --mode {mode} "
             f"--raw-csv {ps_path(raw_log)} "
             f"--video-file {video_file} "
@@ -157,7 +157,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
         ),
         (
             "run deploy policy on raw sensors and write formal audit CSV",
-            "python src\\v3\\hardware_policy_runtime_v6.py "
+            "python src\\v6\\hardware_policy_runtime_v6.py "
             f"--bundle-dir {ps_path(bundle_dir)} "
             f"--input-raw-csv {ps_path(raw_log)} "
             f"--output-csv {ps_path(action_log)} "
@@ -170,23 +170,23 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
         ),
         (
             "validate policy CSV for the paper audit",
-            "python src\\v3\\validate_hardware_log_v6.py "
+            "python src\\v6\\validate_hardware_log_v6.py "
             f"--input {ps_path(policy_log)} --expected-terrain {terrain} "
             "--require-video --min-rows 5 --min-duration 0.1",
         ),
         (
             "optional: replay deploy bundle on logged observations",
-            "python src\\v3\\deploy_policy_v6.py replay "
+            "python src\\v6\\deploy_policy_v6.py replay "
             f"--bundle-dir {ps_path(bundle_dir)} --input-csv {ps_path(policy_log)} "
             f"--output-csv {ps_path(action_log)}",
         ),
         (
             "show hardware trial status",
-            "python src\\v3\\hardware_trial_status_v6.py --write-report",
+            "python src\\v6\\hardware_trial_status_v6.py --write-report",
         ),
         (
             "refresh completion audit",
-            "python src\\v3\\paper_status_v6.py --refresh-audit",
+            "python src\\v6\\paper_status_v6.py --refresh-audit",
         ),
     ]
 
@@ -256,13 +256,13 @@ def write_top_readme(path, manifest):
         "## Final Audit Command",
         "",
         "```powershell",
-        "python src\\v3\\paper_status_v6.py --refresh-audit",
+        "python src\\v6\\paper_status_v6.py --refresh-audit",
         "```",
         "",
         "## Hardware Status Command",
         "",
         "```powershell",
-        "python src\\v3\\hardware_trial_status_v6.py --write-report",
+        "python src\\v6\\hardware_trial_status_v6.py --write-report",
         "```",
         "",
     ])

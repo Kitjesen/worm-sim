@@ -166,7 +166,7 @@ def classify(raw, video_exists, policy_valid, min_rows, min_duration_s):
 def import_command(terrain, mode, gait_blend, date_stamp=None):
     date_text = date_stamp or "YYYYMMDD"
     return (
-        "python src\\v3\\import_hardware_trial_v6.py "
+        "python src\\v6\\import_hardware_trial_v6.py "
         f"--terrain {terrain} --mode {mode} "
         f"--raw-csv record\\v6\\hardware\\field_trials\\current\\{terrain}\\"
         f"{terrain}_{mode}_raw.csv "
@@ -177,7 +177,7 @@ def import_command(terrain, mode, gait_blend, date_stamp=None):
 
 def capture_command(terrain, mode, gait_blend):
     return (
-        "python src\\v3\\capture_hardware_stream_v6.py "
+        "python src\\v6\\capture_hardware_stream_v6.py "
         "--input-jsonl controller_stream.jsonl "
         f"--output-csv record\\v6\\hardware\\field_trials\\current\\{terrain}\\"
         f"{terrain}_{mode}_raw.csv "
@@ -190,7 +190,7 @@ def capture_command(terrain, mode, gait_blend):
 def process_command(terrain, mode, gait_blend, date_stamp=None):
     date_text = date_stamp or "YYYYMMDD"
     return (
-        "python src\\v3\\process_hardware_trial_v6.py "
+        "python src\\v6\\process_hardware_trial_v6.py "
         f"--terrain {terrain} --mode {mode} "
         "--input-jsonl controller_stream.jsonl "
         f"--raw-csv record\\v6\\hardware\\field_trials\\current\\{terrain}\\"
@@ -203,7 +203,7 @@ def process_command(terrain, mode, gait_blend, date_stamp=None):
 
 def stream_check_command(terrain, mode, gait_blend):
     return (
-        "python src\\v3\\check_controller_stream_v6.py "
+        "python src\\v6\\check_controller_stream_v6.py "
         "--input-jsonl controller_stream.jsonl "
         f"--terrain {terrain} --mode {mode} "
         f"--video-file record/v6/videos/{terrain}_{mode}_hardware_demo.mp4 "
@@ -222,7 +222,7 @@ def video_command(terrain, mode):
 
 def validate_command(terrain, policy_log):
     return (
-        "python src\\v3\\validate_hardware_log_v6.py "
+        "python src\\v6\\validate_hardware_log_v6.py "
         f"--input {policy_log.replace('/', os.sep)} "
         f"--expected-terrain {terrain} --require-video "
         "--min-rows 5 --min-duration 0.1"

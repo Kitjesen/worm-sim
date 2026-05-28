@@ -34,6 +34,7 @@ def fixed_rows():
                 "rl_speed_mm_s": speed[mode][terrain_i],
                 "rl_success_rate": 0.5,
                 "rl_termination_rate": 0.0,
+                "rl_status": "done",
             })
     return rows
 
@@ -50,6 +51,7 @@ def scan_rows():
                 "mean_speed_mm_s": 3.0 if blend == 0.5 else 1.0,
                 "success_rate": 0.6,
                 "termination_rate": 0.0,
+                "scan_status": "done",
             })
     return rows
 
@@ -71,6 +73,17 @@ def main():
     ]
     assert stability_claims
     assert stability_claims[0]["status"] == "supported"
+
+    stale_scan = list(scan)
+    for row in stale_scan:
+        if row["terrain"] == "sand":
+            row["scan_status"] = "stale"
+            row["mean_speed_mm_s"] = ""
+    stale_report = build_claim_report(fixed, stale_scan,
+                                      best_scan_rows(stale_scan))
+    assert stale_report["goal3_status"] == "incomplete"
+    assert stale_report["current_contract_coverage"][
+        "complete_terrain_count"] == len(PAPER_TERRAINS) - 1
 
     with tempfile.TemporaryDirectory() as tmp:
         json_path = os.path.join(tmp, "paper_claims.json")

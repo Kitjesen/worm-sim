@@ -1,0 +1,133 @@
+{
+  "terrain": "flat",
+  "gait_mode": "worm",
+  "gait_blend": 0.0,
+  "cmd_vel_m_s": 0.025,
+  "cmd_yaw_rad_s": 0.0,
+  "obs_dim": 80,
+  "eval_condition": "nominal",
+  "actuator_contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf",
+  "actuator_contract": {
+    "format_version": 1,
+    "name": "worm_v6_actuator_motor_contract",
+    "actuator_count": 11,
+    "normalized_action_range": [
+      -1.0,
+      1.0
+    ],
+    "action_mapping": {
+      "slide_indices": [
+        0,
+        6
+      ],
+      "yaw_indices": [
+        6,
+        11
+      ],
+      "slide_target_m": "clip(action[i] * slide_range_m, slide_min_m, slide_max_m)",
+      "yaw_target_rad": "clip(action[i] * yaw_range_rad, yaw_min_rad, yaw_max_rad)",
+      "slide_range_m": 0.05,
+      "slide_min_m": -0.05,
+      "slide_max_m": 0.0,
+      "yaw_range_rad": 1.57,
+      "yaw_min_rad": -1.57,
+      "yaw_max_rad": 1.57
+    },
+    "actuator_groups": {
+      "slide": {
+        "indices": [
+          0,
+          6
+        ],
+        "joint_names": [
+          "back1",
+          "back2",
+          "back3",
+          "back4",
+          "back5",
+          "back6"
+        ],
+        "joint_type": "prismatic_position_servo",
+        "target_unit": "m",
+        "mechanical_range_m": [
+          -0.05,
+          0.0
+        ],
+        "normalized_command_scale_m": 0.05,
+        "mujoco_position_kp_n_per_m": 800.0,
+        "mujoco_force_limit_n": 50.0,
+        "joint_damping": 10.0,
+        "joint_stiffness": 300.0,
+        "hardware_rule": "Real controller must clip slide targets to [-0.05, 0.0] m before sending commands."
+      },
+      "yaw": {
+        "indices": [
+          6,
+          11
+        ],
+        "joint_names": [
+          "front2",
+          "front3",
+          "front4",
+          "front5",
+          "front6"
+        ],
+        "joint_type": "revolute_position_servo",
+        "target_unit": "rad",
+        "mechanical_range_rad": [
+          -1.57,
+          1.57
+        ],
+        "normalized_command_scale_rad": 1.57,
+        "mujoco_position_kp_nm_per_rad": 200.0,
+        "mujoco_torque_limit_nm": 20.0,
+        "joint_damping": 5.0,
+        "hardware_rule": "Real controller must clip yaw targets to [-1.57, 1.57] rad before sending commands."
+      }
+    },
+    "not_yet_modeled_in_sim": [
+      "motor speed limit",
+      "current and voltage limits",
+      "thermal derating",
+      "gear backlash",
+      "deadband",
+      "vendor controller internal PID"
+    ],
+    "contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
+  },
+  "control_timing": {
+    "control_dt_s": 0.02,
+    "control_rate_hz": 50.0,
+    "peristaltic_actuation_period_s": 1.0,
+    "phase_freq_hz": 1.0
+  },
+  "sensor_noise": {
+    "encoder_pos_noise_std": 0.0,
+    "encoder_vel_noise_std": 0.0,
+    "imu_gravity_noise_std": 0.0,
+    "imu_gyro_noise_std": 0.0,
+    "action_delay_steps": 0,
+    "action_saturation": 1.0
+  },
+  "episodes": 5,
+  "time_s": 20.0,
+  "mean_reward": 1767.8579759724162,
+  "std_reward": 447.7282405671263,
+  "mean_distance_mm": 343.9170862698099,
+  "mean_speed_mm_s": 17.195854313490493,
+  "std_speed_mm_s": 5.14597299169502,
+  "mean_lateral_drift_mm": 233.20671189372385,
+  "mean_action_l2_per_step": 6.557573049122095,
+  "mean_action_rate_l2_per_step": 0.06898954467958973,
+  "mean_action_l2_per_m": 22422.791782043507,
+  "mean_path_efficiency": 0.05959550072645692,
+  "mean_slip_proxy": 0.9404044992735431,
+  "mean_propulsion_efficiency_m_per_action_l2": 5.223632352136216e-05,
+  "success_distance_m": 0.05,
+  "success_rate": 1.0,
+  "slope_success_rate": null,
+  "sand_slip_proxy": null,
+  "sand_propulsion_efficiency_m_per_action_l2": null,
+  "termination_rate": 0.0,
+  "model_path": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\best_model.zip"
+}

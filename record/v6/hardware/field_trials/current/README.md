@@ -10,9 +10,9 @@ reference exist for each terrain: flat, sand, and slope.
 
 | Terrain | Bundle | Recommended gait_blend | Trial README |
 | --- | --- | ---: | --- |
-| flat | `record/v6/deploy_bundles/flat_random` | 0.500 | `record/v6/hardware/field_trials/current/flat/README.md` |
-| sand | `record/v6/deploy_bundles/sand_random` | 1.000 | `record/v6/hardware/field_trials/current/sand/README.md` |
-| slope | `record/v6/deploy_bundles/slope_random` | 0.000 | `record/v6/hardware/field_trials/current/slope/README.md` |
+| flat | `record/v6/deploy_bundles/flat_random` | 0.750 | `record/v6/hardware/field_trials/current/flat/README.md` |
+| sand | `record/v6/deploy_bundles/sand_random` | 0.500 | `record/v6/hardware/field_trials/current/sand/README.md` |
+| slope | `record/v6/deploy_bundles/slope_random` | 0.500 | `record/v6/hardware/field_trials/current/slope/README.md` |
 
 ## Final Audit Command
 

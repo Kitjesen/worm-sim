@@ -11,9 +11,13 @@ import argparse
 import csv
 import json
 import os
+import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
+sys.path.insert(0, SCRIPT_DIR)
+
+from audit_paper_goal_v6 import valid_eval_metrics  # noqa: E402
 
 PAPER_TERRAINS = ("flat", "sand", "slope")
 PAPER_MODES = ("worm", "snake", "mixed")
@@ -60,33 +64,66 @@ def collect_fixed_mode_rows():
             rl = read_json(rl_metrics_path(terrain, mode))
             robust = read_json(rl_robust_metrics_path(terrain, mode))
             cmaes = read_json(cmaes_path(terrain, mode))
+            rl_current, rl_status, rl_reasons = current_eval(
+                rl, terrain, mode, "nominal")
+            robust_current, robust_status, robust_reasons = current_eval(
+                robust, terrain, mode, "robust")
             rows.append({
                 "terrain": terrain,
                 "mode": mode,
-                "rl_speed_mm_s": value_or_blank(rl, "mean_speed_mm_s"),
+                "rl_speed_mm_s": value_or_blank(
+                    rl_current, "mean_speed_mm_s"),
                 "rl_lateral_drift_mm": value_or_blank(
-                    rl, "mean_lateral_drift_mm"),
+                    rl_current, "mean_lateral_drift_mm"),
                 "rl_action_l2_per_m": value_or_blank(
-                    rl, "mean_action_l2_per_m"),
+                    rl_current, "mean_action_l2_per_m"),
                 "rl_path_efficiency": value_or_blank(
-                    rl, "mean_path_efficiency"),
-                "rl_slip_proxy": value_or_blank(rl, "mean_slip_proxy"),
-                "rl_success_rate": value_or_blank(rl, "success_rate"),
+                    rl_current, "mean_path_efficiency"),
+                "rl_slip_proxy": value_or_blank(
+                    rl_current, "mean_slip_proxy"),
+                "rl_success_rate": value_or_blank(
+                    rl_current, "success_rate"),
                 "rl_propulsion_efficiency_m_per_action_l2": value_or_blank(
-                    rl, "mean_propulsion_efficiency_m_per_action_l2"),
-                "rl_termination_rate": value_or_blank(rl, "termination_rate"),
-                "robust_speed_mm_s": value_or_blank(robust, "mean_speed_mm_s"),
-                "robust_success_rate": value_or_blank(robust, "success_rate"),
+                    rl_current, "mean_propulsion_efficiency_m_per_action_l2"),
+                "rl_termination_rate": value_or_blank(
+                    rl_current, "termination_rate"),
+                "robust_speed_mm_s": value_or_blank(
+                    robust_current, "mean_speed_mm_s"),
+                "robust_success_rate": value_or_blank(
+                    robust_current, "success_rate"),
                 "robust_slip_proxy": value_or_blank(
-                    robust, "mean_slip_proxy"),
+                    robust_current, "mean_slip_proxy"),
                 "robust_termination_rate": value_or_blank(
-                    robust, "termination_rate"),
-                "robust_status": "done" if robust is not None else "missing",
+                    robust_current, "termination_rate"),
+                "robust_status": robust_status,
+                "robust_status_reasons": robust_reasons,
                 "cmaes_speed_mm_s": value_or_blank(cmaes, "best_speed_mm_s"),
-                "rl_status": "done" if rl is not None else "missing",
+                "rl_status": rl_status,
+                "rl_status_reasons": rl_reasons,
                 "cmaes_status": "done" if cmaes is not None else "missing",
             })
     return rows
+
+
+def current_eval(data, terrain, mode, expected_condition):
+    if data is None:
+        return None, "missing", ""
+    ok, reasons = valid_eval_metrics(data, terrain, mode, expected_condition)
+    if ok:
+        return data, "done", ""
+    return None, "stale", ",".join(reasons)
+
+
+def current_scan_eval(data, terrain, policy_mode):
+    if data is None:
+        return None, "missing", ""
+    ok, reasons = valid_eval_metrics(data, terrain, policy_mode, "nominal")
+    if data.get("policy_mode", policy_mode) != policy_mode:
+        ok = False
+        reasons = list(reasons) + ["policy_mode"]
+    if ok:
+        return data, "done", ""
+    return None, "stale", ",".join(reasons)
 
 
 def collect_scan_rows(policy_mode):
@@ -96,20 +133,31 @@ def collect_scan_rows(policy_mode):
         if not data:
             continue
         for item in data:
+            current, scan_status, scan_reasons = current_scan_eval(
+                item, terrain, policy_mode)
             rows.append({
                 "terrain": item.get("terrain", terrain),
                 "policy_mode": item.get("policy_mode", policy_mode),
                 "gait_blend": item.get("gait_blend"),
-                "mean_speed_mm_s": item.get("mean_speed_mm_s"),
-                "mean_lateral_drift_mm": item.get("mean_lateral_drift_mm"),
-                "mean_action_l2_per_m": item.get("mean_action_l2_per_m"),
-                "mean_path_efficiency": item.get("mean_path_efficiency"),
-                "mean_slip_proxy": item.get("mean_slip_proxy"),
-                "mean_propulsion_efficiency_m_per_action_l2": item.get(
+                "mean_speed_mm_s": value_or_blank(
+                    current, "mean_speed_mm_s"),
+                "mean_lateral_drift_mm": value_or_blank(
+                    current, "mean_lateral_drift_mm"),
+                "mean_action_l2_per_m": value_or_blank(
+                    current, "mean_action_l2_per_m"),
+                "mean_path_efficiency": value_or_blank(
+                    current, "mean_path_efficiency"),
+                "mean_slip_proxy": value_or_blank(
+                    current, "mean_slip_proxy"),
+                "mean_propulsion_efficiency_m_per_action_l2": value_or_blank(
+                    current,
                     "mean_propulsion_efficiency_m_per_action_l2"),
-                "success_rate": item.get("success_rate"),
-                "termination_rate": item.get("termination_rate"),
+                "success_rate": value_or_blank(current, "success_rate"),
+                "termination_rate": value_or_blank(
+                    current, "termination_rate"),
                 "model_path": item.get("model_path"),
+                "scan_status": scan_status,
+                "scan_status_reasons": scan_reasons,
             })
     return rows
 
@@ -132,11 +180,15 @@ def write_csv(path, rows, fields):
 def best_scan_rows(scan_rows):
     best = {}
     for row in scan_rows:
+        if row.get("scan_status") != "done":
+            continue
         terrain = row["terrain"]
         speed = row.get("mean_speed_mm_s")
-        if speed is None:
+        if numeric(speed) is None:
             continue
-        if terrain not in best or speed > best[terrain].get("mean_speed_mm_s", -1e9):
+        current_best = numeric(best[terrain].get(
+            "mean_speed_mm_s")) if terrain in best else -1e9
+        if terrain not in best or numeric(speed) > current_best:
             best[terrain] = row
     return [best[t] for t in PAPER_TERRAINS if t in best]
 
@@ -180,11 +232,20 @@ def best_row_by_lowest(rows, key):
 
 
 def build_claim_report(fixed_rows, scan_rows, best_rows):
+    fixed_current = [
+        row for row in fixed_rows if row.get("rl_status") == "done"
+    ]
+    scan_current = [
+        row for row in scan_rows if row.get("scan_status") == "done"
+    ]
     fixed_averages = []
     for mode in PAPER_MODES:
-        rows = [row for row in fixed_rows if row["mode"] == mode]
+        rows = [row for row in fixed_current if row["mode"] == mode]
         fixed_averages.append({
             "mode": mode,
+            "terrain_count": len({
+                row["terrain"] for row in rows
+            }),
             "avg_speed_mm_s": mean([
                 numeric(row.get("rl_speed_mm_s")) for row in rows
             ]),
@@ -218,13 +279,15 @@ def build_claim_report(fixed_rows, scan_rows, best_rows):
     terrain_rows = []
     for terrain in PAPER_TERRAINS:
         fixed_best = best_row_by_speed(
-            [row for row in fixed_rows if row["terrain"] == terrain],
+            [row for row in fixed_current if row["terrain"] == terrain],
             "rl_speed_mm_s")
         scan_best = best_row_by_speed(
-            [row for row in scan_rows if row["terrain"] == terrain],
+            [row for row in scan_current if row["terrain"] == terrain],
             "mean_speed_mm_s")
+        terrain_status = "done" if fixed_best and scan_best else "incomplete"
         entry = {
             "terrain": terrain,
+            "status": terrain_status,
             "fixed_best_mode": fixed_best.get("mode") if fixed_best else None,
             "fixed_best_speed_mm_s": (
                 numeric(fixed_best.get("rl_speed_mm_s"))
@@ -250,6 +313,10 @@ def build_claim_report(fixed_rows, scan_rows, best_rows):
         else:
             entry["scan_vs_fixed_best_delta_mm_s"] = None
         terrain_rows.append(entry)
+
+    complete_terrain_count = sum(
+        1 for row in terrain_rows if row["status"] == "done")
+    all_terrains_current = complete_terrain_count == len(PAPER_TERRAINS)
 
     speed_delta = None
     if (adaptive["avg_speed_mm_s"] is not None
@@ -279,7 +346,9 @@ def build_claim_report(fixed_rows, scan_rows, best_rows):
     success_supported = success_delta is not None and success_delta >= 0.0
     termination_supported = (
         termination_delta is not None and termination_delta <= 0.0)
-    if speed_supported and (success_supported or termination_supported):
+    if not all_terrains_current:
+        goal3_status = "incomplete"
+    elif speed_supported and (success_supported or termination_supported):
         goal3_status = "supported"
     elif speed_supported or success_supported or termination_supported:
         goal3_status = "mixed"
@@ -291,15 +360,17 @@ def build_claim_report(fixed_rows, scan_rows, best_rows):
             "claim": (
                 "Continuous gait_blend exposes terrain-dependent mode "
                 "preferences."),
-            "status": "supported" if len(terrain_rows) == len(PAPER_TERRAINS)
-            else "incomplete",
+            "status": "supported" if all_terrains_current else "incomplete",
             "evidence": terrain_rows,
         },
         {
             "claim": (
                 "Adaptive best-blend random policy improves cross-terrain "
                 "average speed over the best single fixed mode."),
-            "status": "supported" if speed_supported else "not_supported",
+            "status": (
+                "supported" if all_terrains_current and speed_supported
+                else "incomplete" if not all_terrains_current
+                else "not_supported"),
             "adaptive_avg_speed_mm_s": adaptive["avg_speed_mm_s"],
             "best_single_mode": (
                 best_single_speed.get("mode") if best_single_speed else None),
@@ -312,7 +383,10 @@ def build_claim_report(fixed_rows, scan_rows, best_rows):
             "claim": (
                 "Adaptive best-blend random policy improves or preserves "
                 "cross-terrain success rate versus the best single fixed mode."),
-            "status": "supported" if success_supported else "not_supported",
+            "status": (
+                "supported" if all_terrains_current and success_supported
+                else "incomplete" if not all_terrains_current
+                else "not_supported"),
             "adaptive_avg_success_rate": adaptive["avg_success_rate"],
             "best_single_mode": (
                 best_single_success.get("mode") if best_single_success
@@ -327,8 +401,10 @@ def build_claim_report(fixed_rows, scan_rows, best_rows):
                 "Adaptive best-blend random policy improves or preserves "
                 "cross-terrain termination rate versus the most stable "
                 "single fixed mode."),
-            "status": "supported" if termination_supported
-            else "not_supported",
+            "status": (
+                "supported" if all_terrains_current and termination_supported
+                else "incomplete" if not all_terrains_current
+                else "not_supported"),
             "adaptive_avg_termination_rate": adaptive[
                 "avg_termination_rate"],
             "best_single_mode": (
@@ -343,6 +419,14 @@ def build_claim_report(fixed_rows, scan_rows, best_rows):
     ]
 
     cautions = []
+    if not all_terrains_current:
+        missing = [
+            row["terrain"] for row in terrain_rows
+            if row["status"] != "done"
+        ]
+        cautions.append(
+            "Current-contract cross-terrain claims are incomplete until "
+            f"these terrains have fresh eval and scan evidence: {', '.join(missing)}.")
     for entry in terrain_rows:
         if (entry.get("scan_vs_fixed_best_delta_mm_s") is not None
                 and entry["scan_vs_fixed_best_delta_mm_s"] < 0.0):
@@ -360,6 +444,12 @@ def build_claim_report(fixed_rows, scan_rows, best_rows):
 
     return {
         "format_version": 1,
+        "current_contract_coverage": {
+            "complete_terrain_count": complete_terrain_count,
+            "required_terrain_count": len(PAPER_TERRAINS),
+            "fixed_eval_rows": len(fixed_current),
+            "scan_rows": len(scan_current),
+        },
         "inputs": {
             "fixed_mode_summary": "fixed_mode_summary.csv",
             "blend_scan_summary": "blend_scan_summary.csv",
@@ -384,12 +474,13 @@ def write_claims(path_json, path_md, report):
         "",
         "## Terrain Mode Selection",
         "",
-        "| Terrain | Best fixed mode | Fixed speed mm/s | Best gait_blend | Blend label | Blend speed mm/s | Delta vs fixed |",
-        "| --- | --- | ---: | ---: | --- | ---: | ---: |",
+        "| Terrain | Status | Best fixed mode | Fixed speed mm/s | Best gait_blend | Blend label | Blend speed mm/s | Delta vs fixed |",
+        "| --- | --- | --- | ---: | ---: | --- | ---: | ---: |",
     ]
     for row in report["terrain_mode_selection"]:
         lines.append(
-            f"| {row['terrain']} | {row['fixed_best_mode']} | "
+            f"| {row['terrain']} | {row['status']} | "
+            f"{row['fixed_best_mode']} | "
             f"{fmt(row['fixed_best_speed_mm_s'])} | "
             f"{fmt(row['scan_best_gait_blend'])} | "
             f"{row['scan_best_label']} | "
@@ -437,6 +528,11 @@ def write_markdown(path, fixed_rows, scan_rows, best_rows):
     lines = [
         "# Worm V6 Paper Results Summary",
         "",
+        "Only current-contract V6 artifacts are used for numeric paper claims. "
+        "Existing stale eval/scan files are listed as `stale` with blank metric "
+        "cells until they are regenerated under the current observation, "
+        "control timing, and actuator contract.",
+        "",
         "## Figures",
         "",
         "- [Fixed mode speed](fixed_mode_speed.svg)",
@@ -476,7 +572,7 @@ def write_markdown(path, fixed_rows, scan_rows, best_rows):
 
     lines.extend([
         "",
-        "## Best Blend Scan",
+        "## Best Current-Contract Blend Scan",
         "",
         "| Terrain | Policy | Best gait_blend | Speed mm/s | Success | Slip proxy | Action/m | Termination |",
         "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
@@ -679,14 +775,16 @@ def main():
         "rl_success_rate", "rl_propulsion_efficiency_m_per_action_l2",
         "rl_termination_rate", "robust_speed_mm_s", "robust_success_rate",
         "robust_slip_proxy", "robust_termination_rate", "robust_status",
-        "cmaes_speed_mm_s", "rl_status", "cmaes_status",
+        "robust_status_reasons", "cmaes_speed_mm_s", "rl_status",
+        "rl_status_reasons", "cmaes_status",
     ]
     scan_fields = [
         "terrain", "policy_mode", "gait_blend", "mean_speed_mm_s",
         "mean_lateral_drift_mm", "mean_action_l2_per_m",
         "mean_path_efficiency", "mean_slip_proxy",
         "mean_propulsion_efficiency_m_per_action_l2", "success_rate",
-        "termination_rate", "model_path",
+        "termination_rate", "model_path", "scan_status",
+        "scan_status_reasons",
     ]
     write_csv(os.path.join(args.out_dir, "fixed_mode_summary.csv"),
               fixed_rows, fixed_fields)

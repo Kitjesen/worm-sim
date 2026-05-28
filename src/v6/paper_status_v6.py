@@ -132,6 +132,17 @@ def training_matrix_progress():
     return rows
 
 
+def hardware_recommended_blends():
+    from prepare_hardware_trials_v6 import (
+        DEFAULT_BEST_BLEND_CSV,
+        read_recommended_blends,
+    )
+
+    blends = read_recommended_blends(DEFAULT_BEST_BLEND_CSV)
+    return {terrain: float(blends.get(terrain, 0.5))
+            for terrain in PAPER_TERRAINS}
+
+
 def recommended_commands(audit, missing):
     commands = []
     if "12 PPO training model artifacts" in missing:
@@ -199,6 +210,10 @@ def recommended_commands(audit, missing):
             "python src/v6/preflight_hardware_deploy_v6.py --strict",
         ))
     if "flat/sand/slope hardware logs with video references" in missing:
+        blends = hardware_recommended_blends()
+        flat_blend = blends["flat"]
+        sand_blend = blends["sand"]
+        slope_blend = blends["slope"]
         commands.append((
             "hardware_status",
             "python src/v6/hardware_trial_status_v6.py --write-report",
@@ -208,7 +223,7 @@ def recommended_commands(audit, missing):
             "python src/v6/check_controller_stream_v6.py --input-jsonl "
             "controller_stream.jsonl --terrain flat --mode random "
             "--video-file record/v6/videos/flat_random_hardware_demo.mp4 "
-            "--gait-blend 0.5 --cmd-vel 0.025 --cmd-yaw 0.0 "
+            f"--gait-blend {flat_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0 "
             "--bundle-dir record/v6/deploy_bundles/flat_random --strict",
         ))
         commands.append((
@@ -218,7 +233,7 @@ def recommended_commands(audit, missing):
             "record/v6/hardware/field_trials/current/flat/"
             "flat_random_raw.csv --terrain flat --mode random "
             "--video-file record/v6/videos/flat_random_hardware_demo.mp4 "
-            "--gait-blend 0.5 --cmd-vel 0.025 --cmd-yaw 0.0",
+            f"--gait-blend {flat_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0",
         ))
         commands.append((
             "hardware_process_flat",
@@ -227,7 +242,7 @@ def recommended_commands(audit, missing):
             "--raw-csv record/v6/hardware/field_trials/current/flat/"
             "flat_random_raw.csv "
             "--video-file record/v6/videos/flat_random_hardware_demo.mp4 "
-            "--gait-blend 0.5 --cmd-vel 0.025 --cmd-yaw 0.0 "
+            f"--gait-blend {flat_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0 "
             "--date YYYYMMDD",
         ))
         commands.append((
@@ -235,7 +250,7 @@ def recommended_commands(audit, missing):
             "python src/v6/check_controller_stream_v6.py --input-jsonl "
             "controller_stream.jsonl --terrain sand --mode random "
             "--video-file record/v6/videos/sand_random_hardware_demo.mp4 "
-            "--gait-blend 1.0 --cmd-vel 0.025 --cmd-yaw 0.0 "
+            f"--gait-blend {sand_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0 "
             "--bundle-dir record/v6/deploy_bundles/sand_random --strict",
         ))
         commands.append((
@@ -245,7 +260,7 @@ def recommended_commands(audit, missing):
             "record/v6/hardware/field_trials/current/sand/"
             "sand_random_raw.csv --terrain sand --mode random "
             "--video-file record/v6/videos/sand_random_hardware_demo.mp4 "
-            "--gait-blend 1.0 --cmd-vel 0.025 --cmd-yaw 0.0",
+            f"--gait-blend {sand_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0",
         ))
         commands.append((
             "hardware_process_sand",
@@ -254,7 +269,7 @@ def recommended_commands(audit, missing):
             "--raw-csv record/v6/hardware/field_trials/current/sand/"
             "sand_random_raw.csv "
             "--video-file record/v6/videos/sand_random_hardware_demo.mp4 "
-            "--gait-blend 1.0 --cmd-vel 0.025 --cmd-yaw 0.0 "
+            f"--gait-blend {sand_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0 "
             "--date YYYYMMDD",
         ))
         commands.append((
@@ -262,7 +277,7 @@ def recommended_commands(audit, missing):
             "python src/v6/check_controller_stream_v6.py --input-jsonl "
             "controller_stream.jsonl --terrain slope --mode random "
             "--video-file record/v6/videos/slope_random_hardware_demo.mp4 "
-            "--gait-blend 0.0 --cmd-vel 0.025 --cmd-yaw 0.0 "
+            f"--gait-blend {slope_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0 "
             "--bundle-dir record/v6/deploy_bundles/slope_random --strict",
         ))
         commands.append((
@@ -272,7 +287,7 @@ def recommended_commands(audit, missing):
             "record/v6/hardware/field_trials/current/slope/"
             "slope_random_raw.csv --terrain slope --mode random "
             "--video-file record/v6/videos/slope_random_hardware_demo.mp4 "
-            "--gait-blend 0.0 --cmd-vel 0.025 --cmd-yaw 0.0",
+            f"--gait-blend {slope_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0",
         ))
         commands.append((
             "hardware_process_slope",
@@ -281,7 +296,7 @@ def recommended_commands(audit, missing):
             "--raw-csv record/v6/hardware/field_trials/current/slope/"
             "slope_random_raw.csv "
             "--video-file record/v6/videos/slope_random_hardware_demo.mp4 "
-            "--gait-blend 0.0 --cmd-vel 0.025 --cmd-yaw 0.0 "
+            f"--gait-blend {slope_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0 "
             "--date YYYYMMDD",
         ))
         commands.append((
@@ -291,7 +306,7 @@ def recommended_commands(audit, missing):
             "record/v6/hardware/field_trials/current/flat/"
             "flat_random_raw.csv --video-file "
             "record/v6/videos/flat_random_hardware_demo.mp4 "
-            "--gait-blend 0.5 --date YYYYMMDD",
+            f"--gait-blend {flat_blend:.3f} --date YYYYMMDD",
         ))
         commands.append((
             "hardware_import_sand",
@@ -300,7 +315,7 @@ def recommended_commands(audit, missing):
             "record/v6/hardware/field_trials/current/sand/"
             "sand_random_raw.csv --video-file "
             "record/v6/videos/sand_random_hardware_demo.mp4 "
-            "--gait-blend 1.0 --date YYYYMMDD",
+            f"--gait-blend {sand_blend:.3f} --date YYYYMMDD",
         ))
         commands.append((
             "hardware_import_slope",
@@ -309,7 +324,7 @@ def recommended_commands(audit, missing):
             "record/v6/hardware/field_trials/current/slope/"
             "slope_random_raw.csv --video-file "
             "record/v6/videos/slope_random_hardware_demo.mp4 "
-            "--gait-blend 0.0 --date YYYYMMDD",
+            f"--gait-blend {slope_blend:.3f} --date YYYYMMDD",
         ))
         commands.append((
             "hardware",

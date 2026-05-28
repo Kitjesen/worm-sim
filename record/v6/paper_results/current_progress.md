@@ -15,13 +15,29 @@ Generated on 2026-05-28.
   - `flat/worm`: 1,015,808 PPO steps
   - `flat/snake`: 1,015,808 PPO steps
   - `flat/mixed`: 1,015,808 PPO steps
-- `flat/random` continuous `gait_blend` policy is currently retraining under the same contract; last checked while running, it had produced checkpoints past 160,000 steps.
+- `flat/random` continuous `gait_blend` policy has also reached the formal threshold:
+  - `flat/random`: 1,015,808 PPO steps
+- The flat random deploy bundle has been exported:
+  - `record/v6/deploy_bundles/flat_random/policy_actor.pt`
+  - `record/v6/deploy_bundles/flat_random/deploy_config.json`
+- Flat fixed-mode nominal and robust evals have been regenerated under the current contract.
+- Flat random `gait_blend` scan has been regenerated under the current contract.
 
 ## Effect So Far
 
 - Flat fixed modes now have current-contract model artifacts and can be compared without relying on the old unrealistic actuator mapping.
 - `flat/mixed` did improve during the second training chunk: the best evaluation checkpoint was updated near 976k steps, but the evaluation reward remains more variable than the fixed modes.
-- Current cross-terrain summary files still contain stale sand/slope and old random-policy data. Treat those as exploratory until sand/slope/random are retrained and the eval/scan stage is rerun.
+- Flat `random` blend scan result:
+  - best current blend: `gait_blend=0.75`
+  - speed: `24.832 mm/s`
+  - success: `1.0`
+  - comparison: `gait_blend=1.0` gives `24.116 mm/s`; `gait_blend=0.5` gives `20.799 mm/s`; `gait_blend=0.0` gives `1.876 mm/s`.
+- Flat robust fixed-mode result:
+  - `worm`: `13.770 mm/s`, success `1.0`
+  - `snake`: `-14.457 mm/s`, success `0.0`
+  - `mixed`: `31.325 mm/s`, success `1.0`
+- Current cross-terrain summary files now mark stale sand/slope artifacts as `stale` and leave their metric cells blank. They are not counted as current paper evidence.
+- Hardware deploy preflight currently passes for `flat/random`, but fails for sand/slope because their deploy bundles are not current-contract bundles yet.
 
 ## Viewable Evidence
 
@@ -36,12 +52,14 @@ Generated on 2026-05-28.
 - `record/v6/trajectory/`
 - `record/v6/paper_results/results_index.md`
 - `record/v6/paper_results/completion_audit.md`
+- `record/v6/paper_results/summary.md`
+- `record/v6/paper_results/paper_claims.md`
+- `record/v6/deploy_bundles/flat_random/`
 
 Large 4K videos are intentionally not committed to Git because GitHub rejects files over 100 MB without LFS.
 
 ## Remaining Work
 
-- Finish retraining `flat/random`.
 - Retrain sand and slope policies under the current actuator contract.
 - Rerun deploy/export, fixed-mode eval, robust eval, gait_blend scan, summary, and audit.
 - Collect real flat/sand/slope hardware logs with video references.
