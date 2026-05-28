@@ -1,44 +1,16 @@
 {
-  "format_version": 1,
-  "created_unix_time": 1779996039.4986768,
-  "algorithm": "PPO",
   "terrain": "flat",
   "gait_mode": "worm",
-  "gait_blend": null,
-  "run_gait_label": "worm",
-  "obs_dim": 80,
-  "obs_layout": {
-    "command": [
-      0,
-      3
-    ],
-    "joint_pos": [
-      3,
-      14
-    ],
-    "joint_vel": [
-      14,
-      25
-    ],
-    "previous_action": [
-      25,
-      36
-    ],
-    "segment_gravity": [
-      36,
-      57
-    ],
-    "segment_gyro": [
-      57,
-      78
-    ],
-    "phase_clock": [
-      78,
-      80
-    ]
+  "gait_blend": 0.0,
+  "cmd_vel_m_s": 0.025,
+  "cmd_yaw_rad_s": 0.0,
+  "eval_command": {
+    "cmd_vel_m_s": 0.025,
+    "cmd_yaw_rad_s": 0.0,
+    "command_resample_prob": 0.0
   },
-  "num_actuators": 11,
-  "num_imus": 7,
+  "obs_dim": 80,
+  "eval_condition": "reward_v3_prior_lownoise_278k_final",
   "actuator_contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf",
   "actuator_contract": {
     "format_version": 1,
@@ -141,14 +113,6 @@
     "snake_amp_rad": 0.4,
     "snake_amp_normalized": 0.25477707006369427
   },
-  "residual_exploration": {
-    "version": "low_noise_residual_v1",
-    "policy": "PPO diagonal Gaussian over normalized residual action",
-    "reason": "Residual exploration must stay small enough that the deployable gait prior remains the dominant initial behavior.",
-    "ent_coef": 0.005,
-    "log_std_init": -2.5,
-    "initial_std": 0.0820849986238988
-  },
   "reward_contract": {
     "version": "forward_progress_v3",
     "forward_direction": "-world_x",
@@ -171,50 +135,13 @@
       "cyclic_backslip_is_soft_penalized": true
     }
   },
-  "deployable_observation_sources": [
-    "velocity command",
-    "yaw-rate command",
-    "continuous gait_blend command",
-    "actuated joint encoder positions",
-    "actuated joint encoder velocities",
-    "previous applied action",
-    "per-segment IMU projected gravity",
-    "per-segment IMU angular velocity",
-    "phase clock"
-  ],
-  "forbidden_policy_sources": [
-    "base linear velocity",
-    "global position",
-    "global yaw",
-    "MuJoCo freejoint state as policy input",
-    "external localization as policy input"
-  ],
-  "command_ranges": {
-    "cmd_vel_m_s": [
-      0.0,
-      0.025
-    ],
-    "cmd_yaw_rad_s": [
-      -0.3,
-      0.3
-    ],
-    "gait_blend": [
-      0.0,
-      1.0
-    ]
-  },
-  "eval_command": {
-    "cmd_vel_m_s": 0.025,
-    "cmd_yaw_rad_s": 0.0,
-    "command_resample_prob": 0.0
-  },
   "control_timing": {
     "control_dt_s": 0.02,
     "control_rate_hz": 50.0,
     "peristaltic_actuation_period_s": 1.0,
     "phase_freq_hz": 1.0
   },
-  "sensor_robustness": {
+  "sensor_noise": {
     "encoder_pos_noise_std": 0.01,
     "encoder_vel_noise_std": 0.02,
     "imu_gravity_noise_std": 0.01,
@@ -222,56 +149,25 @@
     "action_delay_steps": 1,
     "action_saturation": 1.0
   },
-  "training": {
-    "timesteps": 1000000,
-    "train_chunk_timesteps": 200000,
-    "n_envs": 4,
-    "requested_device": "cpu",
-    "resolved_device": "cpu",
-    "seed": 42,
-    "learning_rate": 0.0003,
-    "n_steps": 4096,
-    "batch_size": 1024,
-    "n_epochs": 10,
-    "gamma": 0.99,
-    "gae_lambda": 0.95,
-    "clip_range": 0.2,
-    "ent_coef": 0.005,
-    "log_std_init": -2.5,
-    "vf_coef": 0.5,
-    "max_grad_norm": 0.5,
-    "policy_net_arch": {
-      "pi": [
-        256,
-        256
-      ],
-      "vf": [
-        256,
-        256
-      ]
-    },
-    "norm_obs": true,
-    "norm_reward": false,
-    "clip_obs": 10.0
-  },
-  "resume": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\final_model.zip",
-  "completed_unix_time": 1779996583.7591305,
-  "resume_start_timesteps": 65536,
-  "target_timesteps": 1000000,
-  "train_chunk_timesteps": 200000,
-  "completed_timesteps": 278528,
-  "artifacts": {
-    "final_model": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\final_model.zip",
-    "final_vecnormalize": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\final_model_vecnormalize.pkl",
-    "best_model": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\best_model.zip",
-    "best_vecnormalize": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\best_model_vecnormalize.pkl",
-    "best_eval_summary": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\best_eval_summary.json",
-    "training_config": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\training_config.json"
-  },
-  "best_eval": {
-    "format_version": 1,
-    "updated_unix_time": 1779995253.9852836,
-    "best_mean_reward": 2482.0255942,
-    "best_timestep": 10000
-  }
+  "episodes": 1,
+  "time_s": 10.0,
+  "mean_reward": 1156.998319564242,
+  "std_reward": 0.0,
+  "mean_distance_mm": 186.16343443342873,
+  "mean_speed_mm_s": 18.616343443342874,
+  "std_speed_mm_s": 0.0,
+  "mean_lateral_drift_mm": 17.168032131851845,
+  "mean_action_l2_per_step": 2.2392197647094725,
+  "mean_action_rate_l2_per_step": 0.01636287182942033,
+  "mean_action_l2_per_m": 6014.123481134552,
+  "mean_path_efficiency": 0.1820457355026639,
+  "mean_slip_proxy": 0.8179542644973361,
+  "mean_propulsion_efficiency_m_per_action_l2": 0.00016627526906237583,
+  "success_distance_m": 0.05,
+  "success_rate": 1.0,
+  "slope_success_rate": null,
+  "sand_slip_proxy": null,
+  "sand_propulsion_efficiency_m_per_action_l2": null,
+  "termination_rate": 0.0,
+  "model_path": "runs\\worm_v6_ppo_flat_worm\\final_model.zip"
 }

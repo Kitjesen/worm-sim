@@ -104,7 +104,7 @@ Current status:
 
 | Terrain | Mode | Current-contract PPO status |
 | --- | --- | --- |
-| flat | worm | current low-noise residual contract, 65,536 / 1,000,000 steps |
+| flat | worm | current low-noise residual contract, 278,528 / 1,000,000 steps |
 | flat | snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
@@ -124,11 +124,15 @@ The strongest current evidence is structural plus a fresh flat/worm smoke result
   encoders, per-segment IMUs, previous action, and phase.
 - The residual exploration scale was reduced after diagnosing random saturated
   residual actions as the cause of large negative training episode rewards.
-- Fresh `flat/worm` low-noise residual training has reached 65,536 steps.
-- Fixed-command robust 10 s eval of the current best `flat/worm` checkpoint:
+- Fresh `flat/worm` low-noise residual training has reached 278,528 steps.
+- Fixed-command robust 10 s eval of the early best `flat/worm` checkpoint:
   153.4 mm forward, 15.34 mm/s, 3.1 mm lateral drift, success 1.0.
-- Low-resolution video rollout of the same checkpoint: 5.0 s, 110.1 mm
+- Fixed-command robust 10 s eval of the latest final checkpoint:
+  186.2 mm forward, 18.62 mm/s, 17.2 mm lateral drift, success 1.0.
+- Low-resolution video rollout of the early best checkpoint: 5.0 s, 110.1 mm
   forward, 22.0 mm/s, no termination.
+- Low-resolution video rollout of the latest final checkpoint: 5.0 s, 121.7
+  mm forward, 24.34 mm/s, no termination.
 - Hardware pipeline templates and preflight checks exist; real flat/sand/slope
   hardware logs are still pending.
 
@@ -154,6 +158,7 @@ Representative committed videos:
 - [sand random preview](record/v6/videos/eval_sand_random.mp4)
 - [slope random preview](record/v6/videos/eval_slope_random.mp4)
 - [current flat/worm low-noise residual rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4)
+- [current flat/worm low-noise final rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_278k_final_20260529.mp4)
 
 Large 4K videos are intentionally not committed because ordinary GitHub repositories reject files over 100 MB without Git LFS.
 
@@ -291,7 +296,7 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Continue `flat/worm` from 65,536 to 1,000,000 current-contract steps.
+- Continue `flat/worm` from 278,528 to 1,000,000 current-contract steps.
 - Retrain flat snake/mixed/random plus all sand and slope policies under the current reward/action/exploration contracts.
 - Regenerate all eval, robust eval, `gait_blend` scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.

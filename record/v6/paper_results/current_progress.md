@@ -22,7 +22,7 @@ Generated on 2026-05-29.
 ## Current Training Evidence
 
 - Fresh `flat/worm` low-noise residual PPO run:
-  - current progress: `65,536 / 1,000,000` PPO steps
+  - current progress: `278,528 / 1,000,000` PPO steps
   - run directory: `runs/worm_v6_ppo_flat_worm/`
   - best model: `runs/worm_v6_ppo_flat_worm/best_model.zip`
   - training result: `runs/worm_v6_ppo_flat_worm/training_result.json`
@@ -35,6 +35,12 @@ Generated on 2026-05-29.
   - lateral drift: `3.1 mm`
   - success: `1.0`
   - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_65k_best.json`
+- Fixed-command robust 10 s eval of the current final `flat/worm` checkpoint:
+  - distance: `186.2 mm`
+  - speed: `18.62 mm/s`
+  - lateral drift: `17.2 mm`
+  - success: `1.0`
+  - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_278k_final.json`
 - Low-resolution video rollout of the same checkpoint:
   - duration: `5.0 s`
   - distance: `110.1 mm`
@@ -42,6 +48,14 @@ Generated on 2026-05-29.
   - termination: `false`
   - video: `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4`
   - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_65k_best_video.json`
+- Low-resolution video rollout of the final checkpoint:
+  - duration: `5.0 s`
+  - distance: `121.7 mm`
+  - speed: `24.34 mm/s`
+  - lateral drift: `1.34 mm`
+  - termination: `false`
+  - video: `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_278k_final_20260529.mp4`
+  - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_278k_final_video.json`
 
 ## Current Audit Result
 
@@ -73,7 +87,7 @@ Large 4K videos are intentionally not committed to Git because GitHub rejects fi
 
 ## Remaining Work
 
-- Continue `flat/worm` from `65,536` to `1,000,000` current-contract steps.
+- Continue `flat/worm` from `278,528` to `1,000,000` current-contract steps.
 - Retrain flat snake/mixed/random and all sand/slope modes under the current reward/action/exploration contracts.
 - Rerun deploy/export, fixed-mode eval, robust eval, `gait_blend` scan, summary, and audit.
 - Collect real flat/sand/slope hardware logs with video references.

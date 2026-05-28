@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "created_unix_time": 1779995183.8497715,
+  "created_unix_time": 1779996039.4986768,
   "algorithm": "PPO",
   "terrain": "flat",
   "gait_mode": "worm",
@@ -224,7 +224,7 @@
   },
   "training": {
     "timesteps": 1000000,
-    "train_chunk_timesteps": 50000,
+    "train_chunk_timesteps": 200000,
     "n_envs": 4,
     "requested_device": "cpu",
     "resolved_device": "cpu",
@@ -254,5 +254,5 @@
     "norm_reward": false,
     "clip_obs": 10.0
   },
-  "resume": null
+  "resume": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_worm\\final_model.zip"
 }
