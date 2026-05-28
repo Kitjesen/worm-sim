@@ -24,7 +24,7 @@ def main():
         timesteps=1_000_000,
         train_chunk_timesteps=None,
         n_envs=4,
-        device="auto",
+        device="cpu",
         episodes=5,
         eval_time=20.0,
         blends="0.0,0.25,0.5,0.75,1.0",
@@ -49,7 +49,7 @@ def main():
     assert "--timesteps" in train["cmd"]
     assert "1000000" in train["cmd"]
     assert "--device" in train["cmd"]
-    assert "auto" in train["cmd"]
+    assert "cpu" in train["cmd"]
     assert "--robust" in train["cmd"]
 
     args.train_chunk_timesteps = 20000

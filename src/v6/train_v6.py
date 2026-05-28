@@ -4,14 +4,14 @@ Worm Robot V6 — RL Training Script
 Train the longworm2 robot with PPO using Stable-Baselines3.
 
 Usage:
-    # Quick self-test (auto device, 10k steps)
+    # Quick self-test (CPU, 10k steps)
     python train_v6.py --test
 
-    # Full local training (auto CUDA/CPU selection, 1M steps, 4 envs)
-    python train_v6.py --timesteps 1000000 --device auto
+    # Full local training (CPU is usually faster for SB3 MLP-PPO)
+    python train_v6.py --timesteps 1000000 --device cpu
 
     # Resume from checkpoint
-    python train_v6.py --timesteps 1000000 --device auto --resume runs/worm_v6_ppo/best_model.zip
+    python train_v6.py --timesteps 1000000 --device cpu --resume runs/worm_v6_ppo/best_model.zip
 """
 
 import os
@@ -172,6 +172,7 @@ def archive_existing_run_artifacts(run_dir, reason):
         "final_model_vecnormalize.pkl",
         "training_config.json",
         "training_result.json",
+        "best_eval_summary.json",
         "eval_metrics.json",
         "eval_metrics_robust.json",
         "checkpoints",
@@ -226,6 +227,51 @@ def write_json(path, data):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
+
+def best_eval_summary_path(run_dir):
+    return os.path.join(run_dir, "best_eval_summary.json")
+
+
+def has_best_model_pair(run_dir):
+    return (
+        os.path.exists(os.path.join(run_dir, "best_model.zip"))
+        and os.path.exists(os.path.join(run_dir, "best_model_vecnormalize.pkl"))
+    )
+
+
+def load_persistent_best_eval(run_dir, log_dir):
+    if not has_best_model_pair(run_dir):
+        return -np.inf
+
+    summary = read_json(best_eval_summary_path(run_dir))
+    try:
+        value = float((summary or {}).get("best_mean_reward"))
+        if np.isfinite(value):
+            return value
+    except (TypeError, ValueError):
+        pass
+
+    eval_path = os.path.join(log_dir, "evaluations.npz")
+    if not os.path.exists(eval_path):
+        return -np.inf
+    try:
+        data = np.load(eval_path)
+        results = data["results"]
+        if len(results) == 0:
+            return -np.inf
+        return float(np.max(np.mean(results, axis=1)))
+    except (KeyError, OSError, ValueError):
+        return -np.inf
+
+
+def write_best_eval_summary(path, mean_reward, timestep):
+    write_json(path, {
+        "format_version": 1,
+        "updated_unix_time": time.time(),
+        "best_mean_reward": float(mean_reward),
+        "best_timestep": int(timestep),
+    })
 
 
 def build_training_config(args, run_gait_label, sensor_kwargs, device):
@@ -292,7 +338,7 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
             "timesteps": args.timesteps,
             "train_chunk_timesteps": args.train_chunk_timesteps,
             "n_envs": args.n_envs,
-            "requested_device": getattr(args, "device", "auto"),
+            "requested_device": getattr(args, "device", "cpu"),
             "resolved_device": device,
             "seed": 42,
             "learning_rate": 3e-4,
@@ -322,7 +368,9 @@ class NormSyncCallback(BaseCallback):
         self.eval_env = eval_env
         self.save_path = save_path
         self.print_freq = print_freq
-        self._last_best = None
+        best_path = os.path.join(self.save_path, "best_model.zip")
+        self._last_best = (
+            os.path.getmtime(best_path) if os.path.exists(best_path) else None)
 
     def _on_step(self):
         # Sync obs normalization
@@ -348,6 +396,27 @@ class NormSyncCallback(BaseCallback):
                 print(f"  step {self.num_timesteps:>8d}  "
                       f"ep_reward={mean_r:>8.2f}  ep_len={mean_l:>6.0f}")
         return True
+
+
+class PersistentBestEvalCallback(EvalCallback):
+    def __init__(self, *args, persistent_best_mean=-np.inf,
+                 persistent_path=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.best_mean_reward = float(persistent_best_mean)
+        self.persistent_path = persistent_path
+
+    def _on_step(self):
+        previous_best = self.best_mean_reward
+        keep_training = super()._on_step()
+        if (self.persistent_path
+                and self.best_mean_reward > previous_best
+                and np.isfinite(self.best_mean_reward)):
+            write_best_eval_summary(
+                self.persistent_path,
+                self.best_mean_reward,
+                self.num_timesteps,
+            )
+        return keep_training
 
 
 def train(args):
@@ -497,13 +566,19 @@ def train(args):
         clip_obs=10.0, training=False)
     eval_env.obs_rms = vec_env.obs_rms
 
-    eval_callback = EvalCallback(
+    persistent_best = load_persistent_best_eval(RUN_DIR, LOG_DIR)
+    if np.isfinite(persistent_best):
+        print(f"  persistent_best_eval_reward: {persistent_best:.2f}")
+
+    eval_callback = PersistentBestEvalCallback(
         eval_env,
         best_model_save_path=RUN_DIR,
         log_path=LOG_DIR,
         eval_freq=max(5000 // n_envs, 1),
         n_eval_episodes=5,
         deterministic=True,
+        persistent_best_mean=persistent_best,
+        persistent_path=best_eval_summary_path(RUN_DIR),
     )
 
     checkpoint_callback = CheckpointCallback(
@@ -550,8 +625,12 @@ def train(args):
         "best_model": os.path.join(RUN_DIR, "best_model.zip"),
         "best_vecnormalize": os.path.join(
             RUN_DIR, "best_model_vecnormalize.pkl"),
+        "best_eval_summary": best_eval_summary_path(RUN_DIR),
         "training_config": config_path,
     }
+    best_eval = read_json(best_eval_summary_path(RUN_DIR))
+    if best_eval:
+        result["best_eval"] = best_eval
     write_json(result_path, result)
     print(f"\n  Saved final model: {final_path}.zip")
     print(f"  Saved VecNormalize: {final_path}_vecnormalize.pkl")
@@ -590,7 +669,7 @@ if __name__ == "__main__":
                          "while keeping --timesteps as the formal target")
     ap.add_argument("--n-envs", type=int, default=4,
                     help="Number of parallel environments")
-    ap.add_argument("--device", type=str, default="auto",
+    ap.add_argument("--device", type=str, default="cpu",
                     choices=["auto", "cpu", "cuda"],
                     help="PPO network device; MuJoCo env stepping remains CPU-bound")
     ap.add_argument("--resume", type=str, default=None,

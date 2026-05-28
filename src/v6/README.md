@@ -13,5 +13,6 @@ Use these entry points for new work:
 
 Training accepts `--device auto`, `--device cpu`, or `--device cuda`.
 This selects the PPO network device; MuJoCo stepping remains CPU-bound.
+Use `--device cpu` by default for SB3 MLP-PPO unless a benchmark shows CUDA is faster.
 
 The old `src/v3/*_v6.py` paths are compatibility wrappers only.

@@ -246,7 +246,7 @@ def print_results_table(method):
 
 
 def run_rl(terrains, modes, timesteps, n_envs, test, dry_run, robust,
-           resume_partial=False, train_chunk_timesteps=None, device="auto"):
+           resume_partial=False, train_chunk_timesteps=None, device="cpu"):
     total = len(terrains) * len(modes)
     done = 0
     for terrain in terrains:
@@ -453,7 +453,7 @@ def main():
                     help="Train at most this many additional timesteps "
                          "per RL run while preserving --timesteps as target")
     ap.add_argument("--n-envs", type=int, default=4)
-    ap.add_argument("--device", type=str, default="auto",
+    ap.add_argument("--device", type=str, default="cpu",
                     choices=["auto", "cpu", "cuda"],
                     help="PPO network device passed to train_v6.py")
     ap.add_argument("--popsize", type=int, default=16)

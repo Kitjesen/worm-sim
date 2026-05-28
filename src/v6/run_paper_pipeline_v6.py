@@ -59,7 +59,7 @@ def write_manifest(path, args, records):
         "timesteps": args.timesteps,
         "train_chunk_timesteps": getattr(args, "train_chunk_timesteps", None),
         "n_envs": args.n_envs,
-        "device": getattr(args, "device", "auto"),
+        "device": getattr(args, "device", "cpu"),
         "episodes": args.episodes,
         "eval_time_s": args.eval_time,
         "blends": args.blends,
@@ -258,6 +258,7 @@ def smoke(args):
         "test_observation_source_audit_v6.py",
         "test_goal_audit_v6.py",
         "test_paper_pipeline_plan_v6.py",
+        "test_persistent_best_eval_v6.py",
         "test_resume_partial_v6.py",
     ]
     run(py("-m", "py_compile", *[
@@ -294,6 +295,8 @@ def smoke(args):
     run(py(os.path.join(SCRIPT_DIR, "test_goal_audit_v6.py")),
         dry_run=args.dry_run)
     run(py(os.path.join(SCRIPT_DIR, "test_paper_pipeline_plan_v6.py")),
+        dry_run=args.dry_run)
+    run(py(os.path.join(SCRIPT_DIR, "test_persistent_best_eval_v6.py")),
         dry_run=args.dry_run)
     run(py(os.path.join(SCRIPT_DIR, "test_resume_partial_v6.py")),
         dry_run=args.dry_run)
@@ -452,7 +455,7 @@ def main():
                     help="For formal train stages, train at most this many "
                          "additional timesteps per selected record")
     ap.add_argument("--n-envs", type=int, default=4)
-    ap.add_argument("--device", type=str, default="auto",
+    ap.add_argument("--device", type=str, default="cpu",
                     choices=["auto", "cpu", "cuda"],
                     help="PPO network device for train stages")
     ap.add_argument("--episodes", type=int, default=5)

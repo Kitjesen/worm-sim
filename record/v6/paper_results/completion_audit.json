@@ -77,10 +77,10 @@
         "runs/worm_v6_ppo_flat_worm/best_model.zip",
         "runs/worm_v6_ppo_flat_snake/best_model.zip",
         "runs/worm_v6_ppo_flat_mixed/best_model.zip",
-        "runs/worm_v6_ppo_flat_random/best_model.zip"
+        "runs/worm_v6_ppo_flat_random/best_model.zip",
+        "runs/worm_v6_ppo_sand_worm/best_model.zip"
       ],
       "missing": [
-        "runs/worm_v6_ppo_sand_worm",
         "runs/worm_v6_ppo_sand_snake",
         "runs/worm_v6_ppo_sand_mixed",
         "runs/worm_v6_ppo_sand_random",

@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "created_unix_time": 1779975902.2369184,
+  "created_unix_time": 1779984617.0695627,
   "algorithm": "PPO",
   "terrain": "sand",
   "gait_mode": "worm",
@@ -176,8 +176,10 @@
   },
   "training": {
     "timesteps": 1000000,
-    "train_chunk_timesteps": 400000,
+    "train_chunk_timesteps": 120000,
     "n_envs": 4,
+    "requested_device": "cpu",
+    "resolved_device": "cpu",
     "seed": 42,
     "learning_rate": 0.0003,
     "n_steps": 4096,
@@ -203,5 +205,5 @@
     "norm_reward": false,
     "clip_obs": 10.0
   },
-  "resume": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_sand_worm\\final_model.zip"
+  "resume": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_sand_worm\\checkpoints\\worm_v6_ppo_904288_steps.zip"
 }

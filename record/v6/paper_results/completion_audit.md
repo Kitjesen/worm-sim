@@ -8,7 +8,7 @@ Complete: `false`
 | online deploy runtime tools | ok |  |
 | hardware deploy preflight report | missing | hardware deploy preflight complete, hardware deploy preflight terrain status |
 | sim sensor to hardware-policy bridge | ok |  |
-| 12 PPO training model artifacts | missing | runs/worm_v6_ppo_sand_worm, runs/worm_v6_ppo_sand_snake, runs/worm_v6_ppo_sand_mixed, runs/worm_v6_ppo_sand_random, runs/worm_v6_ppo_slope_worm, runs/worm_v6_ppo_slope_snake, runs/worm_v6_ppo_slope_mixed, runs/worm_v6_ppo_slope_random |
+| 12 PPO training model artifacts | missing | runs/worm_v6_ppo_sand_snake, runs/worm_v6_ppo_sand_mixed, runs/worm_v6_ppo_sand_random, runs/worm_v6_ppo_slope_worm, runs/worm_v6_ppo_slope_snake, runs/worm_v6_ppo_slope_mixed, runs/worm_v6_ppo_slope_random |
 | 9 fixed-mode eval JSON files | missing | runs/worm_v6_ppo_sand_worm/eval_metrics.json, runs/worm_v6_ppo_sand_snake/eval_metrics.json, runs/worm_v6_ppo_sand_mixed/eval_metrics.json, runs/worm_v6_ppo_slope_worm/eval_metrics.json, runs/worm_v6_ppo_slope_snake/eval_metrics.json, runs/worm_v6_ppo_slope_mixed/eval_metrics.json |
 | 9 robust fixed-mode eval JSON files | missing | runs/worm_v6_ppo_sand_worm/eval_metrics_robust.json, runs/worm_v6_ppo_sand_snake/eval_metrics_robust.json, runs/worm_v6_ppo_sand_mixed/eval_metrics_robust.json, runs/worm_v6_ppo_slope_worm/eval_metrics_robust.json, runs/worm_v6_ppo_slope_snake/eval_metrics_robust.json, runs/worm_v6_ppo_slope_mixed/eval_metrics_robust.json |
 | 9 CMA-ES open-loop baseline JSON files | ok |  |
