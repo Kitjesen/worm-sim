@@ -32,9 +32,11 @@ from action_adapter_v6 import (  # noqa: E402
     CMAES_ANCHORS,
     DEFAULT_GAIT_PRIOR_SCALE,
     DEFAULT_POLICY_RESIDUAL_SCALE,
+    POLICY_ACTION_DIM,
     action_adapter_contract,
     compose_deployable_action,
     phase_from_clock,
+    policy_action_to_residual_and_gait_blend,
 )
 
 
@@ -107,11 +109,16 @@ class DeployablePPOActor(torch.nn.Module):
         obs = torch.clamp(obs, -self.clip_obs, self.clip_obs)
         features = self.features_extractor(obs)
         latent_pi = self.mlp_extractor.forward_actor(features)
-        residual = torch.clamp(self.action_net(latent_pi), -1.0, 1.0)
+        policy_action = torch.clamp(self.action_net(latent_pi), -1.0, 1.0)
+        residual = policy_action[:, :NUM_SLIDES + NUM_YAWS]
+        gait_blend = torch.clamp(
+            0.5 * (policy_action[:, NUM_SLIDES + NUM_YAWS:] + 1.0),
+            0.0,
+            1.0,
+        )
         phase = torch.atan2(raw_obs[:, 78:79], raw_obs[:, 79:80])
         phase_cycle_s = torch.remainder(
             phase, 2.0 * torch.pi) / (2.0 * torch.pi)
-        gait_blend = torch.clamp(raw_obs[:, 2:3], 0.0, 1.0)
         worm_prior = self._anchor_prior(
             phase_cycle_s, self.peristaltic_params, 1.0, 0.0)
         full_prior = self._anchor_prior(
@@ -216,7 +223,8 @@ def export_policy(args):
     from observation_contract_v6 import attach_contract_to_config
     from validate_hardware_log_v6 import observation_columns
     from worm_env_v6 import (
-        CMD_VEL_RANGE,
+        CMD_VX_RANGE,
+        CMD_VY_RANGE,
         CMD_YAW_RANGE,
         CTRL_DT,
         NUM_ACTUATORS,
@@ -260,10 +268,12 @@ def export_policy(args):
             np.sqrt(norm["var"] + norm["epsilon"]))
         dummy_norm = np.clip(dummy_norm, -norm["clip_obs"], norm["clip_obs"])
         sb3_action, _ = model.predict(dummy_norm, deterministic=True)
+        residual, gait_blend = policy_action_to_residual_and_gait_blend(
+            sb3_action[0])
         expected_action = compose_deployable_action(
-            sb3_action[0],
+            residual,
             phase=phase_from_clock(dummy_raw[0, 78], dummy_raw[0, 79]),
-            gait_blend=dummy_raw[0, 2],
+            gait_blend=gait_blend,
         )[None, :]
         max_diff = float(np.max(np.abs(actor_action - expected_action)))
         if max_diff > args.max_export_diff:
@@ -286,6 +296,7 @@ def export_policy(args):
         "obs_layout": layout_to_json(OBS_LAYOUT),
         "observation_columns": observation_columns(),
         "action_dim": NUM_ACTUATORS,
+        "policy_action_dim": POLICY_ACTION_DIM,
         "action_columns": action_columns,
         "action_range": [-1.0, 1.0],
         "action_adapter": action_adapter_contract(),
@@ -294,9 +305,9 @@ def export_policy(args):
             motor_contract()["contract_fingerprint"]),
         "actuator_contract": motor_contract(),
         "command_ranges": {
-            "cmd_vel_m_s": list(CMD_VEL_RANGE),
+            "cmd_vx_m_s": list(CMD_VX_RANGE),
+            "cmd_vy_m_s": list(CMD_VY_RANGE),
             "cmd_yaw_rad_s": list(CMD_YAW_RANGE),
-            "gait_blend": [0.0, 1.0],
         },
         "control_timing": {
             "control_dt_s": CTRL_DT,

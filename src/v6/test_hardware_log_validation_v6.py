@@ -25,7 +25,6 @@ def make_rows(terrain="flat", video_file="demo.mp4", count=5):
         row["terrain"] = terrain
         row["mode"] = "mixed"
         row["video_file"] = video_file
-        row["gait_blend"] = 0.5
         rows.append(row)
     return rows
 

@@ -19,7 +19,8 @@ sys.path.insert(0, SCRIPT_DIR)
 from build_hardware_obs_v6 import raw_columns  # noqa: E402
 from validate_hardware_log_v6 import observation_columns  # noqa: E402
 from worm_env_v6 import (  # noqa: E402
-    CMD_VEL_RANGE,
+    CMD_VX_RANGE,
+    CMD_VY_RANGE,
     CMD_YAW_RANGE,
     CTRL_DT,
     IMU_GYRO_SCALE,
@@ -78,12 +79,12 @@ def base_contract():
             "range": layout["command"],
             "columns": segment_columns(columns, "command"),
             "hardware_source": (
-                "high-level command interface: cmd_vel_m_s, cmd_yaw_rad_s, "
-                "and gait_blend"),
+                "high-level body-frame command interface: cmd_vx_m_s, "
+                "cmd_vy_m_s, and cmd_yaw_rad_s"),
             "normalization": {
-                "cmd_vel_norm": f"cmd_vel_m_s / {CMD_VEL_RANGE[1]}",
+                "cmd_vx_norm": f"cmd_vx_m_s / {CMD_VX_RANGE[1]}",
+                "cmd_vy_norm": f"cmd_vy_m_s / {CMD_VY_RANGE[1]}",
                 "cmd_yaw_norm": f"cmd_yaw_rad_s / {CMD_YAW_RANGE[1]}",
-                "gait_blend": "clipped to [0, 1]",
             },
         },
         {
@@ -169,7 +170,7 @@ def base_contract():
             "joint encoder velocities",
             "per-segment IMU gravity direction",
             "per-segment IMU angular velocity",
-            "commanded speed, commanded yaw rate, gait_blend",
+            "commanded body-frame vx, commanded body-frame vy, commanded yaw rate",
             "previous normalized action",
             "controller phase clock",
         ],
@@ -182,6 +183,7 @@ def base_contract():
             "motion-capture state",
             "ground-truth terrain contact or slip labels",
             "reward-only forward/lateral/yaw velocity measurements",
+            "externally commanded gait_blend as a policy input",
         ],
         "reward_only_quantities": [
             "forward speed",

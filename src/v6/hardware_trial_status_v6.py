@@ -171,7 +171,7 @@ def import_command(terrain, mode, gait_blend, date_stamp=None):
         f"--raw-csv record\\v6\\hardware\\field_trials\\current\\{terrain}\\"
         f"{terrain}_{mode}_raw.csv "
         f"--video-file record/v6/videos/{terrain}_{mode}_hardware_demo.mp4 "
-        f"--gait-blend {gait_blend:.3f} --date {date_text}"
+        f"--date {date_text}"
     )
 
 
@@ -183,7 +183,7 @@ def capture_command(terrain, mode, gait_blend):
         f"{terrain}_{mode}_raw.csv "
         f"--terrain {terrain} --mode {mode} "
         f"--video-file record/v6/videos/{terrain}_{mode}_hardware_demo.mp4 "
-        f"--gait-blend {gait_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0"
+        "--cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0"
     )
 
 
@@ -196,7 +196,7 @@ def process_command(terrain, mode, gait_blend, date_stamp=None):
         f"--raw-csv record\\v6\\hardware\\field_trials\\current\\{terrain}\\"
         f"{terrain}_{mode}_raw.csv "
         f"--video-file record/v6/videos/{terrain}_{mode}_hardware_demo.mp4 "
-        f"--gait-blend {gait_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0 "
+        "--cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 "
         f"--date {date_text}"
     )
 
@@ -207,7 +207,7 @@ def stream_check_command(terrain, mode, gait_blend):
         "--input-jsonl controller_stream.jsonl "
         f"--terrain {terrain} --mode {mode} "
         f"--video-file record/v6/videos/{terrain}_{mode}_hardware_demo.mp4 "
-        f"--gait-blend {gait_blend:.3f} --cmd-vel 0.025 --cmd-yaw 0.0 "
+        "--cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 "
         f"--bundle-dir record\\v6\\deploy_bundles\\{terrain}_{mode} "
         "--strict"
     )

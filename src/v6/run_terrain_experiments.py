@@ -132,10 +132,11 @@ def reward_contract_compatible(config):
 
 
 def eval_command_compatible(config):
-    from worm_env_v6 import CMD_VEL_RANGE
+    from worm_env_v6 import CMD_VX_RANGE
 
     expected = {
-        "cmd_vel_m_s": CMD_VEL_RANGE[1],
+        "cmd_vx_m_s": CMD_VX_RANGE[1],
+        "cmd_vy_m_s": 0.0,
         "cmd_yaw_rad_s": 0.0,
         "command_resample_prob": 0.0,
     }

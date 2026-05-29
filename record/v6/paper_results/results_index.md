@@ -6,7 +6,7 @@ This page indexes the current deployable multimodal snake/worm training results.
 
 - [paper result summary](summary.md)
 - [fixed-mode speed figure](fixed_mode_speed.svg)
-- [gait_blend scan figure](blend_scan_speed.svg)
+- [fixed-gate gait_blend ablation figure](blend_scan_speed.svg)
 - [paper claim analysis](paper_claims.md)
 - [deployable observation contract](observation_contract.md)
 - [observation source audit](observation_source_audit.md)
@@ -53,10 +53,10 @@ This page indexes the current deployable multimodal snake/worm training results.
 
 | Terrain | Mode | Model | VecNormalize | Completed steps | Run dir |
 | --- | --- | --- | --- | ---: | --- |
-| flat | worm | ok | ok | 278528 | [runs/worm_v6_ppo_flat_worm](../../../runs/worm_v6_ppo_flat_worm) |
+| flat | worm | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_worm](../../../runs/worm_v6_ppo_flat_worm) |
 | flat | snake | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_snake](../../../runs/worm_v6_ppo_flat_snake) |
 | flat | mixed | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_mixed](../../../runs/worm_v6_ppo_flat_mixed) |
-| flat | random | ok | ok | 1015808 | [runs/worm_v6_ppo_flat_random](../../../runs/worm_v6_ppo_flat_random) |
+| flat | random | ok | ok | 311296 | [runs/worm_v6_ppo_flat_random](../../../runs/worm_v6_ppo_flat_random) |
 | sand | worm | ok | ok | 1002592 | [runs/worm_v6_ppo_sand_worm](../../../runs/worm_v6_ppo_sand_worm) |
 | sand | snake | ok | ok | 1015808 | [runs/worm_v6_ppo_sand_snake](../../../runs/worm_v6_ppo_sand_snake) |
 | sand | mixed | ok | ok | 1015808 | [runs/worm_v6_ppo_sand_mixed](../../../runs/worm_v6_ppo_sand_mixed) |
@@ -84,13 +84,13 @@ This page indexes the current deployable multimodal snake/worm training results.
 ## Hardware Deploy Preflight
 
 - Complete: false.
-- Observation ABI: 672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b.
+- Observation ABI: 83bf1ec48b816810335fabc08800e2e11f551c7ce72e96a94431e6afa1840d59.
 
 | Terrain | Status | gait_blend | Max abs action |
 | --- | --- | ---: | ---: |
-| flat | ok | 0.750 | 0.200 |
-| sand | failed | 0.500 | 0.200 |
-| slope | failed | 0.500 | 0.200 |
+| flat | failed | 0.750 |  |
+| sand | failed | 0.500 |  |
+| slope | failed | 0.500 |  |
 
 ## Hardware Validation Summary
 

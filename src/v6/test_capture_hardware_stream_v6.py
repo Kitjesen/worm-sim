@@ -27,7 +27,7 @@ def sensor_json_row(time_s):
     row["time_s"] = time_s
     for key in (
             "terrain", "mode", "video_file", "gait_blend",
-            "cmd_vel_m_s", "cmd_yaw_rad_s",
+            "cmd_vx_m_s", "cmd_vy_m_s", "cmd_yaw_rad_s",
             "velocity_estimate_m_s", "yaw_rate_estimate_rad_s"):
         row.pop(key, None)
     for i in range(11):
@@ -90,7 +90,8 @@ def main():
                 mode="random",
                 video_file=video,
                 gait_blend=0.25,
-                cmd_vel=0.025,
+                cmd_vx=0.025,
+                cmd_vy=0.0,
                 cmd_yaw=0.0,
             ),
         )
@@ -123,7 +124,8 @@ def main():
                     mode="random",
                     video_file=video,
                     gait_blend=0.25,
-                    cmd_vel=0.025,
+                    cmd_vx=0.025,
+                    cmd_vy=0.0,
                     cmd_yaw=0.0,
                 ),
             )

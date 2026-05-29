@@ -2,7 +2,7 @@
 
 Complete: `true`
 Observation dimension: `80`
-ABI fingerprint: `b34b962858a9ad2d58b2c33e6d8448760214bd959b4cff578635ea694bf35eb5`
+ABI fingerprint: `83bf1ec48b816810335fabc08800e2e11f551c7ce72e96a94431e6afa1840d59`
 
 MuJoCo qpos/qvel/xmat/objectVelocity are acceptable here only as simulated encoder/IMU readouts matching the hardware ABI. Privileged root velocity/pose terms may appear in reward or termination code, but must not appear in WormEnvV6._get_obs().
 
@@ -10,7 +10,7 @@ MuJoCo qpos/qvel/xmat/objectVelocity are acceptable here only as simulated encod
 
 | Group | Range | Count | Sim source | Real source |
 | --- | --- | ---: | --- | --- |
-| command | [0, 3) | 3 | self._cmd_vel; self._cmd_yaw; self._gait_blend | controller command velocity; controller command yaw rate; controller-selected gait_blend |
+| command | [0, 3) | 3 | self._cmd_vx; self._cmd_vy; self._cmd_yaw | controller body-frame vx command; controller body-frame vy command; controller command yaw rate |
 | joint_pos | [3, 14) | 11 | self.data.qpos[self._act_qpos_idx[i]] | 11 joint encoder positions |
 | joint_vel | [14, 25) | 11 | self.data.qvel[self._act_qvel_idx[i]] | 11 joint encoder velocity estimates |
 | previous_action | [25, 36) | 11 | self._last_action | controller memory of previous normalized action |

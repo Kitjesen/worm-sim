@@ -19,7 +19,7 @@ from build_hardware_obs_v6 import (  # noqa: E402
 )
 from validate_hardware_log_v6 import validate_csv  # noqa: E402
 from worm_env_v6 import (  # noqa: E402
-    CMD_VEL_RANGE,
+    CMD_VX_RANGE,
     NUM_ACTUATORS,
     NUM_SLIDES,
     OBS_DIM,
@@ -42,7 +42,8 @@ def main():
         row0.update({
             "terrain": "flat",
             "mode": "mixed",
-            "cmd_vel_m_s": CMD_VEL_RANGE[1],
+            "cmd_vx_m_s": CMD_VX_RANGE[1],
+            "cmd_vy_m_s": 0.0,
             "gait_blend": 0.5,
             "slide_pos_m_00": -SLIDE_RANGE_VAL * 0.25,
             "action_00": 0.25,
@@ -53,7 +54,8 @@ def main():
             "time_s": 0.1,
             "terrain": "flat",
             "mode": "mixed",
-            "cmd_vel_m_s": CMD_VEL_RANGE[1] * 0.5,
+            "cmd_vx_m_s": CMD_VX_RANGE[1] * 0.5,
+            "cmd_vy_m_s": -0.05,
             "gait_blend": 0.5,
             "slide_pos_m_00": -SLIDE_RANGE_VAL * 0.25,
             "action_00": -0.25,
@@ -68,7 +70,8 @@ def main():
         with open(out_path, "r", encoding="utf-8", newline="") as f:
             rows = list(csv.DictReader(f))
         assert len(rows) == 2
-        assert np.isclose(float(rows[0]["cmd_vel_norm"]), 1.0)
+        assert np.isclose(float(rows[0]["cmd_vx_norm"]), 1.0)
+        assert np.isclose(float(rows[1]["cmd_vy_norm"]), -0.05 / 0.15)
         assert np.isclose(float(rows[0]["joint_pos_00"]), -0.25)
         assert np.isclose(float(rows[0]["previous_action_00"]), 0.0)
         assert np.isclose(float(rows[1]["previous_action_00"]), 0.25)

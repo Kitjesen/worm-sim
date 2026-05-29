@@ -19,16 +19,22 @@ import argparse
 import json
 import shutil
 import time
+import math
 import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize
 from stable_baselines3.common.callbacks import (
-    EvalCallback, CheckpointCallback, BaseCallback
+    CheckpointCallback, BaseCallback
 )
 from stable_baselines3.common.monitor import Monitor
 from training_contract_v6 import (
     DEFAULT_ENT_COEF,
     DEFAULT_LOG_STD_INIT,
+    DIRECTION_FAILED_SCORE_OFFSET,
+    DIRECTION_MIN_TURN_DELTA_RAD,
+    DIRECTION_STRAIGHT_TOLERANCE_RAD,
+    DIRECTIONAL_SELECTION_CONTRACT_VERSION,
+    best_selection_contract,
     residual_exploration_contract,
 )
 
@@ -133,7 +139,7 @@ def best_eval_schedule(gait_mode, gait_blend=None):
     if gait_blend is not None:
         blends = (float(gait_blend),)
     elif gait_mode == "random":
-        blends = RANDOM_POLICY_EVAL_BLENDS
+        blends = (None,)
     else:
         blends = (FIXED_GAIT_BLEND_BY_MODE[gait_mode],)
 
@@ -142,7 +148,7 @@ def best_eval_schedule(gait_mode, gait_blend=None):
     for blend in blends:
         for yaw in yaw_cases:
             schedule.append({
-                "gait_blend": float(blend),
+                "gait_blend": None if blend is None else float(blend),
                 "cmd_yaw_rad_s": float(yaw),
             })
     return schedule
@@ -154,6 +160,87 @@ def best_eval_schedule_fingerprint(schedule):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def wrap_angle_rad(angle):
+    return (float(angle) + math.pi) % (2.0 * math.pi) - math.pi
+
+
+def yaw_direction_status(cmd_yaw_rad_s, yaw_delta_rad,
+                         min_turn_delta_rad=DIRECTION_MIN_TURN_DELTA_RAD,
+                         straight_tolerance_rad=DIRECTION_STRAIGHT_TOLERANCE_RAD):
+    cmd_yaw_rad_s = float(cmd_yaw_rad_s)
+    yaw_delta_rad = float(yaw_delta_rad)
+    if abs(cmd_yaw_rad_s) < 1e-9:
+        status = (
+            "straight_ok"
+            if abs(yaw_delta_rad) <= straight_tolerance_rad
+            else "straight_drift")
+    elif abs(yaw_delta_rad) < min_turn_delta_rad:
+        status = "weak_turn"
+    elif yaw_delta_rad * cmd_yaw_rad_s > 0.0:
+        status = "correct"
+    else:
+        status = "wrong_sign"
+    return {
+        "cmd_yaw_rad_s": cmd_yaw_rad_s,
+        "yaw_delta_rad": yaw_delta_rad,
+        "status": status,
+    }
+
+
+def directional_eval_summary(eval_schedule, episode_rewards, yaw_deltas_rad):
+    if len(eval_schedule) != len(episode_rewards):
+        raise ValueError("eval_schedule and episode_rewards length mismatch")
+    if len(eval_schedule) != len(yaw_deltas_rad):
+        raise ValueError("eval_schedule and yaw_deltas_rad length mismatch")
+
+    cases = []
+    for case, reward, yaw_delta in zip(
+            eval_schedule, episode_rewards, yaw_deltas_rad):
+        status = yaw_direction_status(case["cmd_yaw_rad_s"], yaw_delta)
+        cases.append({
+            "gait_blend": (
+                None if case.get("gait_blend") is None
+                else float(case["gait_blend"])),
+            "cmd_yaw_rad_s": float(case["cmd_yaw_rad_s"]),
+            "episode_reward": float(reward),
+            "yaw_delta_rad": float(yaw_delta),
+            "direction_status": status["status"],
+        })
+
+    wrong_sign_count = sum(
+        1 for case in cases if case["direction_status"] == "wrong_sign")
+    weak_turn_count = sum(
+        1 for case in cases if case["direction_status"] == "weak_turn")
+    straight_violation_count = sum(
+        1 for case in cases if case["direction_status"] == "straight_drift")
+    passed_count = sum(
+        1 for case in cases
+        if case["direction_status"] in ("correct", "straight_ok"))
+    direction_gate_passed = (
+        wrong_sign_count == 0
+        and weak_turn_count == 0
+        and straight_violation_count == 0)
+    mean_reward = float(np.mean(episode_rewards)) if episode_rewards else -np.inf
+    selection_score = mean_reward
+    if not direction_gate_passed:
+        selection_score -= DIRECTION_FAILED_SCORE_OFFSET
+        selection_score -= 1000.0 * wrong_sign_count
+        selection_score -= 250.0 * weak_turn_count
+        selection_score -= 500.0 * straight_violation_count
+
+    return {
+        "selection_contract": best_selection_contract(),
+        "mean_reward": mean_reward,
+        "selection_score": float(selection_score),
+        "direction_gate_passed": bool(direction_gate_passed),
+        "direction_success_rate": float(passed_count / max(len(cases), 1)),
+        "wrong_sign_count": int(wrong_sign_count),
+        "weak_turn_count": int(weak_turn_count),
+        "straight_violation_count": int(straight_violation_count),
+        "cases": cases,
+    }
+
+
 def comparable_training_fields(config):
     return {
         "terrain": config.get("terrain"),
@@ -161,6 +248,7 @@ def comparable_training_fields(config):
         "gait_blend": config.get("gait_blend"),
         "obs_dim": config.get("obs_dim"),
         "num_actuators": config.get("num_actuators"),
+        "policy_action_dim": config.get("policy_action_dim"),
         "num_imus": config.get("num_imus"),
     }
 
@@ -183,6 +271,9 @@ def training_config_compatible(existing, expected):
         reasons.append("reward_contract")
     if existing.get("eval_command") != expected.get("eval_command"):
         reasons.append("eval_command")
+    if existing.get("best_selection_contract") != expected.get(
+            "best_selection_contract"):
+        reasons.append("best_selection_contract")
     if existing.get("action_adapter") != expected.get("action_adapter"):
         reasons.append("action_adapter")
     if (existing.get("residual_exploration")
@@ -221,6 +312,7 @@ def archive_existing_run_artifacts(run_dir, reason):
         "training_config.json",
         "training_result.json",
         "best_eval_summary.json",
+        "last_directional_eval_summary.json",
         "eval_metrics.json",
         "eval_metrics_robust.json",
         "checkpoints",
@@ -251,6 +343,7 @@ def make_env(terrain='flat', gait_mode='random', gait_blend=None,
              imu_gravity_noise_std=0.0, imu_gyro_noise_std=0.0,
              action_delay_steps=0, action_saturation=1.0, seed=0,
              fixed_cmd_vel=None, fixed_cmd_yaw=None,
+             fixed_cmd_vx=None, fixed_cmd_vy=None,
              command_resample_prob=None, gait_prior_scale=None,
              policy_residual_scale=None):
     """Factory for creating a monitored WormEnvV6 instance."""
@@ -265,6 +358,8 @@ def make_env(terrain='flat', gait_mode='random', gait_blend=None,
             action_delay_steps=action_delay_steps,
             action_saturation=action_saturation,
             fixed_cmd_vel=fixed_cmd_vel,
+            fixed_cmd_vx=fixed_cmd_vx,
+            fixed_cmd_vy=fixed_cmd_vy,
             fixed_cmd_yaw=fixed_cmd_yaw,
             command_resample_prob=(
                 command_resample_prob
@@ -300,7 +395,8 @@ def has_best_model_pair(run_dir):
     )
 
 
-def load_persistent_best_eval(run_dir, log_dir, eval_schedule_fingerprint=None):
+def load_persistent_best_eval(run_dir, log_dir, eval_schedule_fingerprint=None,
+                              selection_contract_version=None):
     if not has_best_model_pair(run_dir):
         return -np.inf
 
@@ -309,14 +405,20 @@ def load_persistent_best_eval(run_dir, log_dir, eval_schedule_fingerprint=None):
         if ((summary or {}).get("eval_schedule_fingerprint")
                 != eval_schedule_fingerprint):
             return -np.inf
+    if selection_contract_version is not None:
+        summary_contract = (summary or {}).get("selection_contract", {})
+        if summary_contract.get("version") != selection_contract_version:
+            return -np.inf
     try:
-        value = float((summary or {}).get("best_mean_reward"))
+        value = float((summary or {}).get(
+            "selection_score", (summary or {}).get("best_mean_reward")))
         if np.isfinite(value):
             return value
     except (TypeError, ValueError):
         pass
 
-    if eval_schedule_fingerprint is not None:
+    if (eval_schedule_fingerprint is not None
+            or selection_contract_version is not None):
         return -np.inf
 
     eval_path = os.path.join(log_dir, "evaluations.npz")
@@ -334,7 +436,8 @@ def load_persistent_best_eval(run_dir, log_dir, eval_schedule_fingerprint=None):
 
 def write_best_eval_summary(path, mean_reward, timestep,
                             eval_schedule=None,
-                            eval_schedule_fingerprint=None):
+                            eval_schedule_fingerprint=None,
+                            directional_summary=None):
     payload = {
         "format_version": 1,
         "updated_unix_time": time.time(),
@@ -345,16 +448,32 @@ def write_best_eval_summary(path, mean_reward, timestep,
         payload["eval_schedule_fingerprint"] = eval_schedule_fingerprint
     if eval_schedule is not None:
         payload["eval_schedule"] = eval_schedule
+    if directional_summary is not None:
+        payload.update({
+            "selection_contract": directional_summary["selection_contract"],
+            "selection_score": directional_summary["selection_score"],
+            "direction_gate_passed": directional_summary[
+                "direction_gate_passed"],
+            "direction_success_rate": directional_summary[
+                "direction_success_rate"],
+            "wrong_sign_count": directional_summary["wrong_sign_count"],
+            "weak_turn_count": directional_summary["weak_turn_count"],
+            "straight_violation_count": directional_summary[
+                "straight_violation_count"],
+            "directional_cases": directional_summary["cases"],
+        })
     write_json(path, payload)
 
 
 def build_training_config(args, run_gait_label, sensor_kwargs, device):
     from motor_contract_v6 import motor_contract
     from worm_env_v6 import (
-        CMD_VEL_RANGE,
+        CMD_VX_RANGE,
+        CMD_VY_RANGE,
         CMD_YAW_RANGE,
         CTRL_DT,
         NUM_ACTUATORS,
+        NUM_POLICY_ACTIONS,
         NUM_IMUS,
         OBS_DIM,
         OBS_LAYOUT,
@@ -375,6 +494,7 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
         "obs_dim": OBS_DIM,
         "obs_layout": obs_layout_json(OBS_LAYOUT),
         "num_actuators": NUM_ACTUATORS,
+        "policy_action_dim": NUM_POLICY_ACTIONS,
         "num_imus": NUM_IMUS,
         "actuator_contract_fingerprint": (
             motor_contract()["contract_fingerprint"]),
@@ -385,9 +505,10 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
             args.ent_coef, args.log_std_init),
         "reward_contract": reward_contract(),
         "deployable_observation_sources": [
-            "velocity command",
+            "body-frame vx command",
+            "body-frame vy command",
             "yaw-rate command",
-            "continuous gait_blend command",
+            "learned gait_blend action gate",
             "actuated joint encoder positions",
             "actuated joint encoder velocities",
             "previous applied action",
@@ -403,20 +524,23 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
             "external localization as policy input",
         ],
         "command_ranges": {
-            "cmd_vel_m_s": list(CMD_VEL_RANGE),
+            "cmd_vx_m_s": list(CMD_VX_RANGE),
+            "cmd_vy_m_s": list(CMD_VY_RANGE),
             "cmd_yaw_rad_s": list(CMD_YAW_RANGE),
-            "gait_blend": [0.0, 1.0],
         },
         "eval_command": {
-            "cmd_vel_m_s": CMD_VEL_RANGE[1],
+            "cmd_vx_m_s": CMD_VX_RANGE[1],
+            "cmd_vy_m_s": 0.0,
             "cmd_yaw_rad_s": 0.0,
             "command_resample_prob": 0.0,
         },
         "best_eval_schedule": {
-            "cmd_vel_m_s": CMD_VEL_RANGE[1],
+            "cmd_vx_m_s": CMD_VX_RANGE[1],
+            "cmd_vy_m_s": 0.0,
             "command_resample_prob": 0.0,
             "cases": best_eval_schedule(args.gait_mode, args.gait_blend),
         },
+        "best_selection_contract": best_selection_contract(),
         "control_timing": {
             "control_dt_s": CTRL_DT,
             "control_rate_hz": 1.0 / CTRL_DT,
@@ -490,34 +614,120 @@ class NormSyncCallback(BaseCallback):
         return True
 
 
-class PersistentBestEvalCallback(EvalCallback):
-    def __init__(self, *args, persistent_best_mean=-np.inf,
-                 persistent_path=None, eval_schedule=None,
-                 eval_schedule_fingerprint=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.best_mean_reward = float(persistent_best_mean)
-        self.persistent_path = persistent_path
+def raw_envs_from_vec(vec_env):
+    base = vec_env
+    while hasattr(base, "venv"):
+        base = base.venv
+    if not hasattr(base, "envs"):
+        raise TypeError("directional eval requires DummyVecEnv-style envs")
+    return [env.unwrapped if hasattr(env, "unwrapped") else env
+            for env in base.envs]
+
+
+class DirectionalPersistentBestEvalCallback(BaseCallback):
+    def __init__(self, eval_env, train_env, eval_schedule, eval_freq,
+                 best_model_save_path, persistent_best_score=-np.inf,
+                 persistent_path=None, eval_schedule_fingerprint=None,
+                 deterministic=True):
+        super().__init__()
+        self.eval_env = eval_env
+        self.train_env = train_env
         self.eval_schedule = eval_schedule
+        self.eval_freq = int(eval_freq)
+        self.best_model_save_path = best_model_save_path
+        self.best_selection_score = float(persistent_best_score)
+        self.persistent_path = persistent_path
         self.eval_schedule_fingerprint = eval_schedule_fingerprint
+        self.deterministic = deterministic
+
+    def _evaluate_once(self):
+        from worm_env_v6 import MAX_EP_STEPS
+
+        if hasattr(self.eval_env, "obs_rms") and hasattr(self.train_env, "obs_rms"):
+            self.eval_env.obs_rms = self.train_env.obs_rms
+        raw_envs = raw_envs_from_vec(self.eval_env)
+        obs = self.eval_env.reset()
+        start_yaws = [env._root_yaw_rad() for env in raw_envs]
+        episode_rewards = np.zeros(len(self.eval_schedule), dtype=np.float64)
+        yaw_deltas = np.zeros(len(self.eval_schedule), dtype=np.float64)
+        done = np.zeros(len(self.eval_schedule), dtype=bool)
+
+        for _ in range(MAX_EP_STEPS):
+            actions, _ = self.model.predict(
+                obs, deterministic=self.deterministic)
+            obs, rewards, dones, infos = self.eval_env.step(actions)
+            for idx, reward in enumerate(rewards):
+                if done[idx]:
+                    continue
+                episode_rewards[idx] += float(reward)
+                if bool(dones[idx]):
+                    done[idx] = True
+                    final_yaw = infos[idx].get("root_yaw_rad")
+                    if final_yaw is None:
+                        final_yaw = raw_envs[idx]._root_yaw_rad()
+                    yaw_deltas[idx] = wrap_angle_rad(
+                        float(final_yaw) - start_yaws[idx])
+            if np.all(done):
+                break
+
+        for idx, is_done in enumerate(done):
+            if not is_done:
+                yaw_deltas[idx] = wrap_angle_rad(
+                    raw_envs[idx]._root_yaw_rad() - start_yaws[idx])
+
+        return directional_eval_summary(
+            self.eval_schedule,
+            episode_rewards=[float(v) for v in episode_rewards],
+            yaw_deltas_rad=[float(v) for v in yaw_deltas],
+        )
 
     def _on_step(self):
-        previous_best = self.best_mean_reward
-        keep_training = super()._on_step()
-        if (self.persistent_path
-                and self.best_mean_reward > previous_best
-                and np.isfinite(self.best_mean_reward)):
+        if self.eval_freq <= 0 or self.n_calls % self.eval_freq != 0:
+            return True
+
+        summary = self._evaluate_once()
+        summary["timestep"] = int(self.num_timesteps)
+        if self.best_model_save_path:
+            write_json(
+                os.path.join(
+                    self.best_model_save_path,
+                    "last_directional_eval_summary.json"),
+                summary,
+            )
+
+        print(
+            "Eval directional: "
+            f"score={summary['selection_score']:.2f} "
+            f"mean_reward={summary['mean_reward']:.2f} "
+            f"pass={summary['direction_gate_passed']} "
+            f"wrong={summary['wrong_sign_count']} "
+            f"weak={summary['weak_turn_count']} "
+            f"straight={summary['straight_violation_count']}")
+
+        if (not summary["direction_gate_passed"]
+                or summary["selection_score"] <= self.best_selection_score):
+            return True
+
+        self.best_selection_score = float(summary["selection_score"])
+        if self.best_model_save_path:
+            os.makedirs(self.best_model_save_path, exist_ok=True)
+            self.model.save(os.path.join(
+                self.best_model_save_path, "best_model"))
+        if self.persistent_path:
             write_best_eval_summary(
                 self.persistent_path,
-                self.best_mean_reward,
+                summary["mean_reward"],
                 self.num_timesteps,
                 eval_schedule=self.eval_schedule,
                 eval_schedule_fingerprint=self.eval_schedule_fingerprint,
+                directional_summary=summary,
             )
-        return keep_training
+        print(f"New best directional model at {self.num_timesteps} steps")
+        return True
 
 
 def train(args):
-    from worm_env_v6 import CMD_VEL_RANGE
+    from worm_env_v6 import CMD_VX_RANGE
 
     terrain = args.terrain
     gait_mode = args.gait_mode
@@ -668,15 +878,18 @@ def train(args):
     eval_schedule_fp = best_eval_schedule_fingerprint(eval_schedule)
     print("  best_eval_schedule:")
     for case in eval_schedule:
+        blend_label = (
+            "auto" if case["gait_blend"] is None
+            else f"{case['gait_blend']:.2f}")
         print("    "
-              f"blend={case['gait_blend']:.2f} "
+              f"blend={blend_label} "
               f"cmd_yaw={case['cmd_yaw_rad_s']:+.1f}")
 
     eval_env = DummyVecEnv([
         make_env(
             terrain=terrain, gait_mode=gait_mode,
             gait_blend=case["gait_blend"], seed=999 + idx,
-            fixed_cmd_vel=CMD_VEL_RANGE[1],
+            fixed_cmd_vel=CMD_VX_RANGE[1],
             fixed_cmd_yaw=case["cmd_yaw_rad_s"],
             command_resample_prob=0.0,
             gait_prior_scale=args.gait_prior_scale,
@@ -690,23 +903,24 @@ def train(args):
     eval_env.obs_rms = vec_env.obs_rms
 
     persistent_best = load_persistent_best_eval(
-        RUN_DIR, LOG_DIR, eval_schedule_fingerprint=eval_schedule_fp)
-    if np.isfinite(persistent_best):
-        print(f"  persistent_best_eval_reward: {persistent_best:.2f}")
-    else:
-        print("  persistent_best_eval_reward: reset for eval schedule")
-
-    eval_callback = PersistentBestEvalCallback(
-        eval_env,
-        best_model_save_path=RUN_DIR,
-        log_path=LOG_DIR,
-        eval_freq=max(5000 // n_envs, 1),
-        n_eval_episodes=len(eval_schedule),
-        deterministic=True,
-        persistent_best_mean=persistent_best,
-        persistent_path=best_eval_summary_path(RUN_DIR),
-        eval_schedule=eval_schedule,
+        RUN_DIR, LOG_DIR,
         eval_schedule_fingerprint=eval_schedule_fp,
+        selection_contract_version=DIRECTIONAL_SELECTION_CONTRACT_VERSION)
+    if np.isfinite(persistent_best):
+        print(f"  persistent_best_selection_score: {persistent_best:.2f}")
+    else:
+        print("  persistent_best_selection_score: reset for eval/selection contract")
+
+    eval_callback = DirectionalPersistentBestEvalCallback(
+        eval_env,
+        train_env=vec_env,
+        eval_schedule=eval_schedule,
+        eval_freq=max(5000 // n_envs, 1),
+        best_model_save_path=RUN_DIR,
+        persistent_best_score=persistent_best,
+        persistent_path=best_eval_summary_path(RUN_DIR),
+        eval_schedule_fingerprint=eval_schedule_fp,
+        deterministic=True,
     )
 
     checkpoint_callback = CheckpointCallback(

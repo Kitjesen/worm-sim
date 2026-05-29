@@ -6,39 +6,42 @@ Generated on 2026-05-29.
 
 - Goal is not complete yet.
 - The current main line is `src/v6`, not the legacy `src/v3` wrappers.
-- Deployable observation contract is implemented: policy observations use command, joint encoders, previous action, per-segment IMU gravity/gyro, and phase clock.
+- Deployable observation contract is implemented: policy observations use body-frame `vx/vy/yaw` command, joint encoders, previous action, per-segment IMU gravity/gyro, and phase clock.
 - Forbidden policy observations are audited out: base linear velocity, global pose/yaw, and MuJoCo freejoint truth are not policy inputs.
 - Actuator contract is explicit and enforced:
   - slide targets: `[-0.05, 0.0] m`
   - yaw targets: `[-1.57, 1.57] rad`
   - peristaltic actuation period: `1.0 s`
-- The current training/evaluation line has been corrected against the stronger 4K CMA-ES comparison video:
-  - reward contract: `high_speed_directional_v3`
-  - action adapter: `cmaes_tri_anchor_residual_v1`
+- The current training/evaluation line has been corrected against the stronger 4K CMA-ES comparison video and the real deployment command interface:
+  - reward contract: `omni_auto_gate_v4`
+  - action adapter: `cmaes_tri_anchor_auto_gate_v2`
   - residual policy scale: `0.35`
-  - command range: `cmd_vel in [0.0, 0.25] m/s`, `cmd_yaw in [-0.5, 0.5] rad/s`
+  - command range: `cmd_vx in [-0.25, 0.25] m/s`, `cmd_vy in [-0.15, 0.15] m/s`, `cmd_yaw in [-0.5, 0.5] rad/s`
   - gait anchors: peristaltic at `gait_blend=0.0`, full combined at `0.5`, serpentine at `1.0`
-  - balanced best-eval schedule: `gait_blend in {0.0, 0.5, 1.0}` x `cmd_yaw in {-0.5, 0.0, 0.5}`
+  - `gait_blend` is now learned from the 12th policy action in random mode, not passed as a policy observation command
+  - balanced best-eval schedule: auto-blend left/straight/right yaw cases
+  - checkpoint selection gate: `directional_sign_gate_v1`
 - The 4K comparison video is an open-loop CMA-ES baseline, not a PPO result. Its strongest flat full-combined gait is `247.97 mm/s` from `runs/cmaes_speed_full/best_gait.json`.
 - Old PPO artifacts trained under `forward_progress_v3`, low-speed commands, or older reward contracts are stale for paper claims.
 
 ## Why The Current PPO Looks Worse Than The 4K Video
 
-The 4K video shows the raw single-objective CMA-ES full-combined gait. It optimizes one open-loop gait for speed and does not need to respond to `gait_blend`, yaw commands, or deployable policy observations.
+The 4K video shows the raw single-objective CMA-ES full-combined gait. It optimizes one open-loop gait for speed and does not need to respond to `vx/vy/yaw` commands or deployable policy observations.
 
-The current PPO policy is a residual controller on top of that prior. It must use only deployable observations, support worm/mixed/snake commands, and respond to left/straight/right yaw commands. That broader task is not solved yet. The current 300k v3 policy preserves some forward motion, but the directional command response is still biased toward negative yaw.
+The current PPO policy is a residual controller on top of that prior. It must use only deployable observations, learn when to use worm/mixed/snake blending through its action gate, and respond to forward/lateral/yaw commands. That broader task is not solved yet. The current 300k v3 policy preserves some forward motion, but the directional command response is still biased toward negative yaw and predates the auto-gated `vx/vy/yaw` ABI.
 
 ## Current Training Evidence
 
 - Run directory: `runs/worm_v6_ppo_flat_random/`
-- Current run status: about `311k / 1M` timesteps under `high_speed_directional_v3`
+- Current run status: about `311k / 1M` timesteps under the previous `high_speed_directional_v3` line
+- The new `omni_auto_gate_v4` / `cmaes_tri_anchor_auto_gate_v2` line requires retraining; old 300k videos remain diagnostic evidence only
 - Best balanced eval reward: `1946.40` at `194,688` steps
 - Best-eval schedule fingerprint: `runs/worm_v6_ppo_flat_random/best_eval_summary.json`
 - Earlier incompatible artifacts were archived under `runs/worm_v6_ppo_flat_random/incompatible_timing_archive/`
 
 ## Fixed-Blend Video Metrics
 
-All rows use `cmd_vel=0.25 m/s` and 5 s rollouts. PPO rows use the flat/random residual policy.
+All rows use forward `cmd_vx=0.25 m/s` and 5 s rollouts. PPO rows use the previous flat/random residual policy.
 
 | Policy | Mode | Cmd yaw | Speed (mm/s) | Drift (mm) | Root yaw delta (rad) | Metrics |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
@@ -60,7 +63,8 @@ Interpretation:
 
 ## What Was Fixed
 
-- Best-model selection no longer evaluates only straight-line motion; it now evaluates all three blends and left/straight/right yaw commands.
+- Best-model selection no longer evaluates only straight-line motion; it now evaluates auto-blend left/straight/right yaw commands.
+- Best-model selection no longer saves a checkpoint just because its mean reward is high; the direction gate must pass first.
 - The yaw command range was reduced from `[-1.0, 1.0]` to `[-0.5, 0.5] rad/s` after measuring the practical turning authority of the prior/residual actuator setup.
 - The reward now includes signed yaw alignment, so correct yaw sign is explicitly rewarded and wrong yaw sign is penalized.
 - Lateral drift penalty is reduced during commanded turning so normal turn arcs are not treated as straight-line drift.
@@ -69,9 +73,15 @@ Interpretation:
 
 The policy is still stuck in a negative-yaw basin. The reward contract now distinguishes the correct yaw sign, but the 300k learned policy has not separated left and right commands. This is a training/control failure, not a video-recording failure.
 
+The new gate rejects the current 300k mixed-mode evidence:
+
+- straight command: `yaw_delta=-0.270 rad`, status `straight_drift`
+- left command `cmd_yaw=+0.5`: `yaw_delta=-0.516 rad`, status `wrong_sign`
+- right command `cmd_yaw=-0.5`: `yaw_delta=-0.383 rad`, status `correct`
+
 Likely next technical steps:
 
-- continue v3 to the 1M formal target with sign-aware eval metrics;
+- restart the new `omni_auto_gate_v4` line toward the 1M formal target with sign-aware eval metrics;
 - add a hard directional success metric instead of relying only on mean eval reward;
 - consider curriculum training: straight first, then isolated left/right, then mixed random;
 - consider residual limits or prior mirroring so the policy can more easily produce symmetric yaw corrections.
@@ -80,10 +90,10 @@ Likely next technical steps:
 
 The formal paper goal still requires:
 
-- 12 current-contract PPO model artifacts at the formal threshold;
+- 12 current-contract PPO model artifacts at the formal threshold under `omni_auto_gate_v4`;
 - fixed-mode eval JSON files for flat/sand/slope and worm/mixed/snake;
 - robust fixed-mode eval JSON files;
-- continuous `gait_blend` scan results;
+- fixed-gate `gait_blend` ablation scan results;
 - deployable random-policy bundles;
 - hardware deploy preflight report;
 - flat/sand/slope hardware logs with video references.

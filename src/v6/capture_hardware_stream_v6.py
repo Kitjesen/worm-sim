@@ -19,7 +19,7 @@ sys.path.insert(0, SCRIPT_DIR)
 
 from build_hardware_obs_v6 import neutral_raw_row, raw_columns  # noqa: E402
 from validate_hardware_log_v6 import VALID_MODES, VALID_TERRAINS  # noqa: E402
-from worm_env_v6 import CMD_VEL_RANGE  # noqa: E402
+from worm_env_v6 import CMD_VX_RANGE  # noqa: E402
 
 
 TEXT_COLUMNS = {"terrain", "mode", "video_file"}
@@ -35,7 +35,8 @@ OVERRIDABLE_COLUMNS = {
     "mode",
     "video_file",
     "gait_blend",
-    "cmd_vel_m_s",
+    "cmd_vx_m_s",
+    "cmd_vy_m_s",
     "cmd_yaw_rad_s",
 }
 
@@ -47,13 +48,17 @@ def open_input_stream(path):
 
 
 def metadata_overrides(terrain=None, mode=None, video_file=None,
-                       gait_blend=None, cmd_vel=None, cmd_yaw=None):
+                       gait_blend=None, cmd_vel=None, cmd_yaw=None,
+                       cmd_vx=None, cmd_vy=None):
+    if cmd_vx is None:
+        cmd_vx = cmd_vel
     return {
         "terrain": terrain,
         "mode": mode,
         "video_file": video_file,
         "gait_blend": gait_blend,
-        "cmd_vel_m_s": cmd_vel,
+        "cmd_vx_m_s": cmd_vx,
+        "cmd_vy_m_s": cmd_vy,
         "cmd_yaw_rad_s": cmd_yaw,
     }
 
@@ -76,7 +81,10 @@ def required_stream_columns(use_cli_overrides=True):
 def example_stream_row(time_s=0.0, terrain="flat", mode="random",
                        video_file="record/v6/videos/flat_random_hardware_demo.mp4",
                        gait_blend=0.5, cmd_vel=0.025, cmd_yaw=0.0,
+                       cmd_vx=None, cmd_vy=0.0,
                        include_metadata=False):
+    if cmd_vx is None:
+        cmd_vx = cmd_vel
     row = neutral_raw_row()
     row.update({
         "time_s": float(time_s),
@@ -84,7 +92,8 @@ def example_stream_row(time_s=0.0, terrain="flat", mode="random",
         "mode": mode,
         "video_file": video_file,
         "gait_blend": float(gait_blend),
-        "cmd_vel_m_s": float(cmd_vel),
+        "cmd_vx_m_s": float(cmd_vx),
+        "cmd_vy_m_s": float(cmd_vy),
         "cmd_yaw_rad_s": float(cmd_yaw),
     })
     for key in OPTIONAL_NUMERIC_DEFAULTS:
@@ -97,7 +106,8 @@ def example_stream_row(time_s=0.0, terrain="flat", mode="random",
 
 def write_jsonl_example(path, rows=5, terrain="flat", mode="random",
                         video_file=None, gait_blend=0.5, cmd_vel=0.025,
-                        cmd_yaw=0.0, include_metadata=False):
+                        cmd_yaw=0.0, cmd_vx=None, cmd_vy=0.0,
+                        include_metadata=False):
     video_file = video_file or (
         f"record/v6/videos/{terrain}_{mode}_hardware_demo.mp4")
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -110,6 +120,8 @@ def write_jsonl_example(path, rows=5, terrain="flat", mode="random",
                 video_file=video_file,
                 gait_blend=gait_blend,
                 cmd_vel=cmd_vel,
+                cmd_vx=cmd_vx,
+                cmd_vy=cmd_vy,
                 cmd_yaw=cmd_yaw,
                 include_metadata=include_metadata,
             )
@@ -252,7 +264,10 @@ def build_parser():
     parser.add_argument("--mode", choices=VALID_MODES, default=None)
     parser.add_argument("--video-file", default=None)
     parser.add_argument("--gait-blend", type=float, default=None)
-    parser.add_argument("--cmd-vel", type=float, default=None)
+    parser.add_argument("--cmd-vel", type=float, default=None,
+                        help="Legacy alias for --cmd-vx")
+    parser.add_argument("--cmd-vx", type=float, default=None)
+    parser.add_argument("--cmd-vy", type=float, default=0.0)
     parser.add_argument("--cmd-yaw", type=float, default=None)
     parser.add_argument("--max-rows", type=int, default=None)
     parser.add_argument("--allow-nonmonotonic-time", action="store_true")
@@ -272,9 +287,11 @@ def main():
         mode=args.mode,
         video_file=args.video_file,
         gait_blend=args.gait_blend,
-        cmd_vel=(
-            CMD_VEL_RANGE[1] if args.cmd_vel is None and args.terrain else
-            args.cmd_vel),
+        cmd_vx=(
+            CMD_VX_RANGE[1]
+            if args.cmd_vx is None and args.cmd_vel is None and args.terrain
+            else (args.cmd_vx if args.cmd_vx is not None else args.cmd_vel)),
+        cmd_vy=args.cmd_vy,
         cmd_yaw=0.0 if args.cmd_yaw is None and args.terrain else args.cmd_yaw,
     )
     results = {}
@@ -289,7 +306,9 @@ def main():
             video_file=args.video_file,
             gait_blend=args.gait_blend if args.gait_blend is not None else 0.5,
             cmd_vel=(
-                CMD_VEL_RANGE[1] if args.cmd_vel is None else args.cmd_vel),
+                CMD_VX_RANGE[1] if args.cmd_vel is None else args.cmd_vel),
+            cmd_vx=args.cmd_vx,
+            cmd_vy=args.cmd_vy,
             cmd_yaw=0.0 if args.cmd_yaw is None else args.cmd_yaw,
             include_metadata=args.include_metadata_in_example,
         )

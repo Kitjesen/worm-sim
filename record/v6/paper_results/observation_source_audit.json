@@ -1,9 +1,9 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-05-29T03:00:02.664692+00:00",
+  "generated_at_utc": "2026-05-29T10:17:10.821759+00:00",
   "complete": true,
   "obs_dim": 80,
-  "observation_contract_fingerprint": "b34b962858a9ad2d58b2c33e6d8448760214bd959b4cff578635ea694bf35eb5",
+  "observation_contract_fingerprint": "83bf1ec48b816810335fabc08800e2e11f551c7ce72e96a94431e6afa1840d59",
   "layout": {
     "command": [
       0,
@@ -43,19 +43,19 @@
         3
       ],
       "columns": [
-        "cmd_vel_norm",
-        "cmd_yaw_norm",
-        "gait_blend"
+        "cmd_vx_norm",
+        "cmd_vy_norm",
+        "cmd_yaw_norm"
       ],
       "sim_source": [
-        "self._cmd_vel",
-        "self._cmd_yaw",
-        "self._gait_blend"
+        "self._cmd_vx",
+        "self._cmd_vy",
+        "self._cmd_yaw"
       ],
       "real_source": [
-        "controller command velocity",
-        "controller command yaw rate",
-        "controller-selected gait_blend"
+        "controller body-frame vx command",
+        "controller body-frame vy command",
+        "controller command yaw rate"
       ],
       "policy_allowed": true
     },
@@ -235,9 +235,9 @@
   ],
   "group_source_token_checks": {
     "command": {
-      "self._cmd_vel": true,
-      "self._cmd_yaw": true,
-      "self._gait_blend": true
+      "self._cmd_vx": true,
+      "self._cmd_vy": true,
+      "self._cmd_yaw": true
     },
     "joint_pos": {
       "self.data.qpos": true,

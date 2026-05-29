@@ -30,6 +30,21 @@ The current learned line is the flat/random PPO residual policy:
 - best eval schedule: `gait_blend in {0.0, 0.5, 1.0}` x `cmd_yaw in {-0.5, 0.0, 0.5}`
 - current training amount: about `311k / 1M`
 - best balanced eval reward: `1946.40` at `194,688` steps
+- next best-model selection contract: `directional_sign_gate_v1`
+
+## Superseding Auto-Gated ABI
+
+After the deployment review, the current main line has moved beyond this V3
+setup:
+
+- reward contract: `omni_auto_gate_v4`
+- action adapter: `cmaes_tri_anchor_auto_gate_v2`
+- command range: `cmd_vx in [-0.25, 0.25] m/s`, `cmd_vy in [-0.15, 0.15] m/s`, `cmd_yaw in [-0.5, 0.5] rad/s`
+- policy action: 11 residual motor commands plus one learned gait gate
+- policy observation no longer includes externally commanded `gait_blend`
+
+The metrics below remain useful as failure diagnosis, but they are stale for
+formal paper claims and must be rerun under the new auto-gated contract.
 
 ## 300k Video Metrics
 
@@ -54,6 +69,10 @@ recorded root yaw delta is `-0.516 rad`.
 
 This should be treated as a failed directional-learning checkpoint, not as a
 paper result.
+
+The current gate would reject this checkpoint: straight mixed motion has
+`straight_drift`, the left-yaw command has `wrong_sign`, and only the right-yaw
+command has the correct sign.
 
 ## Next Technical Fixes
 

@@ -205,7 +205,7 @@ def build_index_text(out_path):
         "",
         f"- {link(os.path.join(paper_dir, 'summary.md'), out_dir, 'paper result summary')}",
         f"- {link(os.path.join(paper_dir, 'fixed_mode_speed.svg'), out_dir, 'fixed-mode speed figure')}",
-        f"- {link(os.path.join(paper_dir, 'blend_scan_speed.svg'), out_dir, 'gait_blend scan figure')}",
+        f"- {link(os.path.join(paper_dir, 'blend_scan_speed.svg'), out_dir, 'fixed-gate gait_blend ablation figure')}",
         f"- {link(os.path.join(paper_dir, 'paper_claims.md'), out_dir, 'paper claim analysis')}",
         f"- {link(os.path.join(paper_dir, 'observation_contract.md'), out_dir, 'deployable observation contract')}",
         f"- {link(os.path.join(paper_dir, 'observation_source_audit.md'), out_dir, 'observation source audit')}",

@@ -1,6 +1,6 @@
 # Worm V6 Deployable Observation Contract
 
-- ABI fingerprint: `b34b962858a9ad2d58b2c33e6d8448760214bd959b4cff578635ea694bf35eb5`
+- ABI fingerprint: `83bf1ec48b816810335fabc08800e2e11f551c7ce72e96a94431e6afa1840d59`
 - Observation dimension: `80`
 - Actuated joints: `11`
 - Segment IMUs: `7`
@@ -12,7 +12,7 @@
 
 | Group | Range | Count | Hardware source |
 | --- | --- | ---: | --- |
-| command | [0, 3) | 3 | high-level command interface: cmd_vel_m_s, cmd_yaw_rad_s, and gait_blend |
+| command | [0, 3) | 3 | high-level body-frame command interface: cmd_vx_m_s, cmd_vy_m_s, and cmd_yaw_rad_s |
 | joint_pos | [3, 14) | 11 | 11 joint encoders: 6 slide positions and 5 yaw positions |
 | joint_vel | [14, 25) | 11 | 11 joint encoder velocity estimates from the actuator controller |
 | previous_action | [25, 36) | 11 | controller memory of the previous normalized policy action |
@@ -30,6 +30,7 @@
 - motion-capture state
 - ground-truth terrain contact or slip labels
 - reward-only forward/lateral/yaw velocity measurements
+- externally commanded gait_blend as a policy input
 
 ## Reward-Only Quantities
 

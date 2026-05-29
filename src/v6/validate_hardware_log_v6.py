@@ -38,7 +38,7 @@ VALID_MODES = tuple(GAIT_BLENDS.keys()) + ("random",)
 
 
 def observation_columns():
-    cols = ["cmd_vel_norm", "cmd_yaw_norm", "gait_blend"]
+    cols = ["cmd_vx_norm", "cmd_vy_norm", "cmd_yaw_norm"]
     cols += [f"joint_pos_{i:02d}" for i in range(NUM_ACTUATORS)]
     cols += [f"joint_vel_{i:02d}" for i in range(NUM_ACTUATORS)]
     cols += [f"previous_action_{i:02d}" for i in range(NUM_ACTUATORS)]
@@ -71,9 +71,9 @@ def neutral_example_row():
         "terrain": "flat",
         "mode": "worm",
         "video_file": "example.mp4",
-        "cmd_vel_norm": 0.5,
+        "cmd_vx_norm": 0.5,
+        "cmd_vy_norm": 0.0,
         "cmd_yaw_norm": 0.0,
-        "gait_blend": 0.0,
         "phase_sin": 0.0,
         "phase_cos": 1.0,
         "velocity_estimate_m_s": 0.0,
@@ -239,8 +239,8 @@ def validate_csv(path, expected_terrain=None, require_video=False,
                     or np.any(actions < -1.05)
                     or np.any(actions > 1.05)):
                 bad_rows.add(rows)
-            gait_blend = obs[OBS_LAYOUT["command"]][2]
-            if not 0.0 <= gait_blend <= 1.0:
+            command = obs[OBS_LAYOUT["command"]]
+            if np.any(command < -1.05) or np.any(command > 1.05):
                 bad_rows.add(rows)
             gravity = obs[OBS_LAYOUT["segment_gravity"]].reshape(NUM_IMUS, 3)
             gravity_norm = np.linalg.norm(gravity, axis=1)

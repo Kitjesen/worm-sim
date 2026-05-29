@@ -87,11 +87,11 @@ def expected_groups(columns):
             "group": "command",
             "range": layout_json()["command"],
             "columns": group_columns(columns, "command"),
-            "sim_source": ["self._cmd_vel", "self._cmd_yaw", "self._gait_blend"],
+            "sim_source": ["self._cmd_vx", "self._cmd_vy", "self._cmd_yaw"],
             "real_source": [
-                "controller command velocity",
+                "controller body-frame vx command",
+                "controller body-frame vy command",
                 "controller command yaw rate",
-                "controller-selected gait_blend",
             ],
             "policy_allowed": True,
         },
@@ -168,7 +168,7 @@ def build_audit():
     layout = layout_json()
 
     group_tokens = {
-        "command": ["self._cmd_vel", "self._cmd_yaw", "self._gait_blend"],
+        "command": ["self._cmd_vx", "self._cmd_vy", "self._cmd_yaw"],
         "joint_pos": ["self.data.qpos", "self._act_qpos_idx"],
         "joint_vel": ["self.data.qvel", "self._act_qvel_idx"],
         "previous_action": ["self._last_action"],

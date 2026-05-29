@@ -189,7 +189,7 @@ def required_sensor_columns():
     action_cols = {f"action_{i:02d}" for i in range(NUM_ACTUATORS)}
     optional = action_cols | {
         "velocity_estimate_m_s", "yaw_rate_estimate_rad_s",
-        "terrain", "mode", "video_file",
+        "terrain", "mode", "video_file", "gait_blend",
     }
     return [col for col in raw_columns() if col not in optional]
 

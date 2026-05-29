@@ -18,7 +18,7 @@ from action_adapter_v6 import action_adapter_contract  # noqa: E402
 from motor_contract_v6 import motor_contract  # noqa: E402
 from train_v6 import infer_vecnormalize_path  # noqa: E402
 from training_contract_v6 import residual_exploration_contract  # noqa: E402
-from worm_env_v6 import CMD_VEL_RANGE, reward_contract  # noqa: E402
+from worm_env_v6 import CMD_VX_RANGE, reward_contract  # noqa: E402
 
 
 def touch(path):
@@ -42,7 +42,8 @@ def compatible_config(sensor_robustness, control_timing=None):
         "action_adapter": action_adapter_contract(),
         "residual_exploration": residual_exploration_contract(),
         "eval_command": {
-            "cmd_vel_m_s": CMD_VEL_RANGE[1],
+            "cmd_vx_m_s": CMD_VX_RANGE[1],
+            "cmd_vy_m_s": 0.0,
             "cmd_yaw_rad_s": 0.0,
             "command_resample_prob": 0.0,
         },

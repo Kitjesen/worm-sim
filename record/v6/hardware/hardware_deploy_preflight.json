@@ -1,10 +1,10 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-05-28T13:26:21.167978+00:00",
+  "generated_at_utc": "2026-05-29T10:13:56.920774+00:00",
   "complete": false,
   "mode": "random",
   "obs_dim": 80,
-  "observation_contract_fingerprint": "672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b",
+  "observation_contract_fingerprint": "83bf1ec48b816810335fabc08800e2e11f551c7ce72e96a94431e6afa1840d59",
   "actuator_contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf",
   "actuator_contract": {
     "format_version": 1,
@@ -110,7 +110,7 @@
     {
       "name": "raw_hardware_columns",
       "status": "ok",
-      "detail": 84
+      "detail": 85
     },
     {
       "name": "sensor_counts",
@@ -136,7 +136,7 @@
       "bundle_dir": "record/v6/deploy_bundles/flat_random",
       "actor": "record/v6/deploy_bundles/flat_random/policy_actor.pt",
       "config": "record/v6/deploy_bundles/flat_random/deploy_config.json",
-      "status": "ok",
+      "status": "failed",
       "checks": [
         {
           "name": "bundle_dir_exists",
@@ -170,7 +170,7 @@
         },
         {
           "name": "config_observation_columns",
-          "status": "ok",
+          "status": "failed",
           "detail": 80
         },
         {
@@ -207,78 +207,14 @@
         },
         {
           "name": "observation_contract_fingerprint",
-          "status": "ok",
+          "status": "failed",
           "detail": "672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b"
-        },
-        {
-          "name": "observation_shape",
-          "status": "ok",
-          "detail": [
-            80
-          ]
-        },
-        {
-          "name": "observation_finite",
-          "status": "ok"
-        },
-        {
-          "name": "action_shape",
-          "status": "ok",
-          "detail": [
-            11
-          ]
-        },
-        {
-          "name": "action_finite",
-          "status": "ok"
-        },
-        {
-          "name": "action_range",
-          "status": "ok",
-          "detail": [
-            -0.20000000298023224,
-            0.20000000298023224
-          ]
-        },
-        {
-          "name": "slide_target_shape",
-          "status": "ok",
-          "detail": [
-            6
-          ]
-        },
-        {
-          "name": "slide_target_range",
-          "status": "ok",
-          "detail": [
-            -0.001428443007171154,
-            0.0
-          ]
-        },
-        {
-          "name": "yaw_target_shape",
-          "status": "ok",
-          "detail": [
-            5
-          ]
-        },
-        {
-          "name": "yaw_target_range",
-          "status": "ok",
-          "detail": [
-            -0.3140000104904175,
-            0.3140000104904175
-          ]
         }
       ],
-      "errors": [],
-      "prediction": {
-        "obs_dim": 80,
-        "action_dim": 11,
-        "max_abs_action": 0.20000000298023224,
-        "max_abs_slide_target_m": 0.001428443007171154,
-        "max_abs_yaw_target_rad": 0.3140000104904175
-      }
+      "errors": [
+        "runtime_predict: 'cmd_vel_norm'"
+      ],
+      "prediction": {}
     },
     {
       "terrain": "sand",
@@ -321,7 +257,7 @@
         },
         {
           "name": "config_observation_columns",
-          "status": "ok",
+          "status": "failed",
           "detail": 80
         },
         {
@@ -355,76 +291,12 @@
           "name": "observation_contract_fingerprint",
           "status": "failed",
           "detail": "a2970eeac045b4838117f76b0381d9a4c0b0bf540a7b3834f64d700aa059fe55"
-        },
-        {
-          "name": "observation_shape",
-          "status": "ok",
-          "detail": [
-            80
-          ]
-        },
-        {
-          "name": "observation_finite",
-          "status": "ok"
-        },
-        {
-          "name": "action_shape",
-          "status": "ok",
-          "detail": [
-            11
-          ]
-        },
-        {
-          "name": "action_finite",
-          "status": "ok"
-        },
-        {
-          "name": "action_range",
-          "status": "ok",
-          "detail": [
-            -0.20000000298023224,
-            0.20000000298023224
-          ]
-        },
-        {
-          "name": "slide_target_shape",
-          "status": "ok",
-          "detail": [
-            6
-          ]
-        },
-        {
-          "name": "slide_target_range",
-          "status": "ok",
-          "detail": [
-            0.0,
-            0.0
-          ]
-        },
-        {
-          "name": "yaw_target_shape",
-          "status": "ok",
-          "detail": [
-            5
-          ]
-        },
-        {
-          "name": "yaw_target_range",
-          "status": "ok",
-          "detail": [
-            -0.3140000104904175,
-            0.3140000104904175
-          ]
         }
       ],
-      "errors": [],
-      "prediction": {
-        "obs_dim": 80,
-        "action_dim": 11,
-        "max_abs_action": 0.20000000298023224,
-        "max_abs_slide_target_m": 0.0,
-        "max_abs_yaw_target_rad": 0.3140000104904175
-      }
+      "errors": [
+        "runtime_predict: 'cmd_vel_norm'"
+      ],
+      "prediction": {}
     },
     {
       "terrain": "slope",
@@ -467,7 +339,7 @@
         },
         {
           "name": "config_observation_columns",
-          "status": "ok",
+          "status": "failed",
           "detail": 80
         },
         {
@@ -501,76 +373,12 @@
           "name": "observation_contract_fingerprint",
           "status": "failed",
           "detail": "a2970eeac045b4838117f76b0381d9a4c0b0bf540a7b3834f64d700aa059fe55"
-        },
-        {
-          "name": "observation_shape",
-          "status": "ok",
-          "detail": [
-            80
-          ]
-        },
-        {
-          "name": "observation_finite",
-          "status": "ok"
-        },
-        {
-          "name": "action_shape",
-          "status": "ok",
-          "detail": [
-            11
-          ]
-        },
-        {
-          "name": "action_finite",
-          "status": "ok"
-        },
-        {
-          "name": "action_range",
-          "status": "ok",
-          "detail": [
-            -0.20000000298023224,
-            0.20000000298023224
-          ]
-        },
-        {
-          "name": "slide_target_shape",
-          "status": "ok",
-          "detail": [
-            6
-          ]
-        },
-        {
-          "name": "slide_target_range",
-          "status": "ok",
-          "detail": [
-            -0.010000000707805157,
-            0.0
-          ]
-        },
-        {
-          "name": "yaw_target_shape",
-          "status": "ok",
-          "detail": [
-            5
-          ]
-        },
-        {
-          "name": "yaw_target_range",
-          "status": "ok",
-          "detail": [
-            -0.3140000104904175,
-            0.3140000104904175
-          ]
         }
       ],
-      "errors": [],
-      "prediction": {
-        "obs_dim": 80,
-        "action_dim": 11,
-        "max_abs_action": 0.20000000298023224,
-        "max_abs_slide_target_m": 0.010000000707805157,
-        "max_abs_yaw_target_rad": 0.3140000104904175
-      }
+      "errors": [
+        "runtime_predict: 'cmd_vel_norm'"
+      ],
+      "prediction": {}
     }
   ]
 }

@@ -32,6 +32,7 @@ PAPER_MODES = ("worm", "snake", "mixed")
 
 def assert_layout_contract():
     assert OBS_DIM == 80
+    assert OBS_LAYOUT["command"] == slice(0, 3)
     assert OBS_LAYOUT["phase_clock"].stop == OBS_DIM
     assert "base_linvel" not in OBS_LAYOUT
     assert np.isclose(PERISTALTIC_ACTUATION_PERIOD_S, 1.0)
@@ -51,7 +52,11 @@ def assert_env_contract(terrain, mode):
         assert np.all(np.isfinite(obs))
 
         cmd = obs[OBS_LAYOUT["command"]]
-        assert np.isclose(cmd[2], GAIT_BLENDS[mode])
+        assert cmd.shape == (3,)
+        assert -1.0 <= cmd[0] <= 1.0
+        assert -1.0 <= cmd[1] <= 1.0
+        assert -1.0 <= cmd[2] <= 1.0
+        assert np.isclose(env._gait_blend, GAIT_BLENDS[mode])
 
         joint_pos = obs[OBS_LAYOUT["joint_pos"]]
         joint_vel = obs[OBS_LAYOUT["joint_vel"]]
@@ -62,14 +67,21 @@ def assert_env_contract(terrain, mode):
         assert joint_pos.shape == (NUM_ACTUATORS,)
         assert joint_vel.shape == (NUM_ACTUATORS,)
         assert last_action.shape == (NUM_ACTUATORS,)
+        assert env.action_space.shape == (NUM_ACTUATORS + 1,)
         assert gravity.shape == (NUM_IMUS, 3)
         assert gyro.shape == (NUM_IMUS, 3)
         assert np.allclose(np.linalg.norm(gravity, axis=1), 1.0, atol=1e-3)
 
         action = env.action_space.sample()
-        obs, _, terminated, truncated, _ = env.step(action)
+        obs, _, terminated, truncated, info = env.step(action)
         assert obs.shape == (OBS_DIM,)
         assert np.all(np.isfinite(obs))
+        for key in (
+                "cmd_vx_m_s", "cmd_vy_m_s", "cmd_yaw_rad_s", "gait_blend",
+                "learned_gait_blend", "root_x_m", "root_y_m",
+                "root_yaw_rad", "elapsed_s"):
+            assert key in info
+            assert np.isfinite(info[key])
         assert not truncated
         if terminated:
             obs, _ = env.reset(seed=456)

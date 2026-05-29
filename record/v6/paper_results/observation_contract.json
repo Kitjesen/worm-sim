@@ -33,9 +33,9 @@
     ]
   },
   "observation_columns": [
-    "cmd_vel_norm",
+    "cmd_vx_norm",
+    "cmd_vy_norm",
     "cmd_yaw_norm",
-    "gait_blend",
     "joint_pos_00",
     "joint_pos_01",
     "joint_pos_02",
@@ -119,7 +119,8 @@
     "terrain",
     "mode",
     "video_file",
-    "cmd_vel_m_s",
+    "cmd_vx_m_s",
+    "cmd_vy_m_s",
     "cmd_yaw_rad_s",
     "gait_blend",
     "slide_pos_m_00",
@@ -220,15 +221,15 @@
         3
       ],
       "columns": [
-        "cmd_vel_norm",
-        "cmd_yaw_norm",
-        "gait_blend"
+        "cmd_vx_norm",
+        "cmd_vy_norm",
+        "cmd_yaw_norm"
       ],
-      "hardware_source": "high-level command interface: cmd_vel_m_s, cmd_yaw_rad_s, and gait_blend",
+      "hardware_source": "high-level body-frame command interface: cmd_vx_m_s, cmd_vy_m_s, and cmd_yaw_rad_s",
       "normalization": {
-        "cmd_vel_norm": "cmd_vel_m_s / 0.25",
-        "cmd_yaw_norm": "cmd_yaw_rad_s / 0.5",
-        "gait_blend": "clipped to [0, 1]"
+        "cmd_vx_norm": "cmd_vx_m_s / 0.25",
+        "cmd_vy_norm": "cmd_vy_m_s / 0.15",
+        "cmd_yaw_norm": "cmd_yaw_rad_s / 0.5"
       }
     },
     {
@@ -386,7 +387,7 @@
     "joint encoder velocities",
     "per-segment IMU gravity direction",
     "per-segment IMU angular velocity",
-    "commanded speed, commanded yaw rate, gait_blend",
+    "commanded body-frame vx, commanded body-frame vy, commanded yaw rate",
     "previous normalized action",
     "controller phase clock"
   ],
@@ -398,7 +399,8 @@
     "global pose from external tracking",
     "motion-capture state",
     "ground-truth terrain contact or slip labels",
-    "reward-only forward/lateral/yaw velocity measurements"
+    "reward-only forward/lateral/yaw velocity measurements",
+    "externally commanded gait_blend as a policy input"
   ],
   "reward_only_quantities": [
     "forward speed",
@@ -408,5 +410,5 @@
     "termination and stability diagnostics"
   ],
   "deployability_claim": "The policy input is reconstructable from onboard joint encoders, distributed IMUs, command metadata, controller memory, and a local clock. Training rewards may use simulator truth, but the policy observation ABI may not.",
-  "abi_fingerprint": "b34b962858a9ad2d58b2c33e6d8448760214bd959b4cff578635ea694bf35eb5"
+  "abi_fingerprint": "83bf1ec48b816810335fabc08800e2e11f551c7ce72e96a94431e6afa1840d59"
 }

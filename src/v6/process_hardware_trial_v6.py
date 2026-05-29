@@ -64,7 +64,8 @@ def terrain_row(payload, terrain):
 
 def process_trial(terrain, video_file, mode=DEFAULT_MODE, input_jsonl=None,
                   raw_csv=None, date_stamp=None, gait_blend=None,
-                  cmd_vel=0.025, cmd_yaw=0.0, bundle_dir=None,
+                  cmd_vel=0.025, cmd_yaw=0.0, cmd_vx=None, cmd_vy=0.0,
+                  bundle_dir=None,
                   policy_log_csv=None, action_csv=None, hardware_dir=None,
                   field_dir=None, videos_dir=None, manifest_path=None,
                   best_blend_csv=DEFAULT_BEST_BLEND_CSV, copy_video=False,
@@ -100,6 +101,8 @@ def process_trial(terrain, video_file, mode=DEFAULT_MODE, input_jsonl=None,
                 video_file=video_file,
                 gait_blend=effective_gait_blend,
                 cmd_vel=cmd_vel,
+                cmd_vx=cmd_vx,
+                cmd_vy=cmd_vy,
                 cmd_yaw=cmd_yaw,
             ),
             strict_time=strict_time,
@@ -172,7 +175,10 @@ def build_parser():
     parser.add_argument("--date", default=None,
                         help="YYYYMMDD suffix for default policy log CSV")
     parser.add_argument("--gait-blend", type=float, default=None)
-    parser.add_argument("--cmd-vel", type=float, default=0.025)
+    parser.add_argument("--cmd-vel", type=float, default=0.025,
+                        help="Legacy alias for --cmd-vx")
+    parser.add_argument("--cmd-vx", type=float, default=None)
+    parser.add_argument("--cmd-vy", type=float, default=0.0)
     parser.add_argument("--cmd-yaw", type=float, default=0.0)
     parser.add_argument("--bundle-dir", default=None)
     parser.add_argument("--policy-log-csv", default=None)
@@ -209,6 +215,8 @@ def main():
         date_stamp=args.date,
         gait_blend=args.gait_blend,
         cmd_vel=args.cmd_vel,
+        cmd_vx=args.cmd_vx,
+        cmd_vy=args.cmd_vy,
         cmd_yaw=args.cmd_yaw,
         bundle_dir=args.bundle_dir,
         policy_log_csv=args.policy_log_csv,

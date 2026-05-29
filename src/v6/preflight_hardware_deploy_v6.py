@@ -124,6 +124,8 @@ def sample_raw_sensor(terrain, mode, gait_blend):
     row.update({
         "terrain": terrain,
         "mode": mode,
+        # Raw logs keep gait_blend as legacy metadata. It is not a policy
+        # observation in the auto-gated controller.
         "gait_blend": float(np.clip(gait_blend, 0.0, 1.0)),
         "video_file": f"record/v6/videos/{terrain}_{mode}_hardware_demo.mp4",
     })
@@ -329,7 +331,7 @@ def write_markdown(path, payload):
         "",
         "## Terrain Bundles",
         "",
-        "| Terrain | Status | gait_blend | Bundle | Max abs action |",
+        "| Terrain | Status | Sample gait metadata | Bundle | Max abs action |",
         "| --- | --- | ---: | --- | ---: |",
     ]
     for row in payload["terrains"]:
@@ -416,7 +418,7 @@ def main():
         for row in payload["terrains"]:
             print(
                 f"  {row['terrain']}: {row['status']} "
-                f"(gait_blend={row['recommended_gait_blend']:.3f})")
+                f"(sample_gait_metadata={row['recommended_gait_blend']:.3f})")
     if args.strict and not payload["complete"]:
         raise SystemExit(1)
 

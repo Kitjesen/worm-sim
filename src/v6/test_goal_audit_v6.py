@@ -25,6 +25,7 @@ def training_config(timesteps):
         "terrain": "flat",
         "gait_mode": "worm",
         "num_actuators": 11,
+        "policy_action_dim": audit.NUM_POLICY_ACTIONS,
         "num_imus": 7,
         "control_timing": dict(audit.CONTROL_TIMING_DEFAULTS),
         "actuator_contract_fingerprint": (
@@ -33,6 +34,7 @@ def training_config(timesteps):
         "action_adapter": audit.ACTION_ADAPTER_CONTRACT,
         "residual_exploration": audit.RESIDUAL_EXPLORATION_CONTRACT,
         "eval_command": dict(audit.EVAL_COMMAND_DEFAULTS),
+        "best_selection_contract": audit.BEST_SELECTION_CONTRACT,
         "sensor_robustness": dict(audit.ROBUST_SENSOR_DEFAULTS),
         "training": {"timesteps": timesteps},
     }
@@ -102,6 +104,15 @@ def main():
             {"completed_timesteps": audit.REQUIRED_TRAIN_TIMESTEPS})
         ok, _ = audit.valid_training_run(run_dir, "flat", "worm")
         assert ok
+
+        stale_config = training_config(audit.REQUIRED_TRAIN_TIMESTEPS)
+        stale_config["best_selection_contract"] = {"version": "mean_reward_only"}
+        write_json(
+            os.path.join(run_dir, "training_config.json"),
+            stale_config)
+        ok, info = audit.valid_training_run(run_dir, "flat", "worm")
+        assert not ok
+        assert "best_selection_contract" in info["reasons"]
 
         cmaes_path = os.path.join(
             tmp, "runs", "cmaes_flat_peristaltic", "best_gait.json")

@@ -23,6 +23,8 @@ from motor_contract_v6 import motor_contract
 from worm_env_v6 import (
     WormEnvV6,
     CMD_VEL_RANGE,
+    CMD_VX_RANGE,
+    CMD_VY_RANGE,
     CMD_YAW_RANGE,
     CTRL_DT,
     GAIT_BLENDS,
@@ -63,7 +65,7 @@ def gait_blend_for(mode, override):
     if override is not None:
         return float(np.clip(override, 0.0, 1.0))
     if mode == "random":
-        return 0.5
+        return None
     return GAIT_BLENDS[mode]
 
 
@@ -74,6 +76,8 @@ def evaluate(args):
         raise FileNotFoundError(f"Model not found: {model_path}")
 
     gait_blend = gait_blend_for(args.gait_mode, args.gait_blend)
+    cmd_vx = args.cmd_vx if args.cmd_vx is not None else args.cmd_vel
+    cmd_vy = args.cmd_vy
     model = PPO.load(model_path, device="cpu")
     sensor_kwargs = {
         "encoder_pos_noise_std": args.encoder_pos_noise,
@@ -86,12 +90,12 @@ def evaluate(args):
 
     raw_env = WormEnvV6(
         terrain=args.terrain, gait_mode=args.gait_mode, gait_blend=gait_blend,
-        fixed_cmd_vel=args.cmd_vel, fixed_cmd_yaw=args.cmd_yaw,
+        fixed_cmd_vx=cmd_vx, fixed_cmd_vy=cmd_vy, fixed_cmd_yaw=args.cmd_yaw,
         command_resample_prob=0.0,
         **sensor_kwargs)
     norm_env = DummyVecEnv([lambda: WormEnvV6(
         terrain=args.terrain, gait_mode=args.gait_mode, gait_blend=gait_blend,
-        fixed_cmd_vel=args.cmd_vel, fixed_cmd_yaw=args.cmd_yaw,
+        fixed_cmd_vx=cmd_vx, fixed_cmd_vy=cmd_vy, fixed_cmd_yaw=args.cmd_yaw,
         command_resample_prob=0.0,
         **sensor_kwargs)])
     norm_path = find_vecnormalize(model_path)
@@ -121,7 +125,7 @@ def evaluate(args):
     for ep in range(args.episodes):
         obs, _ = raw_env.reset(seed=args.seed + ep)
         raw_env.set_command(
-            velocity=args.cmd_vel, yaw_rate=args.cmd_yaw,
+            vx=cmd_vx, vy=cmd_vy, yaw_rate=args.cmd_yaw,
             gait_blend=gait_blend)
         obs = raw_env._get_obs()
         start_pos = raw_env.data.xpos[raw_env._root_body_id].copy()
@@ -196,10 +200,13 @@ def evaluate(args):
         "terrain": args.terrain,
         "gait_mode": args.gait_mode,
         "gait_blend": gait_blend,
-        "cmd_vel_m_s": args.cmd_vel,
+        "cmd_vx_m_s": cmd_vx,
+        "cmd_vy_m_s": cmd_vy,
+        "cmd_vel_m_s": cmd_vx,
         "cmd_yaw_rad_s": args.cmd_yaw,
         "eval_command": {
-            "cmd_vel_m_s": args.cmd_vel,
+            "cmd_vx_m_s": cmd_vx,
+            "cmd_vy_m_s": cmd_vy,
             "cmd_yaw_rad_s": args.cmd_yaw,
             "command_resample_prob": 0.0,
         },
@@ -278,7 +285,10 @@ def main():
     ap.add_argument("--gait-mode", default="mixed",
                     choices=["worm", "snake", "mixed", "random"])
     ap.add_argument("--gait-blend", type=float, default=None)
-    ap.add_argument("--cmd-vel", type=float, default=CMD_VEL_RANGE[1])
+    ap.add_argument("--cmd-vel", type=float, default=CMD_VEL_RANGE[1],
+                    help="Legacy alias for --cmd-vx")
+    ap.add_argument("--cmd-vx", type=float, default=None)
+    ap.add_argument("--cmd-vy", type=float, default=0.0)
     ap.add_argument("--cmd-yaw", type=float, default=0.0)
     ap.add_argument("--episodes", type=int, default=3)
     ap.add_argument("--time", type=float, default=20.0)
@@ -304,6 +314,9 @@ def main():
     args = ap.parse_args()
 
     args.cmd_vel = float(np.clip(args.cmd_vel, *CMD_VEL_RANGE))
+    if args.cmd_vx is not None:
+        args.cmd_vx = float(np.clip(args.cmd_vx, *CMD_VX_RANGE))
+    args.cmd_vy = float(np.clip(args.cmd_vy, *CMD_VY_RANGE))
     args.cmd_yaw = float(np.clip(args.cmd_yaw, *CMD_YAW_RANGE))
     evaluate(args)
 

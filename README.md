@@ -10,14 +10,24 @@ Repository: https://github.com/Kitjesen/worm-sim
 
 This is now a **snake + worm dual-mode robot project**, not only an open-loop worm gait demo.
 
-The mode interface is:
+The deployable command interface is body-frame velocity control:
+
+| Command | Meaning |
+| --- | --- |
+| `cmd_vx_m_s` | forward/reverse body-frame velocity target |
+| `cmd_vy_m_s` | lateral body-frame velocity target |
+| `cmd_yaw_rad_s` | yaw-rate target |
+
+`gait_blend` is no longer an externally commanded policy observation for the
+main learned controller. PPO outputs an extra action gate that maps to the
+continuous gait blend:
 
 | `gait_blend` | Mode | Meaning |
 | ---: | --- | --- |
 | `0.0` | `worm` | Peristaltic / extension-contraction dominant |
 | `1.0` | `snake` | Serpentine / yaw undulation dominant |
 | `0.0 < gait_blend < 1.0` | `mixed` | Continuous hybrid gait |
-| sampled during training | `random` | Continuous mode-conditioned policy for blend scans and deployment |
+| learned by policy | `random` | Autonomous mode selection from the 12th policy action |
 
 The latest paper-facing implementation is under `src/v6/`.  Old
 `src/v3/*_v6.py` paths are compatibility wrappers only; they are not the
@@ -27,7 +37,7 @@ current project identity.
 
 The deployable RL policy is constrained to realistic inputs:
 
-- velocity command, yaw-rate command, and `gait_blend`
+- body-frame `vx`, `vy`, and yaw-rate command
 - actuated joint encoder positions
 - actuated joint encoder velocities
 - previous action
@@ -48,10 +58,10 @@ Reward calculation may still use simulator truth for training, but policy infere
 The current RL action path is a deployable residual policy:
 
 - a CMA-ES gait-anchor prior generates the nominal worm/snake/mixed action
-- PPO outputs a bounded normalized residual
+- PPO outputs a bounded normalized residual plus a learned gait gate
 - the deployed command is `clip(gait_prior + residual, -1, 1)`
 
-This keeps the paper focus on a learnable, mode-conditioned policy while
+This keeps the paper focus on a learnable, self-selected multimodal policy while
 avoiding a cold-start controller that has to rediscover the entire gait from
 random saturated actions.
 
@@ -94,15 +104,19 @@ attempt to beat the `247.97 mm/s` CMA-ES full-combined baseline.
 
 The corrected current contract is:
 
-- reward contract: `high_speed_directional_v3`
-- action adapter: `cmaes_tri_anchor_residual_v1`
+- reward contract: `omni_auto_gate_v4`
+- action adapter: `cmaes_tri_anchor_auto_gate_v2`
 - residual policy scale: `0.35`
-- command range: `cmd_vel in [0.0, 0.25] m/s`, `cmd_yaw in [-0.5, 0.5] rad/s`
+- command range: `cmd_vx in [-0.25, 0.25] m/s`,
+  `cmd_vy in [-0.15, 0.15] m/s`, `cmd_yaw in [-0.5, 0.5] rad/s`
 - gait anchors: `gait_blend=0.0` peristaltic, `0.5` full combined, `1.0`
   serpentine, with piecewise-linear blends between anchors
-- best-model selection evaluates the balanced schedule
-  `gait_blend in {0.0, 0.5, 1.0}` x
-  `cmd_yaw in {-0.5, 0.0, 0.5}` instead of only straight-line motion
+- best-model selection evaluates auto-blend left/straight/right yaw cases
+  instead of only straight-line motion
+- best-model selection now uses `directional_sign_gate_v1`: positive yaw
+  commands must produce positive yaw delta, negative yaw commands must produce
+  negative yaw delta, and straight commands must stay within a small yaw drift
+  tolerance before a checkpoint can become `best_model`
 
 Older PPO artifacts that do not match these contracts are treated as stale by
 the audit and should not be used for paper claims.
@@ -121,9 +135,9 @@ Current status:
 
 | Terrain | Mode | Current-contract PPO status |
 | --- | --- | --- |
-| flat | worm | old 1M low-speed run exists but is stale under the high-speed contract |
-| flat | random | high-speed random residual PPO reached ~311k / 1M under `high_speed_directional_v3`; current videos recorded but direction control is not solved |
-| flat | snake/mixed | evaluated through the flat random policy; dedicated fixed-mode retraining still needed |
+| flat | worm | old 1M low-speed run exists but is stale under the auto-gated contract |
+| flat | random | previous high-speed random residual PPO reached ~311k / 1M under `high_speed_directional_v3`; it is now stale under `omni_auto_gate_v4` |
+| flat | snake/mixed | previous videos are diagnostic only; fixed-mode ablation retraining still needed |
 | sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 
@@ -141,6 +155,8 @@ result:
 - Deployable observation contract passes audit.
 - The current policy observation is 80-D and remains limited to command,
   encoders, per-segment IMUs, previous action, and phase.
+- The current command slot is `vx/vy/yaw`; `gait_blend` is selected by the
+  policy's 12th action and is exported only as an action-derived diagnostic.
 - The old negative PPO results are explained: saturated residuals plus a
   low-speed `25 mm/s` reward target were the wrong training setup.
 - The action prior now reuses the three CMA-ES anchors that generated the
@@ -154,9 +170,10 @@ result:
 - The corrected deployable prior is still slower than the raw 4K full-combined
   CMA-ES baseline (`247.97 mm/s`) because V6 now evaluates the anchors through
   the deployable 1 s phase clock instead of hidden simulator time.
-- Fresh `flat/random` residual PPO has now reached roughly `311k / 1M` steps
-  under `high_speed_directional_v3`. Best balanced eval reward is `1946.40`
-  at `194,688` steps.
+- The previous `flat/random` residual PPO reached roughly `311k / 1M` steps
+  under `high_speed_directional_v3`. Best balanced eval reward was `1946.40`
+  at `194,688` steps. This is now stale for paper claims because the ABI moved
+  to `vx/vy/yaw` commands and learned gait gating.
 - Current fixed-blend PPO videos are not yet stronger than the 4K CMA-ES
   baseline. The 300k v3 straight-command speeds are worm `38.32 mm/s`, mixed
   `133.48 mm/s`, and snake `62.89 mm/s`; the local 4K CMA-ES comparison still
@@ -166,6 +183,8 @@ result:
   (`yaw_delta=-0.516 rad`); with `cmd_yaw=-0.5`, it turns negative
   (`yaw_delta=-0.383 rad`). This means right-turn behavior is present, but
   left/right command separation has not been learned.
+- The next training run must start/continue under `omni_auto_gate_v4` and must
+  pass the direction gate before saving a new best model.
 - Hardware pipeline templates and preflight checks exist; real flat/sand/slope
   hardware logs are still pending.
 
@@ -173,8 +192,8 @@ Interim result tables and figures:
 
 - [fixed-mode summary](record/v6/paper_results/fixed_mode_summary.csv)
 - [fixed-mode speed figure](record/v6/paper_results/fixed_mode_speed.svg)
-- [gait_blend scan summary](record/v6/paper_results/blend_scan_summary.csv)
-- [gait_blend speed figure](record/v6/paper_results/blend_scan_speed.svg)
+- [fixed-gate gait_blend ablation summary](record/v6/paper_results/blend_scan_summary.csv)
+- [fixed-gate gait_blend ablation figure](record/v6/paper_results/blend_scan_speed.svg)
 - [paper claim analysis](record/v6/paper_results/paper_claims.md)
 
 ## Viewable Videos
@@ -277,7 +296,7 @@ Training device selection:
 | `src/v6/record_eval_video_v6.py` | low-overhead deterministic MP4 recorder |
 | `src/v6/run_terrain_experiments.py` | terrain/mode experiment runner |
 | `src/v6/run_paper_pipeline_v6.py` | paper pipeline orchestrator |
-| `src/v6/scan_gait_blend_v6.py` | continuous `gait_blend` scan |
+| `src/v6/scan_gait_blend_v6.py` | fixed-gate `gait_blend` ablation scan |
 | `src/v6/deploy_policy_v6.py` | export/replay deployable policy bundles |
 | `src/v6/hardware_policy_runtime_v6.py` | runtime wrapper for hardware policy inference |
 | `src/v6/check_controller_stream_v6.py` | controller stream validation |
@@ -345,10 +364,10 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Continue or restart flat random residual PPO from the current ~311k v3 high-speed run toward the 1M formal target.
+- Restart flat random residual PPO under `omni_auto_gate_v4` toward the 1M formal target.
 - Improve yaw/directional command learning; current mixed-mode left command still turns with the wrong sign.
 - Retrain flat worm/snake plus all sand and slope policies under the current reward/action contracts.
-- Regenerate all eval, robust eval, `gait_blend` scan, summary, and audit artifacts.
+- Regenerate all eval, robust eval, fixed-gate ablation scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.
 - Rebuild final paper figures after the above are complete.
 

@@ -18,9 +18,11 @@ from import_hardware_trial_v6 import import_trial  # noqa: E402
 from motor_contract_v6 import action_mapping_config, motor_contract  # noqa: E402
 from validate_hardware_log_v6 import observation_columns  # noqa: E402
 from worm_env_v6 import (  # noqa: E402
-    CMD_VEL_RANGE,
+    CMD_VX_RANGE,
+    CMD_VY_RANGE,
     CMD_YAW_RANGE,
     NUM_ACTUATORS,
+    NUM_POLICY_ACTIONS,
     OBS_DIM,
     OBS_LAYOUT,
 )
@@ -68,6 +70,7 @@ def build_fake_bundle(path):
         },
         "observation_columns": observation_columns(),
         "action_dim": NUM_ACTUATORS,
+        "policy_action_dim": NUM_POLICY_ACTIONS,
         "action_columns": [
             f"action_{i:02d}" for i in range(NUM_ACTUATORS)
         ],
@@ -77,9 +80,9 @@ def build_fake_bundle(path):
             motor_contract()["contract_fingerprint"]),
         "actuator_contract": motor_contract(),
         "command_ranges": {
-            "cmd_vel_m_s": list(CMD_VEL_RANGE),
+            "cmd_vx_m_s": list(CMD_VX_RANGE),
+            "cmd_vy_m_s": list(CMD_VY_RANGE),
             "cmd_yaw_rad_s": list(CMD_YAW_RANGE),
-            "gait_blend": [0.0, 1.0],
         },
         "torchscript_actor": actor_path,
     }
@@ -141,7 +144,7 @@ def main():
         assert rows[0]["terrain"] == "flat"
         assert rows[0]["mode"] == "random"
         assert rows[0]["video_file"] == entry["video_file"]
-        assert float(rows[0]["gait_blend"]) == 0.25
+        assert "gait_blend" not in rows[0]
         assert float(rows[0]["action_00"]) == 0.1
 
         with open(manifest, "r", encoding="utf-8") as f:

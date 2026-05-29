@@ -20,16 +20,13 @@
   "checks": [
     {
       "name": "hardware template/schema",
-      "status": "missing",
+      "status": "ok",
       "evidence": [
         "record/v6/hardware/raw_hardware_log_template.csv",
         "record/v6/hardware/raw_hardware_log_template_example.csv",
         "record/v6/hardware/hardware_log_template.csv",
         "record/v6/hardware/hardware_log_template_example.csv",
         "record/v6/hardware/hardware_log_template_schema.json"
-      ],
-      "missing": [
-        "hardware schema observation_contract_fingerprint"
       ]
     },
     {
@@ -62,7 +59,6 @@
       ],
       "missing": [
         "hardware deploy preflight complete",
-        "hardware deploy preflight ABI fingerprint",
         "hardware deploy preflight terrain status"
       ]
     },
@@ -146,7 +142,7 @@
       }
     },
     {
-      "name": "3 continuous gait_blend scan result files",
+      "name": "3 fixed-gate gait_blend ablation scan result files",
       "status": "missing",
       "missing": [
         "runs/worm_v6_blend_scan_flat_random/scan_results.json",

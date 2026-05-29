@@ -72,7 +72,9 @@ def expected_full_anchor(phase):
 
 def main():
     contract = action_adapter_contract()
-    assert contract["version"] == "cmaes_tri_anchor_residual_v1"
+    assert contract["version"] == "cmaes_tri_anchor_auto_gate_v2"
+    assert contract["policy_action_dim"] == NUM_ACTUATORS + 1
+    assert contract["gait_blend_source"] == "policy action gate"
     assert contract["gait_anchors"]["mixed"]["source"] == "cmaes_full"
 
     phase = 0.37 * 2.0 * math.pi

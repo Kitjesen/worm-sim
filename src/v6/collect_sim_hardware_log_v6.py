@@ -23,7 +23,8 @@ sys.path.insert(0, SCRIPT_DIR)
 from build_hardware_obs_v6 import convert_raw_csv, raw_columns  # noqa: E402
 from validate_hardware_log_v6 import AXES  # noqa: E402
 from worm_env_v6 import (  # noqa: E402
-    CMD_VEL_RANGE,
+    CMD_VX_RANGE,
+    CMD_VY_RANGE,
     CMD_YAW_RANGE,
     CTRL_DT,
     GAIT_MODES,
@@ -55,19 +56,26 @@ def write_raw_csv(path, rows):
 
 
 def action_for_step(source, step, gait_blend, rng):
+    gate = float(np.clip(2.0 * gait_blend - 1.0, -1.0, 1.0))
     if source == "zero":
-        return np.zeros(NUM_ACTUATORS, dtype=np.float32)
+        action = np.zeros(NUM_ACTUATORS + 1, dtype=np.float32)
+        action[-1] = gate
+        return action
     if source == "random":
-        return rng.uniform(-1.0, 1.0, size=NUM_ACTUATORS).astype(np.float32)
+        action = rng.uniform(-1.0, 1.0, size=NUM_ACTUATORS + 1).astype(np.float32)
+        action[-1] = gate
+        return action
 
     t = step * CTRL_DT
     phase = 2.0 * math.pi * PHASE_FREQ * t
-    action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    action = np.zeros(NUM_ACTUATORS + 1, dtype=np.float32)
     slide_offsets = np.linspace(0.0, 2.0 * math.pi, NUM_SLIDES, endpoint=False)
     yaw_count = NUM_ACTUATORS - NUM_SLIDES
     yaw_offsets = np.linspace(0.0, 2.0 * math.pi, yaw_count, endpoint=False)
     action[:NUM_SLIDES] = (1.0 - gait_blend) * np.sin(phase + slide_offsets)
-    action[NUM_SLIDES:] = gait_blend * np.sin(phase + yaw_offsets)
+    action[NUM_SLIDES:NUM_ACTUATORS] = (
+        gait_blend * np.sin(phase + yaw_offsets))
+    action[-1] = gate
     return np.clip(action, -1.0, 1.0).astype(np.float32)
 
 
@@ -93,7 +101,8 @@ def raw_row_from_env(env, terrain, mode, video_file, action):
         "terrain": terrain,
         "mode": mode,
         "video_file": video_file,
-        "cmd_vel_m_s": env._cmd_vel,
+        "cmd_vx_m_s": env._cmd_vx,
+        "cmd_vy_m_s": env._cmd_vy,
         "cmd_yaw_rad_s": env._cmd_yaw,
         "gait_blend": env._gait_blend,
         "velocity_estimate_m_s": -float(env.data.qvel[0]),
@@ -137,6 +146,8 @@ def collect_sim_hardware_log(
         action_source="sine",
         seed=0,
         cmd_vel=None,
+        cmd_vx=None,
+        cmd_vy=0.0,
         cmd_yaw=0.0,
         video_file="sim_sensor_smoke.mp4",
         validate=True):
@@ -145,8 +156,11 @@ def collect_sim_hardware_log(
     rows = []
     try:
         env.reset(seed=seed)
+        if cmd_vx is None:
+            cmd_vx = CMD_VX_RANGE[1] * 0.5 if cmd_vel is None else cmd_vel
         env.set_command(
-            velocity=CMD_VEL_RANGE[1] * 0.5 if cmd_vel is None else cmd_vel,
+            vx=cmd_vx,
+            vy=float(np.clip(cmd_vy, *CMD_VY_RANGE)),
             yaw_rate=cmd_yaw,
             gait_blend=gait_blend)
 
@@ -188,7 +202,10 @@ def main():
     ap.add_argument("--action-source", choices=["zero", "sine", "random"],
                     default="sine")
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--cmd-vel", type=float, default=None)
+    ap.add_argument("--cmd-vel", type=float, default=None,
+                    help="Legacy alias for --cmd-vx")
+    ap.add_argument("--cmd-vx", type=float, default=None)
+    ap.add_argument("--cmd-vy", type=float, default=0.0)
     ap.add_argument("--cmd-yaw", type=float, default=0.0)
     ap.add_argument("--video-file", default="sim_sensor_smoke.mp4")
     ap.add_argument("--output-raw", default=None)
@@ -212,6 +229,8 @@ def main():
         action_source=args.action_source,
         seed=args.seed,
         cmd_vel=args.cmd_vel,
+        cmd_vx=args.cmd_vx,
+        cmd_vy=args.cmd_vy,
         cmd_yaw=args.cmd_yaw,
         video_file=args.video_file,
         validate=not args.no_validate,

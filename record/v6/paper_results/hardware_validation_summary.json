@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "generated_at_utc": "2026-05-28T19:31:13.972639+00:00",
+  "generated_at_utc": "2026-05-29T10:17:10.824387+00:00",
   "complete": false,
   "mode": "random",
   "min_rows": 5,
@@ -36,10 +36,10 @@
       "mean_velocity_estimate_mm_s": null,
       "mean_velocity_estimate_m_s": null,
       "video_references": 0,
-      "stream_check_command": "python src\\v6\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.750 --cmd-vel 0.025 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\flat_random --strict",
-      "process_command": "python src\\v6\\process_hardware_trial_v6.py --terrain flat --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.750 --cmd-vel 0.025 --cmd-yaw 0.0 --date YYYYMMDD",
+      "stream_check_command": "python src\\v6\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\flat_random --strict",
+      "process_command": "python src\\v6\\process_hardware_trial_v6.py --terrain flat --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --video-file record/v6/videos/flat_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 --date YYYYMMDD",
       "validate_command": "python src\\v6\\validate_hardware_log_v6.py --input record\\v6\\hardware\\flat_random_YYYYMMDD.csv --expected-terrain flat --require-video --min-rows 5 --min-duration 0.1",
-      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.750 --cmd-vel 0.025 --cmd-yaw 0.0"
+      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0"
     },
     {
       "terrain": "sand",
@@ -59,10 +59,10 @@
       "mean_velocity_estimate_mm_s": null,
       "mean_velocity_estimate_m_s": null,
       "video_references": 0,
-      "stream_check_command": "python src\\v6\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain sand --mode random --video-file record/v6/videos/sand_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\sand_random --strict",
-      "process_command": "python src\\v6\\process_hardware_trial_v6.py --terrain sand --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --video-file record/v6/videos/sand_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0 --date YYYYMMDD",
+      "stream_check_command": "python src\\v6\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain sand --mode random --video-file record/v6/videos/sand_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\sand_random --strict",
+      "process_command": "python src\\v6\\process_hardware_trial_v6.py --terrain sand --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --video-file record/v6/videos/sand_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 --date YYYYMMDD",
       "validate_command": "python src\\v6\\validate_hardware_log_v6.py --input record\\v6\\hardware\\sand_random_YYYYMMDD.csv --expected-terrain sand --require-video --min-rows 5 --min-duration 0.1",
-      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --terrain sand --mode random --video-file record/v6/videos/sand_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0"
+      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --terrain sand --mode random --video-file record/v6/videos/sand_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0"
     },
     {
       "terrain": "slope",
@@ -82,27 +82,27 @@
       "mean_velocity_estimate_mm_s": null,
       "mean_velocity_estimate_m_s": null,
       "video_references": 0,
-      "stream_check_command": "python src\\v6\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\slope_random --strict",
-      "process_command": "python src\\v6\\process_hardware_trial_v6.py --terrain slope --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0 --date YYYYMMDD",
+      "stream_check_command": "python src\\v6\\check_controller_stream_v6.py --input-jsonl controller_stream.jsonl --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 --bundle-dir record\\v6\\deploy_bundles\\slope_random --strict",
+      "process_command": "python src\\v6\\process_hardware_trial_v6.py --terrain slope --mode random --input-jsonl controller_stream.jsonl --raw-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --video-file record/v6/videos/slope_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 --date YYYYMMDD",
       "validate_command": "python src\\v6\\validate_hardware_log_v6.py --input record\\v6\\hardware\\slope_random_YYYYMMDD.csv --expected-terrain slope --require-video --min-rows 5 --min-duration 0.1",
-      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0"
+      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0"
     }
   ],
   "blockers": [
     {
       "terrain": "flat",
       "status": "needs_raw_csv",
-      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --gait-blend 0.750 --cmd-vel 0.025 --cmd-yaw 0.0"
+      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\flat\\flat_random_raw.csv --terrain flat --mode random --video-file record/v6/videos/flat_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0"
     },
     {
       "terrain": "sand",
       "status": "needs_raw_csv",
-      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --terrain sand --mode random --video-file record/v6/videos/sand_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0"
+      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\sand\\sand_random_raw.csv --terrain sand --mode random --video-file record/v6/videos/sand_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0"
     },
     {
       "terrain": "slope",
       "status": "needs_raw_csv",
-      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --gait-blend 0.500 --cmd-vel 0.025 --cmd-yaw 0.0"
+      "next_command": "python src\\v6\\capture_hardware_stream_v6.py --input-jsonl controller_stream.jsonl --output-csv record\\v6\\hardware\\field_trials\\current\\slope\\slope_random_raw.csv --terrain slope --mode random --video-file record/v6/videos/slope_random_hardware_demo.mp4 --cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0"
     }
   ]
 }

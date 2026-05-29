@@ -16,8 +16,10 @@ PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 sys.path.insert(0, SCRIPT_DIR)
 
 from worm_env_v6 import (  # noqa: E402
-    CMD_VEL_RANGE,
+    CMD_VX_RANGE,
+    CMD_VY_RANGE,
     CTRL_DT,
+    NUM_POLICY_ACTIONS,
     OBS_DIM,
     PERISTALTIC_ACTUATION_PERIOD_S,
     PHASE_FREQ,
@@ -30,6 +32,7 @@ from motor_contract_v6 import (  # noqa: E402
 )
 from action_adapter_v6 import action_adapter_contract  # noqa: E402
 from training_contract_v6 import residual_exploration_contract  # noqa: E402
+from training_contract_v6 import best_selection_contract  # noqa: E402
 from validate_hardware_log_v6 import (  # noqa: E402
     observation_columns,
     validate_csv,
@@ -73,8 +76,10 @@ ACTUATOR_CONTRACT_FINGERPRINT = motor_contract()["contract_fingerprint"]
 REWARD_CONTRACT = reward_contract()
 ACTION_ADAPTER_CONTRACT = action_adapter_contract()
 RESIDUAL_EXPLORATION_CONTRACT = residual_exploration_contract()
+BEST_SELECTION_CONTRACT = best_selection_contract()
 EVAL_COMMAND_DEFAULTS = {
-    "cmd_vel_m_s": CMD_VEL_RANGE[1],
+    "cmd_vx_m_s": CMD_VX_RANGE[1],
+    "cmd_vy_m_s": 0.0,
     "cmd_yaw_rad_s": 0.0,
     "command_resample_prob": 0.0,
 }
@@ -214,6 +219,8 @@ def valid_training_run(run_path, terrain, mode):
             "terrain": config.get("terrain") == terrain,
             "gait_mode": config.get("gait_mode") == mode,
             "num_actuators": config.get("num_actuators") == 11,
+            "policy_action_dim": (
+                config.get("policy_action_dim") == NUM_POLICY_ACTIONS),
             "num_imus": config.get("num_imus") == 7,
             "control_timing": control_timing_match(
                 config.get("control_timing")),
@@ -229,6 +236,9 @@ def valid_training_run(run_path, terrain, mode):
                 == RESIDUAL_EXPLORATION_CONTRACT),
             "eval_command": (
                 config.get("eval_command") == EVAL_COMMAND_DEFAULTS),
+            "best_selection_contract": (
+                config.get("best_selection_contract")
+                == BEST_SELECTION_CONTRACT),
             "planned_timesteps": (
                 get_nested(config, "training", "timesteps", default=0)
                 >= REQUIRED_TRAIN_TIMESTEPS),
@@ -405,7 +415,7 @@ def check_blend_scans():
                 evidence.append(rel(path))
                 continue
         missing.append(rel(path))
-    return item("3 continuous gait_blend scan result files", not missing,
+    return item("3 fixed-gate gait_blend ablation scan result files", not missing,
                 evidence=evidence, missing=missing)
 
 

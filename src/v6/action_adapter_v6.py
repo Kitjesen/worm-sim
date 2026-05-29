@@ -1,9 +1,10 @@
 """
 Deployable action adapter for Worm V6 residual policies.
 
-The PPO actor outputs a residual action. A deterministic gait prior generated
-from the deployable phase clock and gait_blend is added before sending final
-normalized joint targets to MuJoCo or hardware.
+The PPO actor outputs an 11-D residual action plus a 1-D gait gate. A
+deterministic gait prior generated from the deployable phase clock and the
+learned gait gate is added before sending final normalized joint targets to
+MuJoCo or hardware.
 
 The prior uses the CMA-ES anchor gaits that generated the strong comparison
 video, projected onto the deployable 1 s phase clock so it remains a function
@@ -23,7 +24,8 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_residual_v1"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_v2"
+POLICY_ACTION_DIM = NUM_ACTUATORS + 1
 DEFAULT_GAIT_PRIOR_SCALE = 1.0
 DEFAULT_POLICY_RESIDUAL_SCALE = 0.35
 TWO_PI = 2.0 * math.pi
@@ -124,12 +126,14 @@ def action_adapter_contract(
         policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE):
     return {
         "version": ACTION_ADAPTER_VERSION,
-        "policy_output": "normalized_residual_action",
+        "policy_output": "normalized_residual_action_11d_plus_gait_gate_1d",
         "deployed_action": "clip(gait_prior + residual, -1, 1)",
+        "policy_action_dim": POLICY_ACTION_DIM,
+        "deployed_action_dim": NUM_ACTUATORS,
         "gait_prior_scale": float(gait_prior_scale),
         "policy_residual_scale": float(policy_residual_scale),
         "phase_source": "deployable phase_clock observation",
-        "gait_blend_source": "command observation",
+        "gait_blend_source": "policy action gate",
         "phase_projection": (
             "phase_cycle_s = (phase mod 2*pi) / (2*pi); "
             "CMA-ES frequencies are evaluated on this deployable 1 s clock"),
@@ -200,6 +204,20 @@ def gait_prior_from_phase(phase, gait_blend):
 
 def phase_from_clock(phase_sin, phase_cos):
     return math.atan2(float(phase_sin), float(phase_cos))
+
+
+def policy_action_to_residual_and_gait_blend(policy_action):
+    action = np.clip(
+        np.asarray(policy_action, dtype=np.float32),
+        -1.0,
+        1.0,
+    )
+    if action.shape != (POLICY_ACTION_DIM,):
+        raise ValueError(
+            f"policy action shape {action.shape} != {(POLICY_ACTION_DIM,)}")
+    residual = action[:NUM_ACTUATORS]
+    gait_blend = float(np.clip(0.5 * (action[-1] + 1.0), 0.0, 1.0))
+    return residual, gait_blend
 
 
 def compose_deployable_action(

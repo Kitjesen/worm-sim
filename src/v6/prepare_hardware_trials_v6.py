@@ -85,7 +85,6 @@ def terrain_policy_example(terrain, mode, gait_blend, video_file):
     row = neutral_example_row()
     row["terrain"] = terrain
     row["mode"] = mode
-    row["gait_blend"] = gait_blend
     row["video_file"] = video_file
     return row
 
@@ -99,8 +98,6 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
     video_file = f"record/v6/videos/{stem}_hardware_demo.mp4"
     bundle_dir = os.path.join(PROJECT_ROOT, "record", "v6", "deploy_bundles",
                               f"{terrain}_{mode}")
-    gait_blend_arg = (
-        f"--gait-blend {gait_blend:.3f} " if gait_blend is not None else "")
     return [
         (
             "preflight deploy bundle and observation ABI",
@@ -112,8 +109,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
             "--input-jsonl controller_stream.jsonl "
             f"--terrain {terrain} --mode {mode} "
             f"--video-file {video_file} "
-            f"{gait_blend_arg}"
-            "--cmd-vel 0.025 --cmd-yaw 0.0 "
+            "--cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 "
             f"--bundle-dir {ps_path(bundle_dir)} --strict",
         ),
         (
@@ -122,7 +118,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
             f"--bundle-dir {ps_path(bundle_dir)} "
             "--input-jsonl - --output-jsonl - "
             f"--policy-log-csv {ps_path(policy_log)} "
-            f"--terrain {terrain} --mode {mode} {gait_blend_arg}"
+            f"--terrain {terrain} --mode {mode} "
             f"--video-file {video_file} --max-action-delta 0.2",
         ),
         (
@@ -132,8 +128,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
             f"--output-csv {ps_path(raw_log)} "
             f"--terrain {terrain} --mode {mode} "
             f"--video-file {video_file} "
-            f"{gait_blend_arg}"
-            "--cmd-vel 0.025 --cmd-yaw 0.0",
+            "--cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0",
         ),
         (
             "one-command post-capture processing",
@@ -142,8 +137,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
             "--input-jsonl controller_stream.jsonl "
             f"--raw-csv {ps_path(raw_log)} "
             f"--video-file {video_file} "
-            f"{gait_blend_arg}"
-            "--cmd-vel 0.025 --cmd-yaw 0.0 "
+            "--cmd-vx 0.025 --cmd-vy 0.0 --cmd-yaw 0.0 "
             "--date YYYYMMDD",
         ),
         (
@@ -152,7 +146,6 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
             f"--terrain {terrain} --mode {mode} "
             f"--raw-csv {ps_path(raw_log)} "
             f"--video-file {video_file} "
-            f"{gait_blend_arg}"
             "--date YYYYMMDD",
         ),
         (
@@ -162,7 +155,7 @@ def command_list(terrain, mode, trial_dir, gait_blend=None):
             f"--input-raw-csv {ps_path(raw_log)} "
             f"--output-csv {ps_path(action_log)} "
             f"--policy-log-csv {ps_path(policy_log)} "
-            f"--terrain {terrain} --mode {mode} {gait_blend_arg}"
+            f"--terrain {terrain} --mode {mode} "
             f"--video-file {video_file} "
             "--max-action-delta 0.2 "
             "--validate-policy-log --require-video "

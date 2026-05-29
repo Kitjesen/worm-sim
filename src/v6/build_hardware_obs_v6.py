@@ -29,7 +29,8 @@ from validate_hardware_log_v6 import (  # noqa: E402
     write_csv,
 )
 from worm_env_v6 import (  # noqa: E402
-    CMD_VEL_RANGE,
+    CMD_VX_RANGE,
+    CMD_VY_RANGE,
     CMD_YAW_RANGE,
     IMU_GYRO_SCALE,
     NUM_ACTUATORS,
@@ -49,7 +50,8 @@ def raw_columns():
         "terrain",
         "mode",
         "video_file",
-        "cmd_vel_m_s",
+        "cmd_vx_m_s",
+        "cmd_vy_m_s",
         "cmd_yaw_rad_s",
         "gait_blend",
     ]
@@ -78,7 +80,8 @@ def neutral_raw_row():
         "terrain": "flat",
         "mode": "worm",
         "video_file": "example.mp4",
-        "cmd_vel_m_s": CMD_VEL_RANGE[1] * 0.5,
+        "cmd_vx_m_s": CMD_VX_RANGE[1] * 0.5,
+        "cmd_vy_m_s": 0.0,
         "cmd_yaw_rad_s": 0.0,
         "gait_blend": 0.0,
         "velocity_estimate_m_s": 0.0,
@@ -139,13 +142,15 @@ def build_output_row(raw, previous_action):
         "terrain": raw.get("terrain", ""),
         "mode": raw.get("mode", ""),
         "video_file": raw.get("video_file", ""),
-        "cmd_vel_norm": np.clip(
-            read_float(raw, "cmd_vel_m_s") / max(CMD_VEL_RANGE[1], 1e-6),
-            0.0, 1.0),
+        "cmd_vx_norm": np.clip(
+            read_float(raw, "cmd_vx_m_s") / max(abs(CMD_VX_RANGE[1]), 1e-6),
+            -1.0, 1.0),
+        "cmd_vy_norm": np.clip(
+            read_float(raw, "cmd_vy_m_s") / max(abs(CMD_VY_RANGE[1]), 1e-6),
+            -1.0, 1.0),
         "cmd_yaw_norm": np.clip(
             read_float(raw, "cmd_yaw_rad_s") /
             max(abs(CMD_YAW_RANGE[1]), 1e-6), -1.0, 1.0),
-        "gait_blend": np.clip(read_float(raw, "gait_blend"), 0.0, 1.0),
         "velocity_estimate_m_s": read_float(raw, "velocity_estimate_m_s", 0.0),
         "yaw_rate_estimate_rad_s": read_float(
             raw, "yaw_rate_estimate_rad_s", 0.0),

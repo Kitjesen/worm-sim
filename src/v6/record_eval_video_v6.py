@@ -26,6 +26,9 @@ sys.path.insert(0, SCRIPT_DIR)
 from train_v6 import make_env  # noqa: E402
 from worm_env_v6 import (  # noqa: E402
     CMD_VEL_RANGE,
+    CMD_VX_RANGE,
+    CMD_VY_RANGE,
+    CMD_YAW_RANGE,
     CTRL_DT,
     OBS_DIM,
     reward_contract,
@@ -84,7 +87,10 @@ def main():
     ap.add_argument("--width", type=int, default=320)
     ap.add_argument("--height", type=int, default=180)
     ap.add_argument("--seed", type=int, default=999)
-    ap.add_argument("--cmd-vel", type=float, default=CMD_VEL_RANGE[1])
+    ap.add_argument("--cmd-vel", type=float, default=CMD_VEL_RANGE[1],
+                    help="Legacy alias for --cmd-vx")
+    ap.add_argument("--cmd-vx", type=float, default=None)
+    ap.add_argument("--cmd-vy", type=float, default=0.0)
     ap.add_argument("--cmd-yaw", type=float, default=0.0)
     ap.add_argument("--encoder-pos-noise", type=float, default=0.0)
     ap.add_argument("--encoder-vel-noise", type=float, default=0.0)
@@ -98,14 +104,19 @@ def main():
     ap.add_argument("--video-out", required=True)
     ap.add_argument("--json-out", required=True)
     args = ap.parse_args()
+    cmd_vx = args.cmd_vx if args.cmd_vx is not None else args.cmd_vel
+    cmd_vx = float(np.clip(cmd_vx, *CMD_VX_RANGE))
+    cmd_vy = float(np.clip(args.cmd_vy, *CMD_VY_RANGE))
+    cmd_yaw = float(np.clip(args.cmd_yaw, *CMD_YAW_RANGE))
 
     raw_env = DummyVecEnv([make_env(
         terrain=args.terrain,
         gait_mode=args.gait_mode,
         gait_blend=args.gait_blend,
         seed=args.seed,
-        fixed_cmd_vel=args.cmd_vel,
-        fixed_cmd_yaw=args.cmd_yaw,
+        fixed_cmd_vx=cmd_vx,
+        fixed_cmd_vy=cmd_vy,
+        fixed_cmd_yaw=cmd_yaw,
         command_resample_prob=0.0,
         encoder_pos_noise_std=args.encoder_pos_noise,
         encoder_vel_noise_std=args.encoder_vel_noise,
@@ -213,8 +224,9 @@ def main():
             "mean_action_l2 is PPO residual action norm; in prior-only mode "
             "the deployed prior action is composed inside the environment"),
         "eval_command": {
-            "cmd_vel_m_s": args.cmd_vel,
-            "cmd_yaw_rad_s": args.cmd_yaw,
+            "cmd_vx_m_s": cmd_vx,
+            "cmd_vy_m_s": cmd_vy,
+            "cmd_yaw_rad_s": cmd_yaw,
             "command_resample_prob": 0.0,
         },
         "action_adapter": action_adapter_contract(),

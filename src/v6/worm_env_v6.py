@@ -12,11 +12,14 @@ Observation:   80-dim deployable state:
                + previous_action(11) + segment_gravity(7*3)
                + segment_gyro(7*3) + phase_clock(2)
 
-Command:       [v_forward_cmd, yaw_rate_cmd, gait_blend]
-               - v_forward_cmd in [0, 0.25] m/s    (forward speed target)
+Command:       [vx_cmd, vy_cmd, yaw_rate_cmd]
+               - vx_cmd        in [-0.25, 0.25] m/s (body forward speed target)
+               - vy_cmd        in [-0.15, 0.15] m/s (body lateral speed target)
                - yaw_rate_cmd  in [-0.5, 0.5] rad/s (turning rate target)
 
-               - gait_blend    in [0, 1] (0=worm, 1=snake)
+Policy action: residual joint action(11) + learned gait gate(1)
+               - gait gate maps [-1, 1] to gait_blend [0, 1]
+                 (0=worm, 0.5=mixed, 1=snake)
 
 Reward:        velocity tracking (exp kernel) - energy - action smoothness
 
@@ -52,6 +55,7 @@ from action_adapter_v6 import (
 
 # ─── Environment constants ────────────────────────────────────────────────────
 NUM_IMUS    = 7
+NUM_POLICY_ACTIONS = NUM_ACTUATORS + 1      # 11 residual joints + 1 gait gate
 OBS_DIM     = 80                            # 3+11+11+11+21+21+2
 CTRL_DT     = 0.02                          # 50 Hz control frequency
 PHASE_FREQ  = 1.0 / PERISTALTIC_ACTUATION_PERIOD_S
@@ -62,8 +66,10 @@ MAX_EP_STEPS = int(MAX_EP_TIME / CTRL_DT)   # 1000 steps
 SETTLE_STEPS = 250                          # 0.5s settle after reset
 
 # Command ranges (sampled randomly each episode)
-CMD_VEL_RANGE   = (0.0, 0.25)    # m/s forward speed target (CMA-ES full ~248 mm/s)
+CMD_VX_RANGE    = (-0.25, 0.25)  # m/s body-forward target (+ forward, - reverse)
+CMD_VY_RANGE    = (-0.15, 0.15)  # m/s body-lateral target
 CMD_YAW_RANGE   = (-0.5, 0.5)    # rad/s yaw target; matched to observed authority
+CMD_VEL_RANGE   = (0.0, CMD_VX_RANGE[1])  # legacy forward-speed alias
 CMD_RESAMPLE_P  = 0.005          # probability of resampling command each step
 
 GAIT_BLENDS = {
@@ -107,9 +113,10 @@ W_SMOOTH    = 0.02      # low smoothness penalty (worm gait = fast alternating a
 ACTION_EMA  = 0.3       # EMA filter coefficient
 REWARD_CONTRACT_VERSION = "forward_progress_v3"
 
-# Override the older slow-tracking reward with the formal high-speed contract.
-# Keeping the assignment block local makes old checkpoints incompatible through
-# the reward contract without changing the deployable observation layout.
+# Override the older slow-tracking reward with the formal omni-directional
+# auto-gated contract. Keeping the assignment block local makes old checkpoints
+# incompatible through the reward contract without changing the deployable
+# observation layout.
 SIGMA_VEL = 0.050
 SIGMA_YAW = 0.20
 W_YAW_TRACK = 3.0
@@ -121,7 +128,7 @@ W_LATERAL = 0.3
 W_BACKWARD = 0.5
 W_ENERGY = 0.001
 W_SMOOTH = 0.01
-REWARD_CONTRACT_VERSION = "high_speed_directional_v3"
+REWARD_CONTRACT_VERSION = "omni_auto_gate_v4"
 
 
 def reward_contract():
@@ -142,14 +149,16 @@ def reward_contract():
             "smooth": W_SMOOTH,
         },
         "normalization": {
-            "speed_scale_m_s": CMD_VEL_RANGE[1],
+            "speed_scale_m_s": CMD_VX_RANGE[1],
+            "lateral_speed_scale_m_s": CMD_VY_RANGE[1],
             "cmaes_full_combined_target_m_s": 0.24797,
-            "positive_forward_required_for_vel_track": True,
+            "body_frame_vx_vy_command_tracking": True,
             "yaw_tracking_gated_by_forward_progress": True,
             "cyclic_backslip_is_soft_penalized": True,
             "yaw_range_m_s_is_authority_matched": True,
-            "lateral_penalty_tapers_with_yaw_command": True,
+            "off_axis_penalty_tapers_with_planar_command": True,
             "signed_yaw_alignment_reward": True,
+            "gait_blend_is_policy_gate": True,
         },
     }
 
@@ -165,6 +174,7 @@ class WormEnvV6(gym.Env):
                  imu_gravity_noise_std=0.0, imu_gyro_noise_std=0.0,
                  action_delay_steps=0, action_saturation=1.0,
                  fixed_cmd_vel=None, fixed_cmd_yaw=None,
+                 fixed_cmd_vx=None, fixed_cmd_vy=None,
                  command_resample_prob=CMD_RESAMPLE_P,
                  gait_prior_scale=DEFAULT_GAIT_PRIOR_SCALE,
                  policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE):
@@ -172,8 +182,16 @@ class WormEnvV6(gym.Env):
         self.render_mode = render_mode
         self.terrain = terrain
         self.gait_mode = gait_mode
-        self._fixed_gait_blend = gait_blend
-        self._fixed_cmd_vel = fixed_cmd_vel
+        if gait_blend is not None:
+            self._fixed_gait_blend = gait_blend
+        elif gait_mode in GAIT_BLENDS:
+            self._fixed_gait_blend = GAIT_BLENDS[gait_mode]
+        else:
+            self._fixed_gait_blend = None
+        self._fixed_cmd_vx = fixed_cmd_vx
+        if self._fixed_cmd_vx is None and fixed_cmd_vel is not None:
+            self._fixed_cmd_vx = fixed_cmd_vel
+        self._fixed_cmd_vy = fixed_cmd_vy
         self._fixed_cmd_yaw = fixed_cmd_yaw
         self.command_resample_prob = float(command_resample_prob)
         self.gait_prior_scale = float(gait_prior_scale)
@@ -269,7 +287,7 @@ class WormEnvV6(gym.Env):
 
         # ── Gym spaces ──
         self.action_space = spaces.Box(
-            low=-1.0, high=1.0, shape=(NUM_ACTUATORS,), dtype=np.float32)
+            low=-1.0, high=1.0, shape=(NUM_POLICY_ACTIONS,), dtype=np.float32)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(OBS_DIM,), dtype=np.float32)
 
@@ -283,9 +301,10 @@ class WormEnvV6(gym.Env):
         self._step_count = 0
 
         # ── Command (sampled at reset) ──
-        self._cmd_vel = 0.0       # forward speed target (m/s)
+        self._cmd_vx = 0.0        # body-forward speed target (m/s)
+        self._cmd_vy = 0.0        # body-lateral speed target (m/s)
         self._cmd_yaw = 0.0       # yaw rate target (rad/s)
-        self._gait_blend = 0.5    # 0=worm/peristaltic, 1=snake/serpentine
+        self._gait_blend = 0.5    # learned gate: 0=worm, 1=snake
 
         # ── Renderer (lazy init) ──
         self._renderer = None
@@ -299,9 +318,10 @@ class WormEnvV6(gym.Env):
         mujoco.mj_resetData(self.model, self.data)
 
         # Sample velocity command for this episode, unless fixed for eval.
-        self._cmd_vel = self._sample_cmd_vel()
+        self._cmd_vx = self._sample_cmd_vx()
+        self._cmd_vy = self._sample_cmd_vy()
         self._cmd_yaw = self._sample_cmd_yaw()
-        self._gait_blend = self._sample_gait_blend()
+        self._gait_blend = self._initial_gait_blend()
 
         # Small random noise on actuated joints
         if self.np_random is not None:
@@ -329,16 +349,27 @@ class WormEnvV6(gym.Env):
         return self._get_obs(), {}
 
     def step(self, action):
+        action = np.asarray(action, dtype=np.float32)
+        if action.shape != (NUM_POLICY_ACTIONS,):
+            raise ValueError(
+                f"policy action shape {action.shape} != {(NUM_POLICY_ACTIONS,)}")
         action = np.clip(action, -1.0, 1.0).astype(np.float32)
+        residual_command = action[:NUM_ACTUATORS]
+        learned_gait_blend = float(np.clip(0.5 * (action[-1] + 1.0), 0.0, 1.0))
+        self._gait_blend = (
+            float(self._fixed_gait_blend)
+            if self._fixed_gait_blend is not None
+            else learned_gait_blend)
 
         # Occasionally resample command mid-episode (curriculum diversity)
         if self.np_random.random() < self.command_resample_prob:
-            self._cmd_vel = self._sample_cmd_vel()
+            self._cmd_vx = self._sample_cmd_vx()
+            self._cmd_vy = self._sample_cmd_vy()
             self._cmd_yaw = self._sample_cmd_yaw()
 
         # EMA filter — anti-vibration
         residual_action = (
-            ACTION_EMA * action
+            ACTION_EMA * residual_command
             + (1.0 - ACTION_EMA) * self._last_residual_action)
         phase = 2.0 * math.pi * PHASE_FREQ * self._step_count * CTRL_DT
         applied_action = compose_deployable_action(
@@ -371,11 +402,26 @@ class WormEnvV6(gym.Env):
             applied_action, residual_action=residual_action)
         terminated = self._check_termination()
         truncated = self._step_count >= MAX_EP_STEPS
+        info = {
+            "cmd_vx_m_s": float(self._cmd_vx),
+            "cmd_vy_m_s": float(self._cmd_vy),
+            "cmd_vel_m_s": float(self._cmd_vx),
+            "cmd_yaw_rad_s": float(self._cmd_yaw),
+            "gait_blend": float(self._gait_blend),
+            "learned_gait_blend": float(learned_gait_blend),
+            "gait_blend_source": (
+                "fixed" if self._fixed_gait_blend is not None
+                else "policy_action_gate"),
+            "root_x_m": float(self.data.xpos[self._root_body_id, 0]),
+            "root_y_m": float(self.data.xpos[self._root_body_id, 1]),
+            "root_yaw_rad": float(self._root_yaw_rad()),
+            "elapsed_s": float(self._step_count * CTRL_DT),
+        }
 
         self._last_action = applied_action.copy()
         self._last_residual_action = residual_action.copy()
         self._last_root_pos = self.data.xpos[self._root_body_id].copy()
-        return obs, reward, terminated, truncated, {}
+        return obs, reward, terminated, truncated, info
 
     def render(self):
         if self._renderer is None:
@@ -407,16 +453,26 @@ class WormEnvV6(gym.Env):
             self._renderer.close()
             self._renderer = None
 
-    def set_command(self, velocity=None, yaw_rate=None, gait_blend=None):
+    def set_command(self, velocity=None, yaw_rate=None, gait_blend=None,
+                    vx=None, vy=None):
         """Override command values for deterministic evaluation."""
-        if velocity is not None:
-            self._cmd_vel = float(np.clip(
-                velocity, CMD_VEL_RANGE[0], CMD_VEL_RANGE[1]))
+        if vx is None and velocity is not None:
+            vx = velocity
+        if vx is not None:
+            self._cmd_vx = float(np.clip(
+                vx, CMD_VX_RANGE[0], CMD_VX_RANGE[1]))
+        if vy is not None:
+            self._cmd_vy = float(np.clip(
+                vy, CMD_VY_RANGE[0], CMD_VY_RANGE[1]))
         if yaw_rate is not None:
             self._cmd_yaw = float(np.clip(
                 yaw_rate, CMD_YAW_RANGE[0], CMD_YAW_RANGE[1]))
         if gait_blend is not None:
             self._gait_blend = float(np.clip(gait_blend, 0.0, 1.0))
+
+    def _root_yaw_rad(self):
+        mat = self.data.xmat[self._root_body_id].reshape(3, 3)
+        return math.atan2(mat[1, 0], mat[0, 0])
 
     def _add_noise(self, values, std):
         if std <= 0.0:
@@ -430,12 +486,12 @@ class WormEnvV6(gym.Env):
     # ──────────────────────────────────────────────────────────────────────
 
     def _get_obs(self):
-        # Command vector (2) — at front so policy sees the goal first
-        # Normalize: vel/max_vel, yaw/max_yaw → roughly [-1, 1]
+        # Command vector (3) at front so policy sees the goal first.
+        # Normalize: vx/vy/yaw max ranges -> roughly [-1, 1].
         cmd = np.array([
-            self._cmd_vel / max(CMD_VEL_RANGE[1], 1e-6),  # [0, 1]
+            self._cmd_vx / max(abs(CMD_VX_RANGE[1]), 1e-6),  # [-1, 1]
+            self._cmd_vy / max(abs(CMD_VY_RANGE[1]), 1e-6),  # [-1, 1]
             self._cmd_yaw / max(abs(CMD_YAW_RANGE[1]), 1e-6),  # [-1, 1]
-            self._gait_blend,  # [0, 1]
         ], dtype=np.float32)
 
         # Actuated joint positions (11)
@@ -488,18 +544,27 @@ class WormEnvV6(gym.Env):
         ])
         return obs.astype(np.float32)
 
-    def _sample_gait_blend(self):
+    def _initial_gait_blend(self):
         if self._fixed_gait_blend is not None:
             return float(self._fixed_gait_blend)
         if self.gait_mode == "random":
             return float(self.np_random.uniform(0.0, 1.0))
         return GAIT_BLENDS[self.gait_mode]
 
-    def _sample_cmd_vel(self):
-        if self._fixed_cmd_vel is not None:
+    def _sample_cmd_vx(self):
+        if self._fixed_cmd_vx is not None:
             return float(np.clip(
-                self._fixed_cmd_vel, CMD_VEL_RANGE[0], CMD_VEL_RANGE[1]))
-        return float(self.np_random.uniform(*CMD_VEL_RANGE))
+                self._fixed_cmd_vx, CMD_VX_RANGE[0], CMD_VX_RANGE[1]))
+        return float(self.np_random.uniform(*CMD_VX_RANGE))
+
+    def _sample_cmd_vy(self):
+        if self._fixed_cmd_vy is not None:
+            return float(np.clip(
+                self._fixed_cmd_vy, CMD_VY_RANGE[0], CMD_VY_RANGE[1]))
+        return float(self.np_random.uniform(*CMD_VY_RANGE))
+
+    def _sample_cmd_vel(self):
+        return self._sample_cmd_vx()
 
     def _sample_cmd_yaw(self):
         if self._fixed_cmd_yaw is not None:
@@ -519,27 +584,42 @@ class WormEnvV6(gym.Env):
         if hasattr(self, "_last_root_pos") and hasattr(self, "_root_body_id"):
             root_pos = self.data.xpos[self._root_body_id]
             delta_pos = root_pos - self._last_root_pos
-            forward_speed = -float(delta_pos[0]) / CTRL_DT
-            lateral_speed = abs(float(delta_pos[1])) / CTRL_DT
+            world_vel_xy = delta_pos[:2] / CTRL_DT
+            root_xmat = self.data.xmat[self._root_body_id].reshape(3, 3)
+            forward_axis = -root_xmat[:2, 0]
+            lateral_axis = root_xmat[:2, 1]
+            forward_speed = float(np.dot(world_vel_xy, forward_axis))
+            lateral_speed = float(np.dot(world_vel_xy, lateral_axis))
         else:
-            forward_speed = -self.data.qvel[0]
-            lateral_speed = abs(self.data.qvel[1])
+            forward_speed = -float(self.data.qvel[0])
+            lateral_speed = float(self.data.qvel[1])
 
         # Yaw rate: rotation around world Z axis
         yaw_rate = self.data.qvel[5]
 
         # ── Velocity tracking (exp kernel) ──
-        vel_err = forward_speed - self._cmd_vel
+        cmd_vx = float(getattr(self, "_cmd_vx", getattr(self, "_cmd_vel", 0.0)))
+        cmd_vy = float(getattr(self, "_cmd_vy", 0.0))
+        cmd_vec = np.array([cmd_vx, cmd_vy], dtype=np.float64)
+        vel_vec = np.array([forward_speed, lateral_speed], dtype=np.float64)
+        cmd_speed = float(np.linalg.norm(cmd_vec))
+        speed_scale = max(CMD_VX_RANGE[1], 1e-6)
+        if cmd_speed > 1e-6:
+            along_cmd = float(np.dot(vel_vec, cmd_vec) / cmd_speed)
+            perp_vec = vel_vec - (along_cmd / cmd_speed) * cmd_vec
+            off_axis_speed = float(np.linalg.norm(perp_vec))
+            progress_ratio = np.clip(along_cmd / cmd_speed, 0.0, 1.0)
+        else:
+            along_cmd = 0.0
+            off_axis_speed = float(np.linalg.norm(vel_vec))
+            progress_ratio = 1.0
+        vel_err = float(np.linalg.norm(vel_vec - cmd_vec))
         yaw_err = yaw_rate - self._cmd_yaw
-        progress_ratio = 1.0
-        if self._cmd_vel > 1e-6:
-            progress_ratio = np.clip(
-                forward_speed / max(self._cmd_vel, 1e-6), 0.0, 1.0)
-        r_vel_track = (
-            math.exp(-(vel_err ** 2) / (SIGMA_VEL ** 2))
-            if forward_speed > 0.0 else 0.0)
+        r_vel_track = math.exp(-(vel_err ** 2) / (SIGMA_VEL ** 2))
+        if cmd_speed > 1e-6 and along_cmd <= 0.0:
+            r_vel_track *= 0.25
         r_yaw_track = math.exp(-(yaw_err ** 2) / (SIGMA_YAW ** 2))
-        if self._cmd_vel > 1e-6:
+        if cmd_speed > 1e-6:
             r_yaw_track *= 0.25 + 0.75 * progress_ratio
         r_yaw_align = 0.0
         if abs(self._cmd_yaw) > 1e-6:
@@ -554,20 +634,18 @@ class WormEnvV6(gym.Env):
         # ── Linear forward velocity bonus (capped + normalized) ──
         # Rewards forward movement UP TO target speed, no bonus beyond.
         # Normalized to [0,1] so weight W_VEL_LIN directly controls magnitude.
-        r_vel_lin = (min(max(0.0, forward_speed), self._cmd_vel)
-                     / max(CMD_VEL_RANGE[1], 1e-6))
+        r_vel_lin = (
+            min(max(0.0, along_cmd), cmd_speed) / speed_scale
+            if cmd_speed > 1e-6 else 0.0)
 
         # ── Overspeed penalty (quadratic — strongly penalizes exceeding command) ──
-        overspeed_sq = max(0.0, forward_speed - self._cmd_vel) ** 2
+        overspeed_sq = max(
+            0.0, float(np.linalg.norm(vel_vec)) - max(cmd_speed, 1e-6)) ** 2
 
         # ── Other penalties ──
-        speed_scale = max(CMD_VEL_RANGE[1], 1e-6)
-        forward_deficit = max(0.0, self._cmd_vel - forward_speed) / speed_scale
-        backward_speed = max(0.0, -forward_speed) / speed_scale
-        yaw_command_fraction = min(
-            abs(self._cmd_yaw) / max(abs(CMD_YAW_RANGE[1]), 1e-6), 1.0)
-        lateral_weight = 1.0 - yaw_command_fraction
-        lateral_speed = (lateral_speed / speed_scale) * lateral_weight
+        forward_deficit = max(0.0, cmd_speed - along_cmd) / speed_scale
+        backward_speed = max(0.0, -along_cmd) / speed_scale
+        lateral_speed = off_axis_speed / speed_scale
 
         energy = 0.0
         for i in range(self.model.nu):
@@ -589,7 +667,7 @@ class WormEnvV6(gym.Env):
             + W_VEL_LIN   * r_vel_lin      # linear bonus (exploration gradient)
             - W_OVERSPEED * overspeed_sq
             - W_FORWARD_DEFICIT * forward_deficit
-            - W_COMMAND_COST * float(self._cmd_vel > 1e-6)
+            - W_COMMAND_COST * float(cmd_speed > 1e-6)
             - W_LATERAL   * lateral_speed
             - W_BACKWARD  * backward_speed  # penalize going backward
             - W_ENERGY    * energy
@@ -643,7 +721,8 @@ if __name__ == "__main__":
     obs, info = env.reset(seed=42)
     print(f"  reset obs shape: {obs.shape}")
     print(f"  reset obs range: [{obs.min():.4f}, {obs.max():.4f}]")
-    print(f"  gait_blend: {obs[OBS_LAYOUT['command']][2]:.3f}")
+    print(f"  command[vx,vy,yaw]: {obs[OBS_LAYOUT['command']]}")
+    print(f"  initial_gait_blend: {env._gait_blend:.3f}")
     assert obs.shape == (OBS_DIM,), f"Expected obs dim {OBS_DIM}, got {obs.shape}"
     assert OBS_LAYOUT["phase_clock"].stop == OBS_DIM
     assert np.all(np.isfinite(obs)), "Non-finite reset obs!"

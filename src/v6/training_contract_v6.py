@@ -13,6 +13,10 @@ import math
 RESIDUAL_EXPLORATION_CONTRACT_VERSION = "low_noise_residual_v1"
 DEFAULT_ENT_COEF = 0.005
 DEFAULT_LOG_STD_INIT = -2.5
+DIRECTIONAL_SELECTION_CONTRACT_VERSION = "directional_sign_gate_v1"
+DIRECTION_MIN_TURN_DELTA_RAD = 0.05
+DIRECTION_STRAIGHT_TOLERANCE_RAD = 0.20
+DIRECTION_FAILED_SCORE_OFFSET = 1_000_000.0
 
 
 def residual_exploration_contract(
@@ -27,4 +31,14 @@ def residual_exploration_contract(
         "ent_coef": float(ent_coef),
         "log_std_init": float(log_std_init),
         "initial_std": float(math.exp(float(log_std_init))),
+    }
+
+
+def best_selection_contract():
+    return {
+        "version": DIRECTIONAL_SELECTION_CONTRACT_VERSION,
+        "requires_direction_gate": True,
+        "min_turn_delta_rad": DIRECTION_MIN_TURN_DELTA_RAD,
+        "straight_tolerance_rad": DIRECTION_STRAIGHT_TOLERANCE_RAD,
+        "failed_score_offset": DIRECTION_FAILED_SCORE_OFFSET,
     }

@@ -204,6 +204,7 @@ def action_health(runtime, row, max_action_delta, line_no, errors,
 
 def check_stream(input_jsonl, terrain=None, mode=None, video_file=None,
                  gait_blend=None, cmd_vel=None, cmd_yaw=None,
+                 cmd_vx=None, cmd_vy=0.0,
                  bundle_dir=None, project_root=PROJECT_ROOT,
                  min_rows=DEFAULT_MIN_ROWS,
                  min_duration_s=DEFAULT_MIN_DURATION_S,
@@ -221,6 +222,8 @@ def check_stream(input_jsonl, terrain=None, mode=None, video_file=None,
         video_file=video_file,
         gait_blend=gait_blend,
         cmd_vel=cmd_vel,
+        cmd_vx=cmd_vx,
+        cmd_vy=cmd_vy,
         cmd_yaw=cmd_yaw,
     )
     runtime = None
@@ -423,7 +426,10 @@ def build_parser():
     parser.add_argument("--mode", choices=VALID_MODES, default=None)
     parser.add_argument("--video-file", default=None)
     parser.add_argument("--gait-blend", type=float, default=None)
-    parser.add_argument("--cmd-vel", type=float, default=None)
+    parser.add_argument("--cmd-vel", type=float, default=None,
+                        help="Legacy alias for --cmd-vx")
+    parser.add_argument("--cmd-vx", type=float, default=None)
+    parser.add_argument("--cmd-vy", type=float, default=0.0)
     parser.add_argument("--cmd-yaw", type=float, default=None)
     parser.add_argument("--bundle-dir", default=None,
                         help="Optional deploy bundle for live policy output "
@@ -457,6 +463,8 @@ def main():
         video_file=args.video_file,
         gait_blend=args.gait_blend,
         cmd_vel=args.cmd_vel,
+        cmd_vx=args.cmd_vx,
+        cmd_vy=args.cmd_vy,
         cmd_yaw=args.cmd_yaw,
         bundle_dir=args.bundle_dir,
         min_rows=args.min_rows,

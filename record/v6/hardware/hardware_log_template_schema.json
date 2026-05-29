@@ -1,6 +1,6 @@
 {
   "obs_dim": 80,
-  "observation_contract_fingerprint": "672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b",
+  "observation_contract_fingerprint": "83bf1ec48b816810335fabc08800e2e11f551c7ce72e96a94431e6afa1840d59",
   "obs_layout": {
     "command": [
       0,
@@ -38,9 +38,9 @@
     "terrain",
     "mode",
     "video_file",
-    "cmd_vel_norm",
+    "cmd_vx_norm",
+    "cmd_vy_norm",
     "cmd_yaw_norm",
-    "gait_blend",
     "joint_pos_00",
     "joint_pos_01",
     "joint_pos_02",
@@ -132,7 +132,7 @@
     "velocity_estimate_m_s",
     "yaw_rate_estimate_rad_s"
   ],
-  "example_log": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\v6\\hardware\\hardware_log_template_example.csv",
+  "example_log": "record\\v6\\hardware\\hardware_log_template_example.csv",
   "action_mapping": {
     "slide_indices": [
       0,
@@ -142,10 +142,103 @@
       6,
       11
     ],
-    "slide_target_m": "action[i] * slide_range_m",
-    "yaw_target_rad": "action[i] * yaw_range_rad",
+    "slide_target_m": "clip(action[i] * slide_range_m, slide_min_m, slide_max_m)",
+    "yaw_target_rad": "clip(action[i] * yaw_range_rad, yaw_min_rad, yaw_max_rad)",
     "slide_range_m": 0.05,
-    "yaw_range_rad": 1.57
+    "slide_min_m": -0.05,
+    "slide_max_m": 0.0,
+    "yaw_range_rad": 1.57,
+    "yaw_min_rad": -1.57,
+    "yaw_max_rad": 1.57
+  },
+  "actuator_contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf",
+  "actuator_contract": {
+    "format_version": 1,
+    "name": "worm_v6_actuator_motor_contract",
+    "actuator_count": 11,
+    "normalized_action_range": [
+      -1.0,
+      1.0
+    ],
+    "action_mapping": {
+      "slide_indices": [
+        0,
+        6
+      ],
+      "yaw_indices": [
+        6,
+        11
+      ],
+      "slide_target_m": "clip(action[i] * slide_range_m, slide_min_m, slide_max_m)",
+      "yaw_target_rad": "clip(action[i] * yaw_range_rad, yaw_min_rad, yaw_max_rad)",
+      "slide_range_m": 0.05,
+      "slide_min_m": -0.05,
+      "slide_max_m": 0.0,
+      "yaw_range_rad": 1.57,
+      "yaw_min_rad": -1.57,
+      "yaw_max_rad": 1.57
+    },
+    "actuator_groups": {
+      "slide": {
+        "indices": [
+          0,
+          6
+        ],
+        "joint_names": [
+          "back1",
+          "back2",
+          "back3",
+          "back4",
+          "back5",
+          "back6"
+        ],
+        "joint_type": "prismatic_position_servo",
+        "target_unit": "m",
+        "mechanical_range_m": [
+          -0.05,
+          0.0
+        ],
+        "normalized_command_scale_m": 0.05,
+        "mujoco_position_kp_n_per_m": 800.0,
+        "mujoco_force_limit_n": 50.0,
+        "joint_damping": 10.0,
+        "joint_stiffness": 300.0,
+        "hardware_rule": "Real controller must clip slide targets to [-0.05, 0.0] m before sending commands."
+      },
+      "yaw": {
+        "indices": [
+          6,
+          11
+        ],
+        "joint_names": [
+          "front2",
+          "front3",
+          "front4",
+          "front5",
+          "front6"
+        ],
+        "joint_type": "revolute_position_servo",
+        "target_unit": "rad",
+        "mechanical_range_rad": [
+          -1.57,
+          1.57
+        ],
+        "normalized_command_scale_rad": 1.57,
+        "mujoco_position_kp_nm_per_rad": 200.0,
+        "mujoco_torque_limit_nm": 20.0,
+        "joint_damping": 5.0,
+        "hardware_rule": "Real controller must clip yaw targets to [-1.57, 1.57] rad before sending commands."
+      }
+    },
+    "not_yet_modeled_in_sim": [
+      "motor speed limit",
+      "current and voltage limits",
+      "thermal derating",
+      "gear backlash",
+      "deadband",
+      "vendor controller internal PID"
+    ],
+    "contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
   },
   "formal_validation": {
     "terrains": [
