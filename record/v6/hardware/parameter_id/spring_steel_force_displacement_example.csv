@@ -1,0 +1,2 @@
+trial_id,segment_id,repeat_id,target_compression_mm,actual_compression_mm,hold_time_s,force_n,force_sensor_id,direction,note
+spring_001,0,0,10.0,10.0,2.0,3.0,loadcell_01,loading,quasi_static_hold

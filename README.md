@@ -86,6 +86,71 @@ The peristaltic actuation period is fixed at **1.0 s**. Control runs at 50 Hz.
 
 These are deployability guards, not a final vendor motor model. Real hardware identification still needs speed limits, current/voltage limits, backlash, deadband, thermal derating, and controller PID details.
 
+## Spring-Steel Strip Calibration
+
+The full V6 training model still uses a fast equivalent slide-joint spring.
+Real spring-steel strip flexibility is now modeled in a separate single-segment
+calibration tool so it can be inspected and fitted without slowing PPO training.
+
+Run a quick smoke calibration:
+
+```powershell
+python src\v6\spring_steel_calibration_v6.py --quick
+```
+
+Run the fuller displacement sweep:
+
+```powershell
+python src\v6\spring_steel_calibration_v6.py --out-dir record\v6\spring_steel_calibration_full --compressions-mm 0,5,10,15,20,25,30,35,40,45,50
+```
+
+The tool writes:
+
+- `single_segment_steel_strip.xml`: generated MuJoCo cable-strip model
+- `force_displacement.csv`: target compression, actual compression, and force
+- `calibration_summary.json`: config and fitted stiffness values
+- `calibration_report.md`: readable run report
+
+Latest full-sweep smoke result:
+
+- fit source: actual MuJoCo slide position, not the requested servo target
+- linear stiffness with intercept: `160.433 N/m`
+- zero-intercept equivalent stiffness for the V6 slide spring: `335.566 N/m`
+- secant stiffness at max compression: `266.633 N/m`
+- max target/actual compression mismatch: `3.125 mm`
+
+This supports the current `300 N/m` V6 slide stiffness as a reasonable
+placeholder, but it is not a final material-identification result. The cable
+bend/twist parameters still need to be fitted against measured steel-strip
+force-displacement data.
+
+## Real Robot Parameter Identification
+
+Generate bench-test templates for the physical robot:
+
+```powershell
+python src\v6\hardware_parameter_id_v6.py --write-templates
+```
+
+Templates are written under:
+
+```text
+record/v6/hardware/parameter_id
+```
+
+The first real file to collect should be the spring-steel force-displacement
+CSV. After filling it with measured compression and load-cell force, fit the
+equivalent V6 slide spring:
+
+```powershell
+python src\v6\hardware_parameter_id_v6.py --spring-csv record\v6\hardware\parameter_id\spring_steel_force_displacement_YYYYMMDD.csv
+```
+
+Collection details are in
+[real robot parameter collection](docs/real_robot_parameter_collection_v6.md).
+The detailed GitHub TODO plan is
+[real robot experiment TODO](docs/real_robot_experiment_todo_v6.md).
+
 ## Current Progress
 
 The latest contract correction was made after comparing PPO rollouts with the
@@ -301,6 +366,7 @@ Training device selection:
 | `src/v6/hardware_policy_runtime_v6.py` | runtime wrapper for hardware policy inference |
 | `src/v6/check_controller_stream_v6.py` | controller stream validation |
 | `src/v6/validate_hardware_log_v6.py` | hardware log schema and evidence validation |
+| `src/v6/hardware_parameter_id_v6.py` | real-robot parameter templates and spring-steel stiffness fitting |
 
 ## Hardware Validation Path
 
@@ -330,6 +396,7 @@ python src\v6\test_hardware_obs_builder_v6.py
 python src\v6\test_hardware_policy_runtime_v6.py
 python src\v6\test_hardware_preflight_v6.py
 python src\v6\test_controller_stream_check_v6.py
+python src\v6\test_hardware_parameter_id_v6.py
 python src\v6\audit_observation_sources_v6.py --strict
 python src\v6\test_goal_audit_v6.py
 python src\v6\test_resume_partial_v6.py
