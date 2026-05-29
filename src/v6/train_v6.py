@@ -37,6 +37,12 @@ SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 PAPER_TERRAINS = ("flat", "sand", "slope")
 GAIT_MODES = ("worm", "snake", "mixed", "random")
+FIXED_GAIT_BLEND_BY_MODE = {
+    "worm": 0.0,
+    "mixed": 0.5,
+    "snake": 1.0,
+}
+RANDOM_POLICY_EVAL_BLENDS = (0.0, 0.5, 1.0)
 
 
 def resolve_device(requested):
@@ -118,6 +124,34 @@ def dict_float_match(actual, expected):
         elif actual_value != expected_value:
             return False
     return True
+
+
+def best_eval_schedule(gait_mode, gait_blend=None):
+    """Return deterministic command cases used for best-model selection."""
+    from worm_env_v6 import CMD_YAW_RANGE
+
+    if gait_blend is not None:
+        blends = (float(gait_blend),)
+    elif gait_mode == "random":
+        blends = RANDOM_POLICY_EVAL_BLENDS
+    else:
+        blends = (FIXED_GAIT_BLEND_BY_MODE[gait_mode],)
+
+    yaw_cases = (float(CMD_YAW_RANGE[0]), 0.0, float(CMD_YAW_RANGE[1]))
+    schedule = []
+    for blend in blends:
+        for yaw in yaw_cases:
+            schedule.append({
+                "gait_blend": float(blend),
+                "cmd_yaw_rad_s": float(yaw),
+            })
+    return schedule
+
+
+def best_eval_schedule_fingerprint(schedule):
+    payload = json.dumps(schedule, sort_keys=True, separators=(",", ":"))
+    import hashlib
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def comparable_training_fields(config):
@@ -266,17 +300,24 @@ def has_best_model_pair(run_dir):
     )
 
 
-def load_persistent_best_eval(run_dir, log_dir):
+def load_persistent_best_eval(run_dir, log_dir, eval_schedule_fingerprint=None):
     if not has_best_model_pair(run_dir):
         return -np.inf
 
     summary = read_json(best_eval_summary_path(run_dir))
+    if eval_schedule_fingerprint is not None:
+        if ((summary or {}).get("eval_schedule_fingerprint")
+                != eval_schedule_fingerprint):
+            return -np.inf
     try:
         value = float((summary or {}).get("best_mean_reward"))
         if np.isfinite(value):
             return value
     except (TypeError, ValueError):
         pass
+
+    if eval_schedule_fingerprint is not None:
+        return -np.inf
 
     eval_path = os.path.join(log_dir, "evaluations.npz")
     if not os.path.exists(eval_path):
@@ -291,13 +332,20 @@ def load_persistent_best_eval(run_dir, log_dir):
         return -np.inf
 
 
-def write_best_eval_summary(path, mean_reward, timestep):
-    write_json(path, {
+def write_best_eval_summary(path, mean_reward, timestep,
+                            eval_schedule=None,
+                            eval_schedule_fingerprint=None):
+    payload = {
         "format_version": 1,
         "updated_unix_time": time.time(),
         "best_mean_reward": float(mean_reward),
         "best_timestep": int(timestep),
-    })
+    }
+    if eval_schedule_fingerprint is not None:
+        payload["eval_schedule_fingerprint"] = eval_schedule_fingerprint
+    if eval_schedule is not None:
+        payload["eval_schedule"] = eval_schedule
+    write_json(path, payload)
 
 
 def build_training_config(args, run_gait_label, sensor_kwargs, device):
@@ -363,6 +411,11 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
             "cmd_vel_m_s": CMD_VEL_RANGE[1],
             "cmd_yaw_rad_s": 0.0,
             "command_resample_prob": 0.0,
+        },
+        "best_eval_schedule": {
+            "cmd_vel_m_s": CMD_VEL_RANGE[1],
+            "command_resample_prob": 0.0,
+            "cases": best_eval_schedule(args.gait_mode, args.gait_blend),
         },
         "control_timing": {
             "control_dt_s": CTRL_DT,
@@ -439,10 +492,13 @@ class NormSyncCallback(BaseCallback):
 
 class PersistentBestEvalCallback(EvalCallback):
     def __init__(self, *args, persistent_best_mean=-np.inf,
-                 persistent_path=None, **kwargs):
+                 persistent_path=None, eval_schedule=None,
+                 eval_schedule_fingerprint=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.best_mean_reward = float(persistent_best_mean)
         self.persistent_path = persistent_path
+        self.eval_schedule = eval_schedule
+        self.eval_schedule_fingerprint = eval_schedule_fingerprint
 
     def _on_step(self):
         previous_best = self.best_mean_reward
@@ -454,6 +510,8 @@ class PersistentBestEvalCallback(EvalCallback):
                 self.persistent_path,
                 self.best_mean_reward,
                 self.num_timesteps,
+                eval_schedule=self.eval_schedule,
+                eval_schedule_fingerprint=self.eval_schedule_fingerprint,
             )
         return keep_training
 
@@ -606,32 +664,49 @@ def train(args):
     print(f"  Policy network: {model.policy}")
 
     # ── Callbacks ──
-    eval_env = DummyVecEnv([make_env(
-        terrain=terrain, gait_mode=gait_mode,
-        gait_blend=gait_blend, seed=999,
-        fixed_cmd_vel=CMD_VEL_RANGE[1], fixed_cmd_yaw=0.0,
-        command_resample_prob=0.0,
-        gait_prior_scale=args.gait_prior_scale,
-        policy_residual_scale=args.policy_residual_scale,
-        **sensor_kwargs)])
+    eval_schedule = best_eval_schedule(gait_mode, gait_blend)
+    eval_schedule_fp = best_eval_schedule_fingerprint(eval_schedule)
+    print("  best_eval_schedule:")
+    for case in eval_schedule:
+        print("    "
+              f"blend={case['gait_blend']:.2f} "
+              f"cmd_yaw={case['cmd_yaw_rad_s']:+.1f}")
+
+    eval_env = DummyVecEnv([
+        make_env(
+            terrain=terrain, gait_mode=gait_mode,
+            gait_blend=case["gait_blend"], seed=999 + idx,
+            fixed_cmd_vel=CMD_VEL_RANGE[1],
+            fixed_cmd_yaw=case["cmd_yaw_rad_s"],
+            command_resample_prob=0.0,
+            gait_prior_scale=args.gait_prior_scale,
+            policy_residual_scale=args.policy_residual_scale,
+            **sensor_kwargs)
+        for idx, case in enumerate(eval_schedule)
+    ])
     eval_env = VecNormalize(
         eval_env, norm_obs=True, norm_reward=False,
         clip_obs=10.0, training=False)
     eval_env.obs_rms = vec_env.obs_rms
 
-    persistent_best = load_persistent_best_eval(RUN_DIR, LOG_DIR)
+    persistent_best = load_persistent_best_eval(
+        RUN_DIR, LOG_DIR, eval_schedule_fingerprint=eval_schedule_fp)
     if np.isfinite(persistent_best):
         print(f"  persistent_best_eval_reward: {persistent_best:.2f}")
+    else:
+        print("  persistent_best_eval_reward: reset for eval schedule")
 
     eval_callback = PersistentBestEvalCallback(
         eval_env,
         best_model_save_path=RUN_DIR,
         log_path=LOG_DIR,
         eval_freq=max(5000 // n_envs, 1),
-        n_eval_episodes=5,
+        n_eval_episodes=len(eval_schedule),
         deterministic=True,
         persistent_best_mean=persistent_best,
         persistent_path=best_eval_summary_path(RUN_DIR),
+        eval_schedule=eval_schedule,
+        eval_schedule_fingerprint=eval_schedule_fp,
     )
 
     checkpoint_callback = CheckpointCallback(

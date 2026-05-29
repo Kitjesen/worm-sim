@@ -227,7 +227,7 @@
       "hardware_source": "high-level command interface: cmd_vel_m_s, cmd_yaw_rad_s, and gait_blend",
       "normalization": {
         "cmd_vel_norm": "cmd_vel_m_s / 0.25",
-        "cmd_yaw_norm": "cmd_yaw_rad_s / 1.0",
+        "cmd_yaw_norm": "cmd_yaw_rad_s / 0.5",
         "gait_blend": "clipped to [0, 1]"
       }
     },
@@ -408,5 +408,5 @@
     "termination and stability diagnostics"
   ],
   "deployability_claim": "The policy input is reconstructable from onboard joint encoders, distributed IMUs, command metadata, controller memory, and a local clock. Training rewards may use simulator truth, but the policy observation ABI may not.",
-  "abi_fingerprint": "27e31e546bb79ba12a70a286add79a8a72323f65ff3dbb58406e8d85c855c932"
+  "abi_fingerprint": "b34b962858a9ad2d58b2c33e6d8448760214bd959b4cff578635ea694bf35eb5"
 }

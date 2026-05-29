@@ -94,12 +94,15 @@ attempt to beat the `247.97 mm/s` CMA-ES full-combined baseline.
 
 The corrected current contract is:
 
-- reward contract: `high_speed_directional_v1`
+- reward contract: `high_speed_directional_v3`
 - action adapter: `cmaes_tri_anchor_residual_v1`
 - residual policy scale: `0.35`
-- command range: `cmd_vel in [0.0, 0.25] m/s`, `cmd_yaw in [-1.0, 1.0] rad/s`
+- command range: `cmd_vel in [0.0, 0.25] m/s`, `cmd_yaw in [-0.5, 0.5] rad/s`
 - gait anchors: `gait_blend=0.0` peristaltic, `0.5` full combined, `1.0`
   serpentine, with piecewise-linear blends between anchors
+- best-model selection evaluates the balanced schedule
+  `gait_blend in {0.0, 0.5, 1.0}` x
+  `cmd_yaw in {-0.5, 0.0, 0.5}` instead of only straight-line motion
 
 Older PPO artifacts that do not match these contracts are treated as stale by
 the audit and should not be used for paper claims.
@@ -107,6 +110,7 @@ the audit and should not be used for paper claims.
 Current status files:
 
 - [current progress](record/v6/paper_results/current_progress.md)
+- [flat directional reward v3 progress](record/v6/paper_results/flat_directional_reward_v3_progress_20260529.md)
 - [results index](record/v6/paper_results/results_index.md)
 - [completion audit](record/v6/paper_results/completion_audit.md)
 - [observation contract](record/v6/paper_results/observation_contract.md)
@@ -118,7 +122,7 @@ Current status:
 | Terrain | Mode | Current-contract PPO status |
 | --- | --- | --- |
 | flat | worm | old 1M low-speed run exists but is stale under the high-speed contract |
-| flat | random | high-speed random residual PPO reached ~213k / 1M; early straight-line videos recorded |
+| flat | random | high-speed random residual PPO reached ~311k / 1M under `high_speed_directional_v3`; current videos recorded but direction control is not solved |
 | flat | snake/mixed | evaluated through the flat random policy; dedicated fixed-mode retraining still needed |
 | sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
@@ -150,13 +154,18 @@ result:
 - The corrected deployable prior is still slower than the raw 4K full-combined
   CMA-ES baseline (`247.97 mm/s`) because V6 now evaluates the anchors through
   the deployable 1 s phase clock instead of hidden simulator time.
-- Fresh `flat/random` residual PPO has now reached roughly `213k / 1M` steps
-  under `high_speed_directional_v1`. Best eval reward improved from `1791.32`
-  at `75k` steps to `1835.17` at `154,688` steps.
-- Early fixed-blend PPO videos show useful straight-line improvement in worm
-  mode and mixed mode, but yaw/directional control is still asymmetric.
-  Current 213k best fixed-blend speeds: worm `40.62 mm/s`, mixed
-  `143.82 mm/s`, snake `65.58 mm/s`.
+- Fresh `flat/random` residual PPO has now reached roughly `311k / 1M` steps
+  under `high_speed_directional_v3`. Best balanced eval reward is `1946.40`
+  at `194,688` steps.
+- Current fixed-blend PPO videos are not yet stronger than the 4K CMA-ES
+  baseline. The 300k v3 straight-command speeds are worm `38.32 mm/s`, mixed
+  `133.48 mm/s`, and snake `62.89 mm/s`; the local 4K CMA-ES comparison still
+  shows the stronger raw full-combined gait at `247.97 mm/s`.
+- Directional control remains the main failure. With mixed mode and
+  `cmd_yaw=+0.5`, the 300k v3 policy still turns negative
+  (`yaw_delta=-0.516 rad`); with `cmd_yaw=-0.5`, it turns negative
+  (`yaw_delta=-0.383 rad`). This means right-turn behavior is present, but
+  left/right command separation has not been learned.
 - Hardware pipeline templates and preflight checks exist; real flat/sand/slope
   hardware logs are still pending.
 
@@ -189,6 +198,11 @@ Representative committed videos:
 - [flat/snake high-speed PPO random-policy rollout](record/v6/videos/eval_flat_snake_ppo_highspeed_random_213k_best_20260529.mp4)
 - [flat/mixed high-speed PPO left-yaw rollout](record/v6/videos/eval_flat_mixed_left_ppo_highspeed_random_213k_best_20260529.mp4)
 - [flat/mixed high-speed PPO right-yaw rollout](record/v6/videos/eval_flat_mixed_right_ppo_highspeed_random_213k_best_20260529.mp4)
+- [flat/worm v3 balanced PPO 300k rollout](record/v6/videos/eval_flat_worm_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4)
+- [flat/mixed v3 balanced PPO 300k rollout](record/v6/videos/eval_flat_mixed_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4)
+- [flat/snake v3 balanced PPO 300k rollout](record/v6/videos/eval_flat_snake_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4)
+- [flat/mixed v3 balanced PPO 300k left-yaw rollout](record/v6/videos/eval_flat_mixed_left_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4)
+- [flat/mixed v3 balanced PPO 300k right-yaw rollout](record/v6/videos/eval_flat_mixed_right_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4)
 - [current flat/worm low-noise residual rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4)
 - [current flat/worm low-noise final rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_278k_final_20260529.mp4)
 
@@ -331,8 +345,8 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Continue flat random residual PPO from the current ~213k high-speed run toward the 1M formal target.
-- Improve yaw/directional command learning; current left/right response is measurable but asymmetric.
+- Continue or restart flat random residual PPO from the current ~311k v3 high-speed run toward the 1M formal target.
+- Improve yaw/directional command learning; current mixed-mode left command still turns with the wrong sign.
 - Retrain flat worm/snake plus all sand and slope policies under the current reward/action contracts.
 - Regenerate all eval, robust eval, `gait_blend` scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.

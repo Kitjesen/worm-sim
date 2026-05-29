@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "created_unix_time": 1780018371.834169,
+  "created_unix_time": 1780022266.8972242,
   "algorithm": "PPO",
   "terrain": "flat",
   "gait_mode": "random",
@@ -258,11 +258,12 @@
     "initial_std": 0.0820849986238988
   },
   "reward_contract": {
-    "version": "high_speed_directional_v1",
+    "version": "high_speed_directional_v3",
     "forward_direction": "-world_x",
     "weights": {
       "vel_track": 2.0,
-      "yaw_track": 1.0,
+      "yaw_track": 3.0,
+      "yaw_align": 4.0,
       "vel_lin": 8.0,
       "overspeed": 2.0,
       "forward_deficit": 0.5,
@@ -277,7 +278,10 @@
       "cmaes_full_combined_target_m_s": 0.24797,
       "positive_forward_required_for_vel_track": true,
       "yaw_tracking_gated_by_forward_progress": true,
-      "cyclic_backslip_is_soft_penalized": true
+      "cyclic_backslip_is_soft_penalized": true,
+      "yaw_range_m_s_is_authority_matched": true,
+      "lateral_penalty_tapers_with_yaw_command": true,
+      "signed_yaw_alignment_reward": true
     }
   },
   "deployable_observation_sources": [
@@ -304,8 +308,8 @@
       0.25
     ],
     "cmd_yaw_rad_s": [
-      -1.0,
-      1.0
+      -0.5,
+      0.5
     ],
     "gait_blend": [
       0.0,
@@ -316,6 +320,48 @@
     "cmd_vel_m_s": 0.25,
     "cmd_yaw_rad_s": 0.0,
     "command_resample_prob": 0.0
+  },
+  "best_eval_schedule": {
+    "cmd_vel_m_s": 0.25,
+    "command_resample_prob": 0.0,
+    "cases": [
+      {
+        "gait_blend": 0.0,
+        "cmd_yaw_rad_s": -0.5
+      },
+      {
+        "gait_blend": 0.0,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "gait_blend": 0.0,
+        "cmd_yaw_rad_s": 0.5
+      },
+      {
+        "gait_blend": 0.5,
+        "cmd_yaw_rad_s": -0.5
+      },
+      {
+        "gait_blend": 0.5,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "gait_blend": 0.5,
+        "cmd_yaw_rad_s": 0.5
+      },
+      {
+        "gait_blend": 1.0,
+        "cmd_yaw_rad_s": -0.5
+      },
+      {
+        "gait_blend": 1.0,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "gait_blend": 1.0,
+        "cmd_yaw_rad_s": 0.5
+      }
+    ]
   },
   "control_timing": {
     "control_dt_s": 0.02,
@@ -332,8 +378,8 @@
     "action_saturation": 1.0
   },
   "training": {
-    "timesteps": 200000,
-    "train_chunk_timesteps": 100000,
+    "timesteps": 300000,
+    "train_chunk_timesteps": 200000,
     "n_envs": 4,
     "requested_device": "cpu",
     "resolved_device": "cpu",

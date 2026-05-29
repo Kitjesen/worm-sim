@@ -1,6 +1,6 @@
 # Worm V6 Deployable Observation Contract
 
-- ABI fingerprint: `27e31e546bb79ba12a70a286add79a8a72323f65ff3dbb58406e8d85c855c932`
+- ABI fingerprint: `b34b962858a9ad2d58b2c33e6d8448760214bd959b4cff578635ea694bf35eb5`
 - Observation dimension: `80`
 - Actuated joints: `11`
 - Segment IMUs: `7`

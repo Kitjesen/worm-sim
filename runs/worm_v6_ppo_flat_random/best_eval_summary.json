@@ -1,6 +1,45 @@
 {
   "format_version": 1,
-  "updated_unix_time": 1780018496.6566334,
-  "best_mean_reward": 1835.1749470000002,
-  "best_timestep": 154688
+  "updated_unix_time": 1780022595.1213555,
+  "best_mean_reward": 1946.4017613333333,
+  "best_timestep": 194688,
+  "eval_schedule_fingerprint": "7e7e4d60e81dd6e18c94ba63ca2e0f968666b8de7fa6264cf8361f5b5b3d7478",
+  "eval_schedule": [
+    {
+      "gait_blend": 0.0,
+      "cmd_yaw_rad_s": -0.5
+    },
+    {
+      "gait_blend": 0.0,
+      "cmd_yaw_rad_s": 0.0
+    },
+    {
+      "gait_blend": 0.0,
+      "cmd_yaw_rad_s": 0.5
+    },
+    {
+      "gait_blend": 0.5,
+      "cmd_yaw_rad_s": -0.5
+    },
+    {
+      "gait_blend": 0.5,
+      "cmd_yaw_rad_s": 0.0
+    },
+    {
+      "gait_blend": 0.5,
+      "cmd_yaw_rad_s": 0.5
+    },
+    {
+      "gait_blend": 1.0,
+      "cmd_yaw_rad_s": -0.5
+    },
+    {
+      "gait_blend": 1.0,
+      "cmd_yaw_rad_s": 0.0
+    },
+    {
+      "gait_blend": 1.0,
+      "cmd_yaw_rad_s": 0.5
+    }
+  ]
 }

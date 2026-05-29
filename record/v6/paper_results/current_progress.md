@@ -13,148 +13,91 @@ Generated on 2026-05-29.
   - yaw targets: `[-1.57, 1.57] rad`
   - peristaltic actuation period: `1.0 s`
 - The current training/evaluation line has been corrected against the stronger 4K CMA-ES comparison video:
-  - reward contract: `high_speed_directional_v1`
+  - reward contract: `high_speed_directional_v3`
   - action adapter: `cmaes_tri_anchor_residual_v1`
   - residual policy scale: `0.35`
-  - command range: `cmd_vel in [0.0, 0.25] m/s`, `cmd_yaw in [-1.0, 1.0] rad/s`
+  - command range: `cmd_vel in [0.0, 0.25] m/s`, `cmd_yaw in [-0.5, 0.5] rad/s`
   - gait anchors: peristaltic at `gait_blend=0.0`, full combined at `0.5`, serpentine at `1.0`
+  - balanced best-eval schedule: `gait_blend in {0.0, 0.5, 1.0}` x `cmd_yaw in {-0.5, 0.0, 0.5}`
 - The 4K comparison video is an open-loop CMA-ES baseline, not a PPO result. Its strongest flat full-combined gait is `247.97 mm/s` from `runs/cmaes_speed_full/best_gait.json`.
-- Old PPO artifacts trained under `forward_progress_v3` and `cmd_vel=0.025 m/s` are stale for paper claims because they optimized a `25 mm/s` task.
+- Old PPO artifacts trained under `forward_progress_v3`, low-speed commands, or older reward contracts are stale for paper claims.
+
+## Why The Current PPO Looks Worse Than The 4K Video
+
+The 4K video shows the raw single-objective CMA-ES full-combined gait. It optimizes one open-loop gait for speed and does not need to respond to `gait_blend`, yaw commands, or deployable policy observations.
+
+The current PPO policy is a residual controller on top of that prior. It must use only deployable observations, support worm/mixed/snake commands, and respond to left/straight/right yaw commands. That broader task is not solved yet. The current 300k v3 policy preserves some forward motion, but the directional command response is still biased toward negative yaw.
 
 ## Current Training Evidence
 
-- Old `flat/worm` low-noise residual PPO run:
-  - status: finished to the 1M-step target, but stale under the new high-speed contract
-  - run directory: `runs/worm_v6_ppo_flat_worm/`
-  - best model: `runs/worm_v6_ppo_flat_worm/best_model.zip`
-  - training result: `runs/worm_v6_ppo_flat_worm/training_result.json`
-- What the old run taught us:
-  - previous high-noise residual training showed episode rewards near `-3700` and short terminated episodes
-  - lowering residual exploration reduced instability
-  - the remaining speed ceiling came from the wrong reward target, not from an intrinsic robot limit
-- Fixed-command robust 10 s eval of the current best `flat/worm` checkpoint:
-  - distance: `153.4 mm`
-  - speed: `15.34 mm/s`
-  - lateral drift: `3.1 mm`
-  - success: `1.0`
-  - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_65k_best.json`
-- Fixed-command robust 10 s eval of the current final `flat/worm` checkpoint:
-  - distance: `186.2 mm`
-  - speed: `18.62 mm/s`
-  - lateral drift: `17.2 mm`
-  - success: `1.0`
-  - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_278k_final.json`
-- Low-resolution video rollout of the same checkpoint:
-  - duration: `5.0 s`
-  - distance: `110.1 mm`
-  - speed: `22.0 mm/s`
-  - termination: `false`
-  - video: `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4`
-  - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_65k_best_video.json`
-- Low-resolution video rollout of the final checkpoint:
-  - duration: `5.0 s`
-  - distance: `121.7 mm`
-  - speed: `24.34 mm/s`
-  - lateral drift: `1.34 mm`
-  - termination: `false`
-  - video: `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_278k_final_20260529.mp4`
-  - metrics: `runs/worm_v6_ppo_flat_worm/eval_metrics_reward_v3_prior_lownoise_278k_final_video.json`
-- Corrected zero-residual `flat/worm` CMA-ES-anchor prior rollout:
-  - duration: `5.0 s`
-  - command: `cmd_vel=0.25 m/s`, `cmd_yaw=0`
-  - distance: `166.8 mm`
-  - speed: `33.35 mm/s`
-  - lateral drift: `1.9 mm`
-  - termination: `false`
-  - video: `record/v6/videos/eval_flat_worm_cmaes_prior_20260529.mp4`
-  - metrics: `record/v6/paper_results/eval_flat_worm_cmaes_prior_20260529.json`
-- Corrected zero-residual `flat/mixed` CMA-ES-anchor prior rollout:
-  - duration: `5.0 s`
-  - command: `cmd_vel=0.25 m/s`, `cmd_yaw=0`
-  - distance: `695.8 mm`
-  - speed: `139.16 mm/s`
-  - lateral drift: `56.0 mm`
-  - termination: `false`
-  - video: `record/v6/videos/eval_flat_mixed_cmaes_prior_20260529.mp4`
-  - metrics: `record/v6/paper_results/eval_flat_mixed_cmaes_prior_20260529.json`
-  - interpretation: this is the corrected deployable prior baseline; PPO still needs to be retrained as a residual on top of it.
-- Corrected zero-residual `flat/snake` CMA-ES-anchor prior rollout:
-  - duration: `5.0 s`
-  - command: `cmd_vel=0.25 m/s`, `cmd_yaw=0`
-  - distance: `340.4 mm`
-  - speed: `68.09 mm/s`
-  - lateral drift: `80.3 mm`
-  - termination: `false`
-  - video: `record/v6/videos/eval_flat_snake_cmaes_prior_20260529.mp4`
-  - metrics: `record/v6/paper_results/eval_flat_snake_cmaes_prior_20260529.json`
-- Interpretation: the corrected deployable prior is materially better than the old low-speed PPO videos, but it still does not reproduce the raw 4K `247.97 mm/s` full-combined CMA-ES baseline because V6 now projects anchors through the deployable 1 s phase clock instead of hidden simulator time.
-- Fresh high-speed `flat/random` residual PPO run under the corrected contract:
-  - run directory: `runs/worm_v6_ppo_flat_random/`
-  - archived stale low-speed artifacts to: `runs/worm_v6_ppo_flat_random/incompatible_timing_archive/20260529_092238/`
-  - first CUDA chunk: target `100,000`, completed `114,688`; best eval `1791.32` at `75,000` steps
-  - CPU continuation: target `200,000`, resumed from `114,688`, completed past `200,000`; best eval improved to `1835.17` at `154,688` steps
-  - device conclusion from this local run: CUDA was available, but SB3 MLP-PPO warned about poor GPU use; CPU continuation was faster (`~362 it/s` vs `~333 it/s`)
-- High-speed `flat/random` best-policy fixed-blend videos, same seed as the 115k comparison:
+- Run directory: `runs/worm_v6_ppo_flat_random/`
+- Current run status: about `311k / 1M` timesteps under `high_speed_directional_v3`
+- Best balanced eval reward: `1946.40` at `194,688` steps
+- Best-eval schedule fingerprint: `runs/worm_v6_ppo_flat_random/best_eval_summary.json`
+- Earlier incompatible artifacts were archived under `runs/worm_v6_ppo_flat_random/incompatible_timing_archive/`
 
-| Policy | Mode | Command yaw | Speed (mm/s) | Lateral drift (mm) | Root yaw delta (rad) | Video |
+## Fixed-Blend Video Metrics
+
+All rows use `cmd_vel=0.25 m/s` and 5 s rollouts. PPO rows use the flat/random residual policy.
+
+| Policy | Mode | Cmd yaw | Speed (mm/s) | Drift (mm) | Root yaw delta (rad) | Metrics |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| CMA-ES prior only | worm | 0.0 | 33.35 | 1.9 | 0.000 | `record/v6/videos/eval_flat_worm_cmaes_prior_20260529.mp4` |
-| PPO 115k best | worm | 0.0 | 38.73 | 2.1 | -0.001 | `record/v6/videos/eval_flat_worm_ppo_highspeed_random_115k_best_20260529.mp4` |
-| PPO 213k best | worm | 0.0 | 40.62 | 3.4 | 0.001 | `record/v6/videos/eval_flat_worm_ppo_highspeed_random_213k_best_20260529.mp4` |
-| CMA-ES prior only | mixed | 0.0 | 139.16 | 56.0 | 0.000 | `record/v6/videos/eval_flat_mixed_cmaes_prior_20260529.mp4` |
-| PPO 115k best | mixed | 0.0 | 161.80 | 132.8 | -0.233 | `record/v6/videos/eval_flat_mixed_ppo_highspeed_random_115k_best_20260529.mp4` |
-| PPO 213k best | mixed | 0.0 | 143.82 | 119.4 | -0.402 | `record/v6/videos/eval_flat_mixed_ppo_highspeed_random_213k_best_20260529.mp4` |
-| CMA-ES prior only | snake | 0.0 | 68.09 | 80.3 | 0.000 | `record/v6/videos/eval_flat_snake_cmaes_prior_20260529.mp4` |
-| PPO 115k best | snake | 0.0 | 62.84 | 52.0 | -0.442 | `record/v6/videos/eval_flat_snake_ppo_highspeed_random_115k_best_20260529.mp4` |
-| PPO 213k best | snake | 0.0 | 65.58 | 57.3 | -0.460 | `record/v6/videos/eval_flat_snake_ppo_highspeed_random_213k_best_20260529.mp4` |
+| CMA-ES prior only | worm | 0.0 | 33.35 | 1.9 | 0.000 | `record/v6/paper_results/eval_flat_worm_cmaes_prior_20260529.json` |
+| CMA-ES prior only | mixed | 0.0 | 139.16 | 56.0 | 0.000 | `record/v6/paper_results/eval_flat_mixed_cmaes_prior_20260529.json` |
+| CMA-ES prior only | snake | 0.0 | 68.09 | 80.3 | 0.000 | `record/v6/paper_results/eval_flat_snake_cmaes_prior_20260529.json` |
+| PPO v3 300k best | worm | 0.0 | 38.32 | 3.5 | 0.002 | `record/v6/paper_results/eval_flat_worm_ppo_highspeed_random_v3_300k_balanced_best_20260529.json` |
+| PPO v3 300k best | mixed | 0.0 | 133.48 | 93.6 | -0.270 | `record/v6/paper_results/eval_flat_mixed_ppo_highspeed_random_v3_300k_balanced_best_20260529.json` |
+| PPO v3 300k best | snake | 0.0 | 62.89 | 119.1 | -0.385 | `record/v6/paper_results/eval_flat_snake_ppo_highspeed_random_v3_300k_balanced_best_20260529.json` |
+| PPO v3 300k best | mixed | +0.5 | 147.03 | 139.6 | -0.516 | `record/v6/paper_results/eval_flat_mixed_left_ppo_highspeed_random_v3_300k_balanced_best_20260529.json` |
+| PPO v3 300k best | mixed | -0.5 | 146.92 | 47.8 | -0.383 | `record/v6/paper_results/eval_flat_mixed_right_ppo_highspeed_random_v3_300k_balanced_best_20260529.json` |
 
-- Directional/yaw command status:
-  - `cmd_yaw=+1.0`, mixed, 213k best: `154.24 mm/s`, yaw delta `+0.104 rad`
-  - `cmd_yaw=-1.0`, mixed, 213k best: `143.79 mm/s`, yaw delta `-0.375 rad`
-  - interpretation: directional response is now measurable, but not yet symmetric or strong enough for the "all-directional" claim.
+Interpretation:
+
+- Worm mode has a small improvement over the corrected deployable prior.
+- Mixed and snake mode are not better than the prior on the current 300k v3 checkpoint.
+- The raw 4K full-combined CMA-ES gait remains much faster at `247.97 mm/s`.
+- Directional control is not solved: positive yaw command still produces negative yaw in the current mixed-mode video.
+
+## What Was Fixed
+
+- Best-model selection no longer evaluates only straight-line motion; it now evaluates all three blends and left/straight/right yaw commands.
+- The yaw command range was reduced from `[-1.0, 1.0]` to `[-0.5, 0.5] rad/s` after measuring the practical turning authority of the prior/residual actuator setup.
+- The reward now includes signed yaw alignment, so correct yaw sign is explicitly rewarded and wrong yaw sign is penalized.
+- Lateral drift penalty is reduced during commanded turning so normal turn arcs are not treated as straight-line drift.
+
+## Remaining Failure
+
+The policy is still stuck in a negative-yaw basin. The reward contract now distinguishes the correct yaw sign, but the 300k learned policy has not separated left and right commands. This is a training/control failure, not a video-recording failure.
+
+Likely next technical steps:
+
+- continue v3 to the 1M formal target with sign-aware eval metrics;
+- add a hard directional success metric instead of relying only on mean eval reward;
+- consider curriculum training: straight first, then isolated left/right, then mixed random;
+- consider residual limits or prior mirroring so the policy can more easily produce symmetric yaw corrections.
 
 ## Current Audit Result
 
-`python src/v6/paper_status_v6.py --refresh-audit` reports:
+The formal paper goal still requires:
 
-- `complete: False`
-- next formal training target reported by audit: `flat/worm`
-- training artifacts present: `11/12`
-- current formal training threshold met: `0/12`
-- important mismatch now shown by audit: `flat/random` is current-contract but only `212,992 / 1,000,000` steps, below the formal threshold
-
-The audit still requires:
-
-- 12 current-contract PPO model artifacts at the formal threshold
-- 9 fixed-mode eval JSON files
-- 9 robust fixed-mode eval JSON files
-- 3 continuous `gait_blend` scan result files
-- 3 deployable random-policy bundles
-- hardware deploy preflight report
-- flat/sand/slope hardware logs with video references
+- 12 current-contract PPO model artifacts at the formal threshold;
+- fixed-mode eval JSON files for flat/sand/slope and worm/mixed/snake;
+- robust fixed-mode eval JSON files;
+- continuous `gait_blend` scan results;
+- deployable random-policy bundles;
+- hardware deploy preflight report;
+- flat/sand/slope hardware logs with video references.
 
 ## Viewable Evidence
 
+- `record/v6/videos/gait_comparison_4k.mp4`
 - `record/v6/videos/eval_flat_worm_cmaes_prior_20260529.mp4`
 - `record/v6/videos/eval_flat_mixed_cmaes_prior_20260529.mp4`
 - `record/v6/videos/eval_flat_snake_cmaes_prior_20260529.mp4`
-- `record/v6/videos/eval_flat_worm_ppo_highspeed_random_213k_best_20260529.mp4`
-- `record/v6/videos/eval_flat_mixed_ppo_highspeed_random_213k_best_20260529.mp4`
-- `record/v6/videos/eval_flat_snake_ppo_highspeed_random_213k_best_20260529.mp4`
-- `record/v6/videos/eval_flat_mixed_left_ppo_highspeed_random_213k_best_20260529.mp4`
-- `record/v6/videos/eval_flat_mixed_right_ppo_highspeed_random_213k_best_20260529.mp4`
-- `record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4`
-- `record/v6/trajectory/`
-- `record/v6/paper_results/results_index.md`
-- `record/v6/paper_results/completion_audit.md`
+- `record/v6/videos/eval_flat_worm_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4`
+- `record/v6/videos/eval_flat_mixed_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4`
+- `record/v6/videos/eval_flat_snake_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4`
+- `record/v6/videos/eval_flat_mixed_left_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4`
+- `record/v6/videos/eval_flat_mixed_right_ppo_highspeed_random_v3_300k_balanced_best_20260529.mp4`
 
-Large 4K videos are intentionally not committed to Git because GitHub rejects files over 100 MB without LFS.
-
-## Remaining Work
-
-- Continue fresh flat random residual PPO from the current `~213k / 1M` high-speed run.
-- Strengthen yaw/directional command learning; current left/right response is measurable but asymmetric.
-- Retrain flat worm/snake and all sand/slope modes under the current reward/action contracts.
-- Rerun deploy/export, fixed-mode eval, robust eval, `gait_blend` scan, summary, and audit.
-- Collect real flat/sand/slope hardware logs with video references.
-- Rebuild final paper figures after all current-contract evals are complete.
+Large 4K videos should use Git LFS or external release assets before being pushed to GitHub.

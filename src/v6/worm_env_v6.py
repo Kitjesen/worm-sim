@@ -13,8 +13,8 @@ Observation:   80-dim deployable state:
                + segment_gyro(7*3) + phase_clock(2)
 
 Command:       [v_forward_cmd, yaw_rate_cmd, gait_blend]
-               - v_forward_cmd ∈ [0, 0.025] m/s   (forward speed target)
-               - yaw_rate_cmd  ∈ [-0.3, 0.3] rad/s (turning rate target)
+               - v_forward_cmd in [0, 0.25] m/s    (forward speed target)
+               - yaw_rate_cmd  in [-0.5, 0.5] rad/s (turning rate target)
 
                - gait_blend    in [0, 1] (0=worm, 1=snake)
 
@@ -63,7 +63,7 @@ SETTLE_STEPS = 250                          # 0.5s settle after reset
 
 # Command ranges (sampled randomly each episode)
 CMD_VEL_RANGE   = (0.0, 0.25)    # m/s forward speed target (CMA-ES full ~248 mm/s)
-CMD_YAW_RANGE   = (-1.0, 1.0)    # rad/s yaw rate target for directional control
+CMD_YAW_RANGE   = (-0.5, 0.5)    # rad/s yaw target; matched to observed authority
 CMD_RESAMPLE_P  = 0.005          # probability of resampling command each step
 
 GAIT_BLENDS = {
@@ -93,6 +93,7 @@ OBS_LAYOUT = {
 # Reward weights — velocity tracking with exponential kernel
 W_VEL_TRACK = 2.0       # forward speed tracking: exp(-err²/σ²)
 W_YAW_TRACK = 1.0       # yaw rate tracking: exp(-err²/σ²)
+W_YAW_ALIGN = 0.0       # signed yaw-command alignment
 SIGMA_VEL   = 0.010     # m/s — ~40% of CMD_VEL range for good gradient
 SIGMA_YAW   = 0.15      # rad/s
 W_VEL_LIN   = 8.0       # capped+normalized forward bonus [0,1] — MAIN exploration driver
@@ -110,7 +111,9 @@ REWARD_CONTRACT_VERSION = "forward_progress_v3"
 # Keeping the assignment block local makes old checkpoints incompatible through
 # the reward contract without changing the deployable observation layout.
 SIGMA_VEL = 0.050
-SIGMA_YAW = 0.30
+SIGMA_YAW = 0.20
+W_YAW_TRACK = 3.0
+W_YAW_ALIGN = 4.0
 W_OVERSPEED = 2.0
 W_FORWARD_DEFICIT = 0.5
 W_COMMAND_COST = 1.0
@@ -118,7 +121,7 @@ W_LATERAL = 0.3
 W_BACKWARD = 0.5
 W_ENERGY = 0.001
 W_SMOOTH = 0.01
-REWARD_CONTRACT_VERSION = "high_speed_directional_v1"
+REWARD_CONTRACT_VERSION = "high_speed_directional_v3"
 
 
 def reward_contract():
@@ -128,6 +131,7 @@ def reward_contract():
         "weights": {
             "vel_track": W_VEL_TRACK,
             "yaw_track": W_YAW_TRACK,
+            "yaw_align": W_YAW_ALIGN,
             "vel_lin": W_VEL_LIN,
             "overspeed": W_OVERSPEED,
             "forward_deficit": W_FORWARD_DEFICIT,
@@ -143,6 +147,9 @@ def reward_contract():
             "positive_forward_required_for_vel_track": True,
             "yaw_tracking_gated_by_forward_progress": True,
             "cyclic_backslip_is_soft_penalized": True,
+            "yaw_range_m_s_is_authority_matched": True,
+            "lateral_penalty_tapers_with_yaw_command": True,
+            "signed_yaw_alignment_reward": True,
         },
     }
 
@@ -534,6 +541,15 @@ class WormEnvV6(gym.Env):
         r_yaw_track = math.exp(-(yaw_err ** 2) / (SIGMA_YAW ** 2))
         if self._cmd_vel > 1e-6:
             r_yaw_track *= 0.25 + 0.75 * progress_ratio
+        r_yaw_align = 0.0
+        if abs(self._cmd_yaw) > 1e-6:
+            yaw_scale = max(abs(CMD_YAW_RANGE[1]), 1e-6)
+            r_yaw_align = np.clip(
+                (yaw_rate * self._cmd_yaw) / (yaw_scale ** 2),
+                -1.0,
+                1.0,
+            )
+            r_yaw_align *= 0.25 + 0.75 * progress_ratio
 
         # ── Linear forward velocity bonus (capped + normalized) ──
         # Rewards forward movement UP TO target speed, no bonus beyond.
@@ -548,7 +564,10 @@ class WormEnvV6(gym.Env):
         speed_scale = max(CMD_VEL_RANGE[1], 1e-6)
         forward_deficit = max(0.0, self._cmd_vel - forward_speed) / speed_scale
         backward_speed = max(0.0, -forward_speed) / speed_scale
-        lateral_speed = lateral_speed / speed_scale
+        yaw_command_fraction = min(
+            abs(self._cmd_yaw) / max(abs(CMD_YAW_RANGE[1]), 1e-6), 1.0)
+        lateral_weight = 1.0 - yaw_command_fraction
+        lateral_speed = (lateral_speed / speed_scale) * lateral_weight
 
         energy = 0.0
         for i in range(self.model.nu):
@@ -566,6 +585,7 @@ class WormEnvV6(gym.Env):
         reward = (
             + W_VEL_TRACK * r_vel_track    # exp tracking (precision)
             + W_YAW_TRACK * r_yaw_track    # exp tracking (turning)
+            + W_YAW_ALIGN * r_yaw_align    # signed yaw command response
             + W_VEL_LIN   * r_vel_lin      # linear bonus (exploration gradient)
             - W_OVERSPEED * overspeed_sq
             - W_FORWARD_DEFICIT * forward_deficit
