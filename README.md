@@ -118,7 +118,8 @@ Current status:
 | Terrain | Mode | Current-contract PPO status |
 | --- | --- | --- |
 | flat | worm | old 1M low-speed run exists but is stale under the high-speed contract |
-| flat | snake/mixed/random | old artifacts exist, retraining under current contract still needed |
+| flat | random | high-speed random residual PPO reached ~213k / 1M; early straight-line videos recorded |
+| flat | snake/mixed | evaluated through the flat random policy; dedicated fixed-mode retraining still needed |
 | sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 
@@ -149,8 +150,13 @@ result:
 - The corrected deployable prior is still slower than the raw 4K full-combined
   CMA-ES baseline (`247.97 mm/s`) because V6 now evaluates the anchors through
   the deployable 1 s phase clock instead of hidden simulator time.
-- This is not yet the final PPO result. It is a corrected baseline for the new
-  residual PPO run.
+- Fresh `flat/random` residual PPO has now reached roughly `213k / 1M` steps
+  under `high_speed_directional_v1`. Best eval reward improved from `1791.32`
+  at `75k` steps to `1835.17` at `154,688` steps.
+- Early fixed-blend PPO videos show useful straight-line improvement in worm
+  mode and mixed mode, but yaw/directional control is still asymmetric.
+  Current 213k best fixed-blend speeds: worm `40.62 mm/s`, mixed
+  `143.82 mm/s`, snake `65.58 mm/s`.
 - Hardware pipeline templates and preflight checks exist; real flat/sand/slope
   hardware logs are still pending.
 
@@ -178,6 +184,11 @@ Representative committed videos:
 - [corrected flat/worm CMA-ES-anchor prior rollout](record/v6/videos/eval_flat_worm_cmaes_prior_20260529.mp4)
 - [corrected flat/mixed CMA-ES-anchor prior rollout](record/v6/videos/eval_flat_mixed_cmaes_prior_20260529.mp4)
 - [corrected flat/snake CMA-ES-anchor prior rollout](record/v6/videos/eval_flat_snake_cmaes_prior_20260529.mp4)
+- [flat/worm high-speed PPO random-policy rollout](record/v6/videos/eval_flat_worm_ppo_highspeed_random_213k_best_20260529.mp4)
+- [flat/mixed high-speed PPO random-policy rollout](record/v6/videos/eval_flat_mixed_ppo_highspeed_random_213k_best_20260529.mp4)
+- [flat/snake high-speed PPO random-policy rollout](record/v6/videos/eval_flat_snake_ppo_highspeed_random_213k_best_20260529.mp4)
+- [flat/mixed high-speed PPO left-yaw rollout](record/v6/videos/eval_flat_mixed_left_ppo_highspeed_random_213k_best_20260529.mp4)
+- [flat/mixed high-speed PPO right-yaw rollout](record/v6/videos/eval_flat_mixed_right_ppo_highspeed_random_213k_best_20260529.mp4)
 - [current flat/worm low-noise residual rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_65k_best_20260529.mp4)
 - [current flat/worm low-noise final rollout](record/v6/videos/eval_flat_worm_reward_v3_prior_lownoise_278k_final_20260529.mp4)
 
@@ -236,7 +247,8 @@ Training device selection:
 
 - `--device cpu` is the current recommended default for SB3 MLP-PPO.
 - `--device cuda` fails fast if CUDA is unavailable; `--device auto` selects CUDA when PyTorch detects it.
-- MuJoCo environment stepping is still CPU-bound, and local CUDA testing showed poor MLP-PPO utilization, so a 3090 will not help linearly unless paired with enough CPU workers or a GPU-parallel simulator backend.
+- Local CUDA testing on this MLP-PPO task produced the expected SB3 warning about poor GPU utilization. The first CUDA chunk ran at about `333 it/s`; the CPU continuation of the same run reached about `362 it/s`.
+- MuJoCo environment stepping is still CPU-bound, so a 3090 will not help linearly unless paired with enough CPU workers or a GPU-parallel simulator backend.
 
 ## Main Scripts
 
@@ -319,7 +331,8 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Train fresh flat random/mixed residual PPO under `high_speed_directional_v1`.
+- Continue flat random residual PPO from the current ~213k high-speed run toward the 1M formal target.
+- Improve yaw/directional command learning; current left/right response is measurable but asymmetric.
 - Retrain flat worm/snake plus all sand and slope policies under the current reward/action contracts.
 - Regenerate all eval, robust eval, `gait_blend` scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.

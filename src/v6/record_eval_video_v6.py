@@ -61,6 +61,15 @@ def write_json(path, payload):
         json.dump(payload, f, indent=2)
 
 
+def root_yaw_rad(data, body_id):
+    mat = data.xmat[body_id].reshape(3, 3)
+    return float(np.arctan2(mat[1, 0], mat[0, 0]))
+
+
+def wrap_pi(angle):
+    return float((angle + np.pi) % (2.0 * np.pi) - np.pi)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-dir", required=True)
@@ -141,6 +150,7 @@ def main():
         raise RuntimeError(f"Could not open video writer: {args.video_out}")
 
     start_pos = sim_env.data.xpos[sim_env._root_body_id].copy()
+    start_yaw = root_yaw_rad(sim_env.data, sim_env._root_body_id)
     reward_sum = 0.0
     action_l2 = []
     action_rate_l2 = []
@@ -180,11 +190,14 @@ def main():
     writer.release()
     renderer.close()
     end_pos = sim_env.data.xpos[sim_env._root_body_id].copy()
+    end_yaw = root_yaw_rad(sim_env.data, sim_env._root_body_id)
     env.close()
 
     elapsed_s = (step + 1) * CTRL_DT
+    delta_world = end_pos - start_pos
     forward_m = float(-(end_pos[0] - start_pos[0]))
     lateral_m = float(abs(end_pos[1] - start_pos[1]))
+    yaw_delta = wrap_pi(end_yaw - start_yaw)
     metrics = {
         "terrain": args.terrain,
         "gait_mode": args.gait_mode,
@@ -218,9 +231,12 @@ def main():
         "frames": frames,
         "terminated": terminated,
         "reward": reward_sum,
+        "world_delta_m": [float(v) for v in delta_world[:3]],
         "distance_mm": forward_m * 1000.0,
         "speed_mm_s": forward_m * 1000.0 / max(elapsed_s, 1e-9),
         "lateral_drift_mm": lateral_m * 1000.0,
+        "root_yaw_delta_rad": yaw_delta,
+        "root_yaw_rate_rad_s": yaw_delta / max(elapsed_s, 1e-9),
         "mean_action_l2_per_step": float(np.mean(action_l2)) if action_l2 else 0.0,
         "mean_action_rate_l2_per_step": (
             float(np.mean(action_rate_l2)) if action_rate_l2 else 0.0),

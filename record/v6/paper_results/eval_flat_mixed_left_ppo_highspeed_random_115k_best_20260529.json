@@ -1,0 +1,186 @@
+{
+  "terrain": "flat",
+  "gait_mode": "mixed",
+  "gait_blend": 0.5,
+  "obs_dim": 80,
+  "eval_condition": "ppo_highspeed_random_115k_best_mixed_left_flat",
+  "prior_only": false,
+  "action_metric_note": "mean_action_l2 is PPO residual action norm; in prior-only mode the deployed prior action is composed inside the environment",
+  "eval_command": {
+    "cmd_vel_m_s": 0.25,
+    "cmd_yaw_rad_s": 1.0,
+    "command_resample_prob": 0.0
+  },
+  "action_adapter": {
+    "version": "cmaes_tri_anchor_residual_v1",
+    "policy_output": "normalized_residual_action",
+    "deployed_action": "clip(gait_prior + residual, -1, 1)",
+    "gait_prior_scale": 1.0,
+    "policy_residual_scale": 0.35,
+    "phase_source": "deployable phase_clock observation",
+    "gait_blend_source": "command observation",
+    "phase_projection": "phase_cycle_s = (phase mod 2*pi) / (2*pi); CMA-ES frequencies are evaluated on this deployable 1 s clock",
+    "blend_rule": "0.0=peristaltic anchor, 0.5=full combined anchor, 1.0=serpentine anchor; intermediate values are piecewise-linear",
+    "gait_anchors": {
+      "worm": {
+        "source": "cmaes_peristaltic",
+        "best_speed_mm_s": 64.9,
+        "param_names": [
+          "slide_amp",
+          "slide_freq",
+          "slide_wave_n",
+          "yaw_amp",
+          "yaw_freq",
+          "yaw_wave_n",
+          "slide_bias_0",
+          "slide_bias_1",
+          "slide_bias_2",
+          "slide_bias_3",
+          "slide_bias_4",
+          "slide_bias_5",
+          "step_duration",
+          "yaw_slide_coupling"
+        ],
+        "params": [
+          0.0499967771750052,
+          0.99995922729403,
+          0.5053235731460374,
+          0.004576804060495781,
+          0.4269881104325972,
+          2.989422198070506,
+          2.471448492284372,
+          1.8269679928597355,
+          2.4449428584901423,
+          2.856862382888375,
+          -2.9748880169626144,
+          3.108692589704268,
+          0.7476788282885293,
+          0.23400636325858382
+        ]
+      },
+      "mixed": {
+        "source": "cmaes_full",
+        "best_speed_mm_s": 247.97,
+        "param_names": [
+          "slide_amp",
+          "slide_freq",
+          "slide_wave_n",
+          "yaw_amp",
+          "yaw_freq",
+          "yaw_wave_n",
+          "slide_bias_0",
+          "slide_bias_1",
+          "slide_bias_2",
+          "slide_bias_3",
+          "slide_bias_4",
+          "slide_bias_5",
+          "step_duration",
+          "yaw_slide_coupling"
+        ],
+        "params": [
+          0.04655121251582109,
+          0.12480818933935475,
+          2.3746972019013683,
+          0.7167330261210002,
+          0.890250887482642,
+          0.5899389214089962,
+          -0.15881747481015873,
+          -0.061281246575806136,
+          -1.5688957936234118,
+          2.8738159759408957,
+          2.190641561690949,
+          1.6817450467151565,
+          0.6146709498011067,
+          -0.12037408667883753
+        ]
+      },
+      "snake": {
+        "source": "cmaes_serpentine",
+        "best_speed_mm_s": 90.38,
+        "param_names": [
+          "slide_amp",
+          "slide_freq",
+          "slide_wave_n",
+          "yaw_amp",
+          "yaw_freq",
+          "yaw_wave_n",
+          "slide_bias_0",
+          "slide_bias_1",
+          "slide_bias_2",
+          "slide_bias_3",
+          "slide_bias_4",
+          "slide_bias_5",
+          "step_duration",
+          "yaw_slide_coupling"
+        ],
+        "params": [
+          0.03558827382644502,
+          0.4244779404305604,
+          2.702074806396634,
+          0.7150887433302788,
+          0.9861203877623932,
+          0.6086064803771956,
+          -0.8997403641893227,
+          -2.0634603041134065,
+          -1.8685883687077762,
+          0.13412045251706095,
+          -1.2500211112855877,
+          0.08771217797686415,
+          0.6234570692098784,
+          -0.4580381766374815
+        ]
+      }
+    }
+  },
+  "reward_contract": {
+    "version": "high_speed_directional_v1",
+    "forward_direction": "-world_x",
+    "weights": {
+      "vel_track": 2.0,
+      "yaw_track": 1.0,
+      "vel_lin": 8.0,
+      "overspeed": 2.0,
+      "forward_deficit": 0.5,
+      "command_cost": 1.0,
+      "lateral": 0.3,
+      "backward": 0.5,
+      "energy": 0.001,
+      "smooth": 0.01
+    },
+    "normalization": {
+      "speed_scale_m_s": 0.25,
+      "cmaes_full_combined_target_m_s": 0.24797,
+      "positive_forward_required_for_vel_track": true,
+      "yaw_tracking_gated_by_forward_progress": true,
+      "cyclic_backslip_is_soft_penalized": true
+    }
+  },
+  "sensor_noise": {
+    "encoder_pos_noise_std": 0.0,
+    "encoder_vel_noise_std": 0.0,
+    "imu_gravity_noise_std": 0.0,
+    "imu_gyro_noise_std": 0.0,
+    "action_delay_steps": 0,
+    "action_saturation": 1.0
+  },
+  "time_s": 5.0,
+  "frames": 50,
+  "terminated": false,
+  "reward": 442.05951730906963,
+  "world_delta_m": [
+    -0.7500061613599829,
+    0.14448795150141033,
+    0.0005313007122901697
+  ],
+  "distance_mm": 750.0061613599829,
+  "speed_mm_s": 150.00123227199657,
+  "lateral_drift_mm": 144.48795150141032,
+  "root_yaw_delta_rad": -0.2327913572429665,
+  "root_yaw_rate_rad_s": -0.0465582714485933,
+  "mean_action_l2_per_step": 0.049831207139967325,
+  "mean_action_rate_l2_per_step": 0.03988943951002923,
+  "model_path": "runs\\worm_v6_ppo_flat_random\\best_model.zip",
+  "vecnormalize": "runs\\worm_v6_ppo_flat_random\\best_model_vecnormalize.pkl",
+  "video": "record\\v6\\videos\\eval_flat_mixed_left_ppo_highspeed_random_115k_best_20260529.mp4",
+  "wall_time_s": 1.213268756866455
+}

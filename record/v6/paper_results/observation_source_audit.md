@@ -2,7 +2,7 @@
 
 Complete: `true`
 Observation dimension: `80`
-ABI fingerprint: `672933c397be678aeae9067d299f38bfe69c748729beeab948cb339bb727183b`
+ABI fingerprint: `27e31e546bb79ba12a70a286add79a8a72323f65ff3dbb58406e8d85c855c932`
 
 MuJoCo qpos/qvel/xmat/objectVelocity are acceptable here only as simulated encoder/IMU readouts matching the hardware ABI. Privileged root velocity/pose terms may appear in reward or termination code, but must not appear in WormEnvV6._get_obs().
 
@@ -27,5 +27,5 @@ MuJoCo qpos/qvel/xmat/objectVelocity are acceptable here only as simulated encod
 - `forward_speed`: `1`
 - `lateral_speed`: `1`
 - `yaw_rate`: `1`
-- `termination_height`: `1`
+- `termination_height`: `2`
 - `termination_nan_qpos`: `1`
