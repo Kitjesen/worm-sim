@@ -151,7 +151,7 @@ Video verification:
 
 A higher-resolution pass was recorded after the V29 training/evaluation commit:
 
-- Artifact directory: `record/v6/omni_v29_speed_gate_videos_hd1080`.
+- Artifact directory: `record/current/flat_omni_v29_hd`.
 - Six single-command videos: H.264 `1920x1080`, `25 fps`, `150 frames`,
   `6.0 s`.
 - Comparison videos:

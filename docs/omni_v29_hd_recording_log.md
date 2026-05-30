@@ -25,17 +25,17 @@ Recording settings:
 
 | Case | Command `(vx, vy, yaw)` | Video |
 | --- | --- | --- |
-| forward | `(0.25, 0.00, 0.00)` | `record/v6/omni_v29_speed_gate_videos_hd1080/forward_1080p.mp4` |
-| reverse | `(-0.25, 0.00, 0.00)` | `record/v6/omni_v29_speed_gate_videos_hd1080/reverse_1080p.mp4` |
-| lateral_left | `(0.00, 0.15, 0.00)` | `record/v6/omni_v29_speed_gate_videos_hd1080/lateral_left_1080p.mp4` |
-| lateral_right | `(0.00, -0.15, 0.00)` | `record/v6/omni_v29_speed_gate_videos_hd1080/lateral_right_1080p.mp4` |
-| yaw_left | `(0.00, 0.00, 0.50)` | `record/v6/omni_v29_speed_gate_videos_hd1080/yaw_left_1080p.mp4` |
-| yaw_right | `(0.00, 0.00, -0.50)` | `record/v6/omni_v29_speed_gate_videos_hd1080/yaw_right_1080p.mp4` |
+| forward | `(0.25, 0.00, 0.00)` | `record/current/flat_omni_v29_hd/forward_1080p.mp4` |
+| reverse | `(-0.25, 0.00, 0.00)` | `record/current/flat_omni_v29_hd/reverse_1080p.mp4` |
+| lateral_left | `(0.00, 0.15, 0.00)` | `record/current/flat_omni_v29_hd/lateral_left_1080p.mp4` |
+| lateral_right | `(0.00, -0.15, 0.00)` | `record/current/flat_omni_v29_hd/lateral_right_1080p.mp4` |
+| yaw_left | `(0.00, 0.00, 0.50)` | `record/current/flat_omni_v29_hd/yaw_left_1080p.mp4` |
+| yaw_right | `(0.00, 0.00, -0.50)` | `record/current/flat_omni_v29_hd/yaw_right_1080p.mp4` |
 
 Comparison videos:
 
-- `record/v6/omni_v29_speed_gate_videos_hd1080/gait_comparison_3x2_3840x1440.mp4`
-- `record/v6/omni_v29_speed_gate_videos_hd1080/gait_comparison_3x2_4k_uhd.mp4`
+- `record/current/flat_omni_v29_hd/gait_comparison_3x2_3840x1440.mp4`
+- `record/current/flat_omni_v29_hd/gait_comparison_3x2_4k_uhd.mp4`
 
 ## Verification
 

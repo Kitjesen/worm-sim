@@ -17,7 +17,7 @@ Updated on 2026-05-31.
   `record/v6/omni_v29_speed_gate_videos`, including six videos, a 3x2
   comparison video, per-segment trajectory CSV/plots, and a 35-command scan.
 - Latest HD visual artifacts are under
-  `record/v6/omni_v29_speed_gate_videos_hd1080`: six H.264 `1920x1080`
+  `record/current/flat_omni_v29_hd`: six H.264 `1920x1080`
   command videos and 3x2 comparison videos at `3840x1440` and `3840x2160`.
   These videos keep spring-steel strip rendering and the head speed overlay
   enabled.
@@ -372,7 +372,7 @@ runs/worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_ga
 HD videos were recorded before the next repair attempts:
 
 ```text
-record/v6/omni_v29_speed_gate_videos_hd1080
+record/current/flat_omni_v29_hd
 ```
 
 This directory contains six `1920x1080`, 25 fps, 6 s direction videos, plus
@@ -438,13 +438,13 @@ reintroducing yaw-sign errors.
 - `record/v6/omni_v16_tracking_artifacts/lateral_right.mp4`
 - `record/v6/omni_v16_tracking_artifacts/yaw_left.mp4`
 - `record/v6/omni_v16_tracking_artifacts/yaw_right.mp4`
-- `record/v6/omni_v29_speed_gate_videos_hd1080/gait_comparison_3x2_4k_uhd.mp4`
-- `record/v6/omni_v29_speed_gate_videos_hd1080/forward_1080p.mp4`
-- `record/v6/omni_v29_speed_gate_videos_hd1080/reverse_1080p.mp4`
-- `record/v6/omni_v29_speed_gate_videos_hd1080/lateral_left_1080p.mp4`
-- `record/v6/omni_v29_speed_gate_videos_hd1080/lateral_right_1080p.mp4`
-- `record/v6/omni_v29_speed_gate_videos_hd1080/yaw_left_1080p.mp4`
-- `record/v6/omni_v29_speed_gate_videos_hd1080/yaw_right_1080p.mp4`
+- `record/current/flat_omni_v29_hd/gait_comparison_3x2_4k_uhd.mp4`
+- `record/current/flat_omni_v29_hd/forward_1080p.mp4`
+- `record/current/flat_omni_v29_hd/reverse_1080p.mp4`
+- `record/current/flat_omni_v29_hd/lateral_left_1080p.mp4`
+- `record/current/flat_omni_v29_hd/lateral_right_1080p.mp4`
+- `record/current/flat_omni_v29_hd/yaw_left_1080p.mp4`
+- `record/current/flat_omni_v29_hd/yaw_right_1080p.mp4`
 
 Large 4K videos should use Git LFS or external release assets before being
 pushed to GitHub.

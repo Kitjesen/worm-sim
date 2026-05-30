@@ -1,9 +1,10 @@
-# Worm V6 Video Index
+# Worm Video Index
 
 Date: 2026-05-31
 
-This file is the canonical entry point for current V6 videos. Original video
-files are not moved, so existing README/progress links remain valid.
+This file is the canonical entry point for current robot videos. Current
+paper-facing videos are kept under `record/current/` instead of a code-version
+folder such as `record/v6/`.
 
 ## Current Videos To Show
 
@@ -17,19 +18,19 @@ runs/worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_ga
 Video directory:
 
 ```text
-record/v6/omni_v29_speed_gate_videos_hd1080
+record/current/flat_omni_v29_hd
 ```
 
 | Purpose | File | Resolution | Duration | Notes |
 | --- | --- | ---: | ---: | --- |
-| Six-direction comparison | `record/v6/omni_v29_speed_gate_videos_hd1080/gait_comparison_3x2_4k_uhd.mp4` | `3840x2160` | `6 s` | Best single file to show first |
-| Wide six-direction comparison | `record/v6/omni_v29_speed_gate_videos_hd1080/gait_comparison_3x2_3840x1440.mp4` | `3840x1440` | `6 s` | Less vertical padding |
-| Forward | `record/v6/omni_v29_speed_gate_videos_hd1080/forward_1080p.mp4` | `1920x1080` | `6 s` | Passes forward threshold |
-| Reverse | `record/v6/omni_v29_speed_gate_videos_hd1080/reverse_1080p.mp4` | `1920x1080` | `6 s` | Passes reverse threshold |
-| Lateral left | `record/v6/omni_v29_speed_gate_videos_hd1080/lateral_left_1080p.mp4` | `1920x1080` | `6 s` | Correct sign, high forward off-axis |
-| Lateral right | `record/v6/omni_v29_speed_gate_videos_hd1080/lateral_right_1080p.mp4` | `1920x1080` | `6 s` | Weak/right borderline |
-| Yaw left | `record/v6/omni_v29_speed_gate_videos_hd1080/yaw_left_1080p.mp4` | `1920x1080` | `6 s` | Correct yaw sign, translates |
-| Yaw right | `record/v6/omni_v29_speed_gate_videos_hd1080/yaw_right_1080p.mp4` | `1920x1080` | `6 s` | Correct yaw sign, translates |
+| Six-direction comparison | `record/current/flat_omni_v29_hd/gait_comparison_3x2_4k_uhd.mp4` | `3840x2160` | `6 s` | Best single file to show first |
+| Wide six-direction comparison | `record/current/flat_omni_v29_hd/gait_comparison_3x2_3840x1440.mp4` | `3840x1440` | `6 s` | Less vertical padding |
+| Forward | `record/current/flat_omni_v29_hd/forward_1080p.mp4` | `1920x1080` | `6 s` | Passes forward threshold |
+| Reverse | `record/current/flat_omni_v29_hd/reverse_1080p.mp4` | `1920x1080` | `6 s` | Passes reverse threshold |
+| Lateral left | `record/current/flat_omni_v29_hd/lateral_left_1080p.mp4` | `1920x1080` | `6 s` | Correct sign, high forward off-axis |
+| Lateral right | `record/current/flat_omni_v29_hd/lateral_right_1080p.mp4` | `1920x1080` | `6 s` | Weak/right borderline |
+| Yaw left | `record/current/flat_omni_v29_hd/yaw_left_1080p.mp4` | `1920x1080` | `6 s` | Correct yaw sign, translates |
+| Yaw right | `record/current/flat_omni_v29_hd/yaw_right_1080p.mp4` | `1920x1080` | `6 s` | Correct yaw sign, translates |
 
 The same directory also contains:
 
