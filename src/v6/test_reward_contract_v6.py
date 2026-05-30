@@ -156,6 +156,12 @@ def main():
     lateral_yaw_drift = reward_for(
         0.0, body_vy=CMD_VY_RANGE[1], yaw_rate=0.5,
         cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[1], cmd_yaw=0.0)
+    lateral_clean = reward_for(
+        0.0, body_vy=CMD_VY_RANGE[1],
+        cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[1], cmd_yaw=0.0)
+    lateral_forward_drift = reward_for(
+        0.08, body_vy=CMD_VY_RANGE[1],
+        cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[1], cmd_yaw=0.0)
     yaw_only_stationary = reward_for(
         0.0, body_vy=0.0, yaw_rate=0.10,
         cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.5)
@@ -187,6 +193,8 @@ def main():
         forward_yaw_stable, forward_yaw_drift)
     assert lateral_yaw_stable > lateral_yaw_drift + 6.0, (
         lateral_yaw_stable, lateral_yaw_drift)
+    assert lateral_clean > lateral_forward_drift + 6.0, (
+        lateral_clean, lateral_forward_drift)
     assert yaw_only_stationary > yaw_only_with_planar_drift + 6.0, (
         yaw_only_stationary, yaw_only_with_planar_drift)
     assert residual_smooth > residual_jump, (residual_smooth, residual_jump)
@@ -194,7 +202,7 @@ def main():
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v16"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v18"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -203,11 +211,16 @@ def main():
     assert contract["normalization"]["zero_yaw_translation_uses_reset_body_axes"]
     assert contract["normalization"]["zero_yaw_heading_hold_weight_boost"]
     assert contract["normalization"]["yaw_only_stationary_speed_penalty"]
+    assert contract["normalization"]["pure_lateral_forward_drift_penalty"]
+    assert contract["normalization"]["continuous_omni_repair_oversampling"]
+    assert contract["normalization"][
+        "continuous_omni_mixed_yaw_repair_sampling"]
     assert contract["normalization"]["gait_blend_is_policy_gate"]
     assert contract["normalization"][
         "command_conditioned_gait_gate_regularizer"]["enabled"]
     assert contract["weights"]["yaw_drift"] >= 6.0
-    assert contract["weights"]["yaw_stationary"] > 0.0
+    assert contract["weights"]["yaw_stationary"] >= 3.0
+    assert contract["weights"]["lateral_only_forward_drift"] > 0.0
     assert contract["weights"]["gait_gate_target"] > 0.0
     selection_contract = best_selection_contract()
     assert selection_contract["version"] == "omni_tracking_scan_v3"
@@ -369,6 +382,20 @@ def main():
     assert np.any(command_mag == 0.0)
     assert np.any((command_mag > 0.0) & (command_mag <= 0.25))
     assert np.any(nonzero_dims >= 2)
+    mixed_yaw_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    assert len(mixed_yaw_samples) >= 8
+    assert np.any((mixed_yaw_samples[:, 0] > 0.0)
+                  & (mixed_yaw_samples[:, 2] > 0.0))
+    assert np.any((mixed_yaw_samples[:, 0] > 0.0)
+                  & (mixed_yaw_samples[:, 2] < 0.0))
+    assert np.any((mixed_yaw_samples[:, 0] < 0.0)
+                  & (mixed_yaw_samples[:, 2] > 0.0))
+    assert np.any((mixed_yaw_samples[:, 0] < 0.0)
+                  & (mixed_yaw_samples[:, 2] < 0.0))
 
     random_schedule = best_eval_schedule("random")
     expected_cases = {

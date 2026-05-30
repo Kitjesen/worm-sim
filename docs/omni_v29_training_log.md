@@ -172,6 +172,22 @@ HD rollout measurements:
 
 Full recording details are in `docs/omni_v29_hd_recording_log.md`.
 
+## V30-V33 Repair Attempts
+
+After the HD recording pass, four short flat repair attempts were run from the
+V29 line:
+
+| Version | Best step | Selection score | Wrong yaw | Main result |
+| --- | ---: | ---: | ---: | --- |
+| V30 | `270000` | `-1007737.07` | `1` | stronger penalties reduced one straight violation but made `forward_yaw_left` wrong-sign |
+| V31 | `270000` | `-1009336.90` | `2` | mixed planar+yaw action prior worsened both forward-yaw signs; reverted |
+| V32 | `280000` | `-1007879.03` | `0` | targeted mixed-yaw sampling restored yaw signs but did not improve tracking |
+| V33 | `310000` | `-1008438.39` | `1` | lower learning rate did not solve drift |
+
+None of these beat the V29 selection score `-1006644.12`; V29 remains the
+current viewable flat candidate. Detailed repair notes are in
+`docs/omni_v30_v33_repair_log.md`.
+
 ## Current Verdict
 
 V29 is the best current flat candidate for the revised objective. It restores

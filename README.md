@@ -182,14 +182,15 @@ The migration plan is tracked in
 
 ### Latest Flat V29 Status
 
-The newest flat omni-training line keeps the same deployable ABI but updates
-the learning setup:
+The current best viewable flat policy is still V29. It keeps the same
+deployable ABI but updates the learning setup:
 
 - observation remains 80D;
 - policy action remains `11D residual + 1D learned latent gait gate`;
 - actor and critic are both `512-256-128`;
 - action adapter is `cmaes_tri_anchor_auto_gate_directional_v23`;
-- reward contract is `omni_directional_offaxis_yaw_v16`.
+- the accepted V29 checkpoint was trained under
+  `omni_directional_offaxis_yaw_v16`.
 
 The V23 gait gate is speed-adaptive for axial commands: slow forward/reverse
 commands stay closer to the worm/peristaltic center, while full-speed
@@ -222,6 +223,22 @@ Detailed notes and exact artifact paths are in
 [V29 training log](docs/omni_v29_training_log.md).
 The latest HD visual pass is tracked in
 [V29 HD recording log](docs/omni_v29_hd_recording_log.md).
+
+After the HD pass, V30-V33 were run as short flat repair experiments. They did
+not beat V29:
+
+| Version | Main change | Result |
+| --- | --- | --- |
+| V30 | stronger lateral/yaw stationary penalties plus pure lateral/yaw oversampling | worsened `forward_yaw_left` to wrong-sign |
+| V31 | experimental mixed planar+yaw action prior | worsened both forward-yaw signs; reverted |
+| V32 | targeted mixed-yaw curriculum sampling | restored zero wrong-yaw at best, but tracking did not improve |
+| V33 | V32 continuation with `--learning-rate 1e-4` | did not solve drift and regressed to one wrong-yaw case |
+
+The retained post-V29 code changes are the targeted mixed-yaw sampling contract
+(`omni_directional_offaxis_yaw_v18`) and configurable PPO learning rate. The
+current accepted policy remains V29 until a new run reduces lateral off-axis
+speed and yaw-only translation. See
+[V30-V33 repair log](docs/omni_v30_v33_repair_log.md).
 
 The latest contract correction was made after comparing PPO rollouts with the
 stronger 4K CMA-ES gait-comparison video. That video is an open-loop CMA-ES

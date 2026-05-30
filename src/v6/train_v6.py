@@ -27,6 +27,7 @@ from stable_baselines3.common.callbacks import (
     CheckpointCallback, BaseCallback
 )
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.utils import FloatSchedule
 from training_contract_v6 import (
     DEFAULT_ENT_COEF,
     DEFAULT_LOG_STD_INIT,
@@ -906,7 +907,7 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
             "requested_device": getattr(args, "device", "cpu"),
             "resolved_device": device,
             "seed": 42,
-            "learning_rate": 3e-4,
+            "learning_rate": args.learning_rate,
             "n_steps": 4096,
             "batch_size": 1024,
             "n_epochs": 10,
@@ -1288,10 +1289,15 @@ def train(args):
                 clip_obs=10.0,
             )
         model = PPO.load(args.resume, env=vec_env, device=device)
+        model.learning_rate = float(args.learning_rate)
+        model.lr_schedule = FloatSchedule(model.learning_rate)
+        for param_group in model.policy.optimizer.param_groups:
+            param_group["lr"] = float(args.learning_rate)
         start_timesteps = int(model.num_timesteps)
         learn_timesteps = max(args.timesteps - start_timesteps, 0)
         print(f"  resume_start_timesteps: {start_timesteps:,}")
         print(f"  remaining_to_target:     {learn_timesteps:,}")
+        print(f"  learning_rate:           {args.learning_rate:g}")
     else:
         vec_env = VecNormalize(
             raw_vec_env,
@@ -1302,7 +1308,7 @@ def train(args):
         model = PPO(
             "MlpPolicy",
             vec_env,
-            learning_rate=3e-4,
+            learning_rate=args.learning_rate,
             n_steps=4096,
             batch_size=1024,
             n_epochs=10,
@@ -1483,6 +1489,9 @@ if __name__ == "__main__":
                     help="PPO entropy coefficient for residual exploration")
     ap.add_argument("--log-std-init", type=float, default=DEFAULT_LOG_STD_INIT,
                     help="Initial Gaussian log std for residual policy actions")
+    ap.add_argument("--learning-rate", type=float, default=3e-4,
+                    help="PPO learning rate; lower values are useful for "
+                         "repair fine-tuning from a directional checkpoint")
     ap.add_argument("--policy-net-arch", type=str, default="512,256,128",
                     help="Comma-separated actor MLP hidden widths")
     ap.add_argument("--value-net-arch", type=str, default="512,256,128",

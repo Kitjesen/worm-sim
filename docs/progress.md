@@ -142,6 +142,13 @@
   The HD rollouts confirm forward/reverse and yaw signs, but also make the
   remaining lateral off-axis and yaw-only translation problems obvious. Exact
   metrics are in `docs/omni_v29_hd_recording_log.md`.
+- V30-V33 were run as flat repair attempts after the HD recording pass. None
+  beat V29. V30 made `forward_yaw_left` wrong-sign, V31 mixed planar+yaw prior
+  worsened both forward-yaw signs and was reverted, V32 restored zero wrong-yaw
+  at its best checkpoint but did not improve tracking, and V33 low-LR
+  fine-tuning still regressed to one wrong-yaw case. The retained code changes
+  are targeted mixed-yaw curriculum sampling and configurable PPO learning
+  rate. Details are in `docs/omni_v30_v33_repair_log.md`.
 
 ## Not Done
 
@@ -186,6 +193,9 @@
   `planar_rmse_m_s=0.1665`, `yaw_rmse_rad_s=0.1179`,
   `planar_sign_rate=0.84`, `yaw_sign_rate=1.00`, and yaw-only planar drift of
   about `0.0966 m/s`.
+- V30-V33 are not accepted policies. Current best remains V29 until a new run
+  reduces lateral forward off-axis speed and yaw-only planar drift without
+  reintroducing yaw-sign errors.
 - No formal 1M-step PPO artifacts exist under the current V12 omni contract.
 - Fixed-mode eval, robust eval, auto-gated random-policy deploy bundles, and
   final paper summaries must be regenerated.

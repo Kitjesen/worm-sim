@@ -361,6 +361,58 @@ and yaw-only commands translate forward while turning. The current paper wording
 must remain "weak omnidirectional prototype / six-direction primitive
 controller", not "continuous body-frame command tracking".
 
+## V29 HD Videos And V30-V33 Repair Attempts
+
+The current best viewable flat candidate is V29:
+
+```text
+runs/worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_gate/best_model.zip
+```
+
+HD videos were recorded before the next repair attempts:
+
+```text
+record/v6/omni_v29_speed_gate_videos_hd1080
+```
+
+This directory contains six `1920x1080`, 25 fps, 6 s direction videos, plus
+`gait_comparison_3x2_3840x1440.mp4` and
+`gait_comparison_3x2_4k_uhd.mp4`. Visual spring-steel strips and the head-speed
+overlay are enabled.
+
+The HD rollouts confirm that forward/reverse and yaw signs are visible, but
+also show the current failure mode:
+
+| Case | `body_vx` m/s | `body_vy` m/s | `yaw_rate` rad/s | Interpretation |
+| --- | ---: | ---: | ---: | --- |
+| forward | `0.1499` | `0.0222` | `-0.0009` | usable axial motion |
+| reverse | `-0.0809` | `0.0394` | `-0.0037` | usable axial motion with drift |
+| lateral_left | `0.1044` | `0.0352` | `0.0757` | lateral sign exists, forward off-axis dominates |
+| lateral_right | `0.1025` | `-0.0158` | `-0.0470` | right lateral is weak |
+| yaw_left | `0.0952` | `0.0396` | `0.3909` | yaw sign strong, but translates |
+| yaw_right | `0.0924` | `-0.0365` | `-0.4023` | yaw sign strong, but translates |
+
+Four short flat repair attempts were then run:
+
+| Version | Best step | Selection score | Wrong yaw | Verdict |
+| --- | ---: | ---: | ---: | --- |
+| V29 | `260000` | `-1006644.12` | `0` | current best |
+| V30 | `270000` | `-1007737.07` | `1` | rejected |
+| V31 | `270000` | `-1009336.90` | `2` | rejected; mixed planar+yaw action prior reverted |
+| V32 | `280000` | `-1007879.03` | `0` | diagnostic only |
+| V33 | `310000` | `-1008438.39` | `1` | rejected |
+
+The retained code changes are:
+
+- reward/curriculum contract `omni_directional_offaxis_yaw_v18`, which adds
+  targeted mixed-yaw repair sampling;
+- `train_v6.py --learning-rate`, so repair fine-tuning can use lower PPO step
+  sizes.
+
+None of V30-V33 is accepted as the current policy. The next technical target is
+to reduce lateral forward off-axis speed and yaw-only planar drift without
+reintroducing yaw-sign errors.
+
 ## Viewable Evidence
 
 - `record/v6/omni_v12_heading_prior_artifacts/gait_comparison_v12_flat_6cmd.mp4`
@@ -386,6 +438,13 @@ controller", not "continuous body-frame command tracking".
 - `record/v6/omni_v16_tracking_artifacts/lateral_right.mp4`
 - `record/v6/omni_v16_tracking_artifacts/yaw_left.mp4`
 - `record/v6/omni_v16_tracking_artifacts/yaw_right.mp4`
+- `record/v6/omni_v29_speed_gate_videos_hd1080/gait_comparison_3x2_4k_uhd.mp4`
+- `record/v6/omni_v29_speed_gate_videos_hd1080/forward_1080p.mp4`
+- `record/v6/omni_v29_speed_gate_videos_hd1080/reverse_1080p.mp4`
+- `record/v6/omni_v29_speed_gate_videos_hd1080/lateral_left_1080p.mp4`
+- `record/v6/omni_v29_speed_gate_videos_hd1080/lateral_right_1080p.mp4`
+- `record/v6/omni_v29_speed_gate_videos_hd1080/yaw_left_1080p.mp4`
+- `record/v6/omni_v29_speed_gate_videos_hd1080/yaw_right_1080p.mp4`
 
 Large 4K videos should use Git LFS or external release assets before being
 pushed to GitHub.
