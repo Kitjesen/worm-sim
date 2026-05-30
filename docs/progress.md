@@ -142,6 +142,12 @@
   The HD rollouts confirm forward/reverse and yaw signs, but also make the
   remaining lateral off-axis and yaw-only translation problems obvious. Exact
   metrics are in `docs/omni_v29_hd_recording_log.md`.
+- Longer V29 direction videos were recorded under
+  `record/current/flat_omni_v29_long15`: six H.264 `1920x1080`,
+  25 fps, 15 s single-command videos and 15 s 3x2 comparison videos. The
+  recorder now accumulates yaw over time, so long yaw videos are not corrupted
+  by final-angle wraparound. Exact metrics are in
+  `docs/omni_v29_long15_recording_log.md`.
 - V30-V33 were run as flat repair attempts after the HD recording pass. None
   beat V29. V30 made `forward_yaw_left` wrong-sign, V31 mixed planar+yaw prior
   worsened both forward-yaw signs and was reverted, V32 restored zero wrong-yaw
@@ -149,6 +155,14 @@
   fine-tuning still regressed to one wrong-yaw case. The retained code changes
   are targeted mixed-yaw curriculum sampling and configurable PPO learning
   rate. Details are in `docs/omni_v30_v33_repair_log.md`.
+- V34 was run as a low-learning-rate continuation from V29 best. It completed
+  to `325,536` total timesteps and improved held-out yaw success from `0.7647`
+  to `0.8235`, but the selected best checkpoint still failed tracking and
+  direction gates, reintroduced one wrong-yaw case, and did not beat V29 by
+  selection score. The 35-command scan reports `planar_rmse_m_s=0.1635`,
+  `yaw_rmse_rad_s=0.1128`, `planar_sign_rate=0.84`, `yaw_sign_rate=1.00`, and
+  yaw-only planar drift about `0.1046 m/s`. Details are in
+  `docs/omni_v34_training_log.md`.
 
 ## Not Done
 

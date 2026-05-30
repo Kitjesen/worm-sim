@@ -223,6 +223,8 @@ Detailed notes and exact artifact paths are in
 [V29 training log](docs/omni_v29_training_log.md).
 The latest HD visual pass is tracked in
 [V29 HD recording log](docs/omni_v29_hd_recording_log.md).
+The longer 15 s visual pass is tracked in
+[V29 15 s recording log](docs/omni_v29_long15_recording_log.md).
 The organized video entry point is
 [video index](record/VIDEO_INDEX.md).
 
@@ -235,12 +237,15 @@ not beat V29:
 | V31 | experimental mixed planar+yaw action prior | worsened both forward-yaw signs; reverted |
 | V32 | targeted mixed-yaw curriculum sampling | restored zero wrong-yaw at best, but tracking did not improve |
 | V33 | V32 continuation with `--learning-rate 1e-4` | did not solve drift and regressed to one wrong-yaw case |
+| V34 | low-LR continuation from V29 best | did not beat V29; yaw success improved but one wrong-yaw case returned |
 
 The retained post-V29 code changes are the targeted mixed-yaw sampling contract
 (`omni_directional_offaxis_yaw_v18`) and configurable PPO learning rate. The
 current accepted policy remains V29 until a new run reduces lateral off-axis
 speed and yaw-only translation. See
 [V30-V33 repair log](docs/omni_v30_v33_repair_log.md).
+The latest V34 continuation is recorded in
+[V34 training log](docs/omni_v34_training_log.md).
 
 The latest contract correction was made after comparing PPO rollouts with the
 stronger 4K CMA-ES gait-comparison video. That video is an open-loop CMA-ES
@@ -417,14 +422,16 @@ Interim result tables and figures:
 
 Current flat V29 videos with visual spring-steel strips and head speed overlay:
 
-- [flat V29 HD 3x2 comparison, 3840x1440](record/current/flat_omni_v29_hd/gait_comparison_3x2_3840x1440.mp4)
-- [flat V29 HD 3x2 UHD comparison, 3840x2160](record/current/flat_omni_v29_hd/gait_comparison_3x2_4k_uhd.mp4)
-- [flat V29 HD forward](record/current/flat_omni_v29_hd/forward_1080p.mp4)
-- [flat V29 HD reverse](record/current/flat_omni_v29_hd/reverse_1080p.mp4)
-- [flat V29 HD lateral left](record/current/flat_omni_v29_hd/lateral_left_1080p.mp4)
-- [flat V29 HD lateral right](record/current/flat_omni_v29_hd/lateral_right_1080p.mp4)
-- [flat V29 HD yaw left](record/current/flat_omni_v29_hd/yaw_left_1080p.mp4)
-- [flat V29 HD yaw right](record/current/flat_omni_v29_hd/yaw_right_1080p.mp4)
+- [flat V29 long 15 s 3x2 UHD comparison, 3840x2160](record/current/flat_omni_v29_long15/gait_comparison_3x2_15s_4k_uhd.mp4)
+- [flat V29 long 15 s 3x2 comparison, 3840x1440](record/current/flat_omni_v29_long15/gait_comparison_3x2_15s_3840x1440.mp4)
+- [flat V29 long forward](record/current/flat_omni_v29_long15/forward_15s_1080p.mp4)
+- [flat V29 long reverse](record/current/flat_omni_v29_long15/reverse_15s_1080p.mp4)
+- [flat V29 long lateral left](record/current/flat_omni_v29_long15/lateral_left_15s_1080p.mp4)
+- [flat V29 long lateral right](record/current/flat_omni_v29_long15/lateral_right_15s_1080p.mp4)
+- [flat V29 long yaw left](record/current/flat_omni_v29_long15/yaw_left_15s_1080p.mp4)
+- [flat V29 long yaw right](record/current/flat_omni_v29_long15/yaw_right_15s_1080p.mp4)
+- [flat V29 short HD 3x2 comparison, 3840x1440](record/current/flat_omni_v29_hd/gait_comparison_3x2_3840x1440.mp4)
+- [flat V29 short HD 3x2 UHD comparison, 3840x2160](record/current/flat_omni_v29_hd/gait_comparison_3x2_4k_uhd.mp4)
 - [flat V29 six-command comparison](record/v6/omni_v29_speed_gate_videos/gait_comparison_3x2.mp4)
 - [flat V29 forward](record/v6/omni_v29_speed_gate_videos/forward.mp4)
 - [flat V29 reverse](record/v6/omni_v29_speed_gate_videos/reverse.mp4)

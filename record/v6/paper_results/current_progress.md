@@ -361,7 +361,7 @@ and yaw-only commands translate forward while turning. The current paper wording
 must remain "weak omnidirectional prototype / six-direction primitive
 controller", not "continuous body-frame command tracking".
 
-## V29 HD Videos And V30-V33 Repair Attempts
+## V29 HD Videos And V30-V34 Repair Attempts
 
 The current best viewable flat candidate is V29:
 
@@ -380,6 +380,17 @@ This directory contains six `1920x1080`, 25 fps, 6 s direction videos, plus
 `gait_comparison_3x2_4k_uhd.mp4`. Visual spring-steel strips and the head-speed
 overlay are enabled.
 
+Longer 15 s direction videos were then recorded for easier visual inspection:
+
+```text
+record/current/flat_omni_v29_long15
+```
+
+This directory contains six `1920x1080`, 25 fps, 15 s direction videos, a
+`3840x1440` 3x2 comparison video, and a `3840x2160` UHD comparison video. The
+recorder now accumulates yaw over time, so long yaw videos are not affected by
+final-angle wraparound.
+
 The HD rollouts confirm that forward/reverse and yaw signs are visible, but
 also show the current failure mode:
 
@@ -392,7 +403,7 @@ also show the current failure mode:
 | yaw_left | `0.0952` | `0.0396` | `0.3909` | yaw sign strong, but translates |
 | yaw_right | `0.0924` | `-0.0365` | `-0.4023` | yaw sign strong, but translates |
 
-Four short flat repair attempts were then run:
+Five short flat repair attempts were then run:
 
 | Version | Best step | Selection score | Wrong yaw | Verdict |
 | --- | ---: | ---: | ---: | --- |
@@ -401,6 +412,7 @@ Four short flat repair attempts were then run:
 | V31 | `270000` | `-1009336.90` | `2` | rejected; mixed planar+yaw action prior reverted |
 | V32 | `280000` | `-1007879.03` | `0` | diagnostic only |
 | V33 | `310000` | `-1008438.39` | `1` | rejected |
+| V34 | `310000` | `-1007782.83` | `1` | rejected; low-LR V29 continuation |
 
 The retained code changes are:
 
@@ -409,7 +421,11 @@ The retained code changes are:
 - `train_v6.py --learning-rate`, so repair fine-tuning can use lower PPO step
   sizes.
 
-None of V30-V33 is accepted as the current policy. The next technical target is
+V34's 35-command scan reports `planar_rmse_m_s=0.1635`,
+`yaw_rmse_rad_s=0.1128`, `planar_sign_rate=0.84`, `yaw_sign_rate=1.00`, and
+yaw-only planar drift about `0.1046 m/s`.
+
+None of V30-V34 is accepted as the current policy. The next technical target is
 to reduce lateral forward off-axis speed and yaw-only planar drift without
 reintroducing yaw-sign errors.
 
@@ -445,6 +461,13 @@ reintroducing yaw-sign errors.
 - `record/current/flat_omni_v29_hd/lateral_right_1080p.mp4`
 - `record/current/flat_omni_v29_hd/yaw_left_1080p.mp4`
 - `record/current/flat_omni_v29_hd/yaw_right_1080p.mp4`
+- `record/current/flat_omni_v29_long15/gait_comparison_3x2_15s_4k_uhd.mp4`
+- `record/current/flat_omni_v29_long15/forward_15s_1080p.mp4`
+- `record/current/flat_omni_v29_long15/reverse_15s_1080p.mp4`
+- `record/current/flat_omni_v29_long15/lateral_left_15s_1080p.mp4`
+- `record/current/flat_omni_v29_long15/lateral_right_15s_1080p.mp4`
+- `record/current/flat_omni_v29_long15/yaw_left_15s_1080p.mp4`
+- `record/current/flat_omni_v29_long15/yaw_right_15s_1080p.mp4`
 
 Large 4K videos should use Git LFS or external release assets before being
 pushed to GitHub.

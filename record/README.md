@@ -6,8 +6,10 @@
 
 - `record/VIDEO_INDEX.md` is the first place to find videos.
 - `record/current/` contains current paper-facing or demo-facing artifacts.
-- `record/current/flat_omni_v29_hd/` contains the latest HD flat six-direction
-  V29 videos, metrics, trajectories, and thumbnails.
+- `record/current/flat_omni_v29_long15/` contains the current long-duration
+  15 s flat six-direction V29 videos, metrics, trajectories, and thumbnails.
+- `record/current/flat_omni_v29_hd/` contains the shorter 6 s HD flat
+  six-direction V29 videos.
 
 ## Legacy Archives
 

@@ -268,6 +268,8 @@ def main():
         axis=0,
     )
     start_yaw = root_yaw_rad(sim_env.data, sim_env._root_body_id)
+    previous_yaw = start_yaw
+    cumulative_yaw = 0.0
     reward_sum = 0.0
     action_l2 = []
     action_rate_l2 = []
@@ -285,6 +287,9 @@ def main():
             action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, infos = env.step(action)
         info = infos[0] if infos else {}
+        current_yaw = root_yaw_rad(sim_env.data, sim_env._root_body_id)
+        cumulative_yaw += wrap_pi(current_yaw - previous_yaw)
+        previous_yaw = current_yaw
         reward_sum += float(reward[0])
         trajectory_times.append((step + 1) * CTRL_DT)
         trajectory_positions.append(np.stack(
@@ -322,9 +327,7 @@ def main():
                 overlay_info["body_vy_m_s"] = float(np.dot(
                     head_delta_now[:2], start_lateral_axis) / elapsed_now)
                 overlay_info["body_yaw_rate_rad_s"] = (
-                    wrap_pi(root_yaw_rad(
-                        sim_env.data, sim_env._root_body_id) - start_yaw)
-                    / elapsed_now)
+                    cumulative_yaw / elapsed_now)
                 frame = draw_head_speed_overlay(
                     rgb,
                     sim_env,
@@ -344,14 +347,13 @@ def main():
     writer.release()
     renderer.close()
     end_pos = sim_env.data.xpos[sim_env._root_body_id].copy()
-    end_yaw = root_yaw_rad(sim_env.data, sim_env._root_body_id)
     env.close()
 
     elapsed_s = (step + 1) * CTRL_DT
     delta_world = end_pos - start_pos
     forward_m = float(-(end_pos[0] - start_pos[0]))
     lateral_m = float(abs(end_pos[1] - start_pos[1]))
-    yaw_delta = wrap_pi(end_yaw - start_yaw)
+    yaw_delta = cumulative_yaw
     metrics = {
         "terrain": args.terrain,
         "gait_mode": args.gait_mode,
