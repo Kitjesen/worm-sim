@@ -47,6 +47,26 @@ The long-duration directory also contains:
 
 The shorter 6 s HD set remains available in `record/current/flat_omni_v29_hd/`.
 
+## Latest Diagnostic Videos
+
+V35 is not the accepted policy, but it is the latest long-duration diagnostic
+after fixing the yaw-only prior scaling path:
+
+```text
+record/current/flat_omni_v35_axis_sep_long20
+```
+
+| Purpose | File | Resolution | Duration | Notes |
+| --- | --- | ---: | ---: | --- |
+| V35 six-direction comparison | `record/current/flat_omni_v35_axis_sep_long20/gait_comparison_3x2_20s_4k_uhd.mp4` | `3840x2160` | `20 s` | Shows the latest diagnostic behavior |
+| V35 wide six-direction comparison | `record/current/flat_omni_v35_axis_sep_long20/gait_comparison_3x2_20s_3840x1440.mp4` | `3840x1440` | `20 s` | Less vertical padding |
+| V35 forward | `record/current/flat_omni_v35_axis_sep_long20/forward_20s_1080p.mp4` | `1920x1080` | `20 s` | Forward remains usable |
+| V35 reverse | `record/current/flat_omni_v35_axis_sep_long20/reverse_20s_1080p.mp4` | `1920x1080` | `20 s` | Reverse sign works, drift remains |
+| V35 lateral left | `record/current/flat_omni_v35_axis_sep_long20/lateral_left_20s_1080p.mp4` | `1920x1080` | `20 s` | Still contaminated by axial motion |
+| V35 lateral right | `record/current/flat_omni_v35_axis_sep_long20/lateral_right_20s_1080p.mp4` | `1920x1080` | `20 s` | Still contaminated by axial motion |
+| V35 yaw left | `record/current/flat_omni_v35_axis_sep_long20/yaw_left_20s_1080p.mp4` | `1920x1080` | `20 s` | Yaw sign works, turn rate weak |
+| V35 yaw right | `record/current/flat_omni_v35_axis_sep_long20/yaw_right_20s_1080p.mp4` | `1920x1080` | `20 s` | Yaw sign works, turn rate weak |
+
 ## Current Interpretation
 
 The V29 videos should be described as:
@@ -69,6 +89,7 @@ paper-facing policy:
 
 | Directory | Use |
 | --- | --- |
+| `record/current/flat_omni_v35_axis_sep_long20` | Latest V35 diagnostic long videos; not accepted policy |
 | `record/v6/omni_v29_speed_gate_videos` | Lower-resolution V29 fixed-command videos and 35-command scan artifacts |
 | `record/current/flat_omni_v29_hd` | Short 6 s HD V29 videos |
 | `record/v6/omni_v16_tracking_artifacts` | Older yaw-prior repair attempt |
@@ -83,5 +104,6 @@ paper-facing policy:
 - `docs/omni_v29_long15_recording_log.md`
 - `docs/omni_v29_training_log.md`
 - `docs/omni_v34_training_log.md`
+- `docs/omni_v35_v36_axis_separation_log.md`
 - `docs/omni_v30_v33_repair_log.md`
 - `record/v6/paper_results/current_progress.md`

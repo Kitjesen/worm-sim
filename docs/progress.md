@@ -163,6 +163,21 @@
   `yaw_rmse_rad_s=0.1128`, `planar_sign_rate=0.84`, `yaw_sign_rate=1.00`, and
   yaw-only planar drift about `0.1046 m/s`. Details are in
   `docs/omni_v34_training_log.md`.
+- V35/V36 were run as the next flat diagnostic after finding that the v23
+  yaw-only prior advertised slide/yaw scaling but returned the raw in-place yaw
+  prior before applying those scales. V24 fixes that path, v19 raises yaw-only
+  stationary and lateral-only forward-drift penalties, and a new
+  `axis_separation` curriculum samples one command axis at a time. V35 reduced
+  yaw-only planar drift to `0.0631 m/s`; V36 reduced yaw RMSE to
+  `0.0994 rad/s` after switching back to `continuous_omni`. Neither run
+  improved planar tracking enough to replace V29. Details are in
+  `docs/omni_v35_v36_axis_separation_log.md`.
+- V35 20 s direction videos were generated under
+  `record/current/flat_omni_v35_axis_sep_long20`: six H.264 `1920x1080`,
+  25 fps, 20 s single-command videos plus `3840x1440` and `3840x2160` 3x2
+  comparison videos. The long-video recorder now avoids VecNormalize
+  auto-reset at the 20 s episode limit, so final pose metrics are not reset
+  contaminated.
 
 ## Not Done
 
@@ -210,6 +225,9 @@
 - V30-V33 are not accepted policies. Current best remains V29 until a new run
   reduces lateral forward off-axis speed and yaw-only planar drift without
   reintroducing yaw-sign errors.
+- V35/V36 are also not accepted policies. They show that the yaw-only prior
+  scaling fix helps reduce pure-yaw planar drift, but lateral-only and mixed
+  planar commands still dominate the remaining failure mode.
 - No formal 1M-step PPO artifacts exist under the current V12 omni contract.
 - Fixed-mode eval, robust eval, auto-gated random-policy deploy bundles, and
   final paper summaries must be regenerated.

@@ -276,6 +276,7 @@ def main():
     last_action = None
     frames = 0
     terminated = False
+    truncated = False
     started = time.time()
     trajectory_times = []
     trajectory_positions = []
@@ -285,12 +286,15 @@ def main():
             action = np.zeros((1, sim_env.action_space.shape[0]), dtype=np.float32)
         else:
             action, _ = model.predict(obs, deterministic=True)
-        obs, reward, done, infos = env.step(action)
-        info = infos[0] if infos else {}
+        next_obs, reward, done, step_truncated, info = base_env.step(action[0])
+        if args.prior_only:
+            obs = next_obs.reshape(1, -1)
+        else:
+            obs = env.normalize_obs(next_obs.reshape(1, -1))
         current_yaw = root_yaw_rad(sim_env.data, sim_env._root_body_id)
         cumulative_yaw += wrap_pi(current_yaw - previous_yaw)
         previous_yaw = current_yaw
-        reward_sum += float(reward[0])
+        reward_sum += float(reward)
         trajectory_times.append((step + 1) * CTRL_DT)
         trajectory_positions.append(np.stack(
             [sim_env.data.xpos[sid].copy() for sid in sim_env._seg_ids],
@@ -340,8 +344,9 @@ def main():
             writer.write(frame)
             frames += 1
 
-        if bool(done[0]):
-            terminated = True
+        if done or step_truncated:
+            terminated = bool(done)
+            truncated = bool(step_truncated)
             break
 
     writer.release()
@@ -390,6 +395,7 @@ def main():
         "frame_stride_steps": frame_stride,
         "video_fps": effective_fps,
         "terminated": terminated,
+        "truncated": truncated,
         "reward": reward_sum,
         "world_delta_m": [float(v) for v in delta_world[:3]],
         "distance_mm": forward_m * 1000.0,

@@ -24,7 +24,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v23"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v24"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 POLICY_ACTION_DIM = NUM_ACTUATORS + 1
 GAIT_GATE_ACTION_GAIN = 3.0
@@ -484,14 +484,16 @@ def command_directional_prior_transform(
     if yaw_only_command:
         uses_inplace_yaw_prior = True
         yaw_sign = 1.0 if cmd_yaw_norm >= 0.0 else -1.0
+        slide_scale = YAW_ONLY_SLIDE_PRIOR_SCALE
+        yaw_scale = (
+            YAW_ONLY_YAW_PRIOR_SCALE
+            if yaw_sign > 0.0 else YAW_RIGHT_ONLY_YAW_PRIOR_SCALE)
     elif cmd_yaw_norm >= threshold:
         yaw_sign = -1.0
     if lateral_dominant and cmd_vy_norm < 0.0:
         yaw_sign = -1.0
-    if yaw_only_command:
-        slide_scale = YAW_ONLY_SLIDE_PRIOR_SCALE
-        yaw_scale = 1.0
-    elif (abs_yaw < threshold
+    if (not yaw_only_command
+          and abs_yaw < threshold
           and max(abs_vx, abs_vy) >= threshold):
         if lateral_dominant:
             yaw_scale = ZERO_YAW_LATERAL_YAW_PRIOR_SCALE
@@ -521,7 +523,11 @@ def _dominant_directional_gait_prior_from_phase(phase, gait_blend, command):
         return gait_prior_from_phase(phase, gait_blend)
     transform = command_directional_prior_transform(*command)
     if transform["uses_inplace_yaw_prior"]:
-        return inplace_yaw_prior_from_phase(phase, command[2])
+        prior = inplace_yaw_prior_from_phase(phase, command[2])
+        prior = prior.copy()
+        prior[:NUM_SLIDES] *= transform["slide_scale"]
+        prior[NUM_SLIDES:] *= transform["yaw_scale"]
+        return np.clip(prior, -1.0, 1.0).astype(np.float32)
     prior = gait_prior_from_phase(
         transform["phase_sign"] * float(phase)
         + transform["phase_offset_rad"],

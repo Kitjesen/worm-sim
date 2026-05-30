@@ -947,7 +947,8 @@ class NormSyncCallback(BaseCallback):
 
     def _on_step(self):
         # Sync obs normalization
-        self.eval_env.obs_rms = self.train_env.obs_rms
+        if self.eval_env is not None:
+            self.eval_env.obs_rms = self.train_env.obs_rms
 
         # Save VecNormalize when EvalCallback finds new best
         best_path = os.path.join(self.save_path, "best_model.zip")
@@ -1348,48 +1349,51 @@ def train(args):
               f"{case['cmd_vy_m_s']:+.2f},"
               f"{case['cmd_yaw_rad_s']:+.1f})")
 
-    eval_env = DummyVecEnv([
-        make_env(
-            terrain=terrain, gait_mode=gait_mode,
-            gait_blend=case["gait_blend"], seed=999 + idx,
-            fixed_cmd_vx=case["cmd_vx_m_s"],
-            fixed_cmd_vy=case["cmd_vy_m_s"],
-            fixed_cmd_yaw=case["cmd_yaw_rad_s"],
-            command_curriculum=args.command_curriculum,
-            command_resample_prob=0.0,
-            gait_prior_scale=args.gait_prior_scale,
-            policy_residual_scale=args.policy_residual_scale,
-            **sensor_kwargs)
-        for idx, case in enumerate(eval_schedule)
-    ])
-    eval_env = VecNormalize(
-        eval_env, norm_obs=True, norm_reward=False,
-        clip_obs=10.0, training=False)
-    eval_env.obs_rms = vec_env.obs_rms
+    eval_env = None
+    eval_callback = None
+    if args.directional_eval_freq_steps > 0:
+        eval_env = DummyVecEnv([
+            make_env(
+                terrain=terrain, gait_mode=gait_mode,
+                gait_blend=case["gait_blend"], seed=999 + idx,
+                fixed_cmd_vx=case["cmd_vx_m_s"],
+                fixed_cmd_vy=case["cmd_vy_m_s"],
+                fixed_cmd_yaw=case["cmd_yaw_rad_s"],
+                command_curriculum=args.command_curriculum,
+                command_resample_prob=0.0,
+                gait_prior_scale=args.gait_prior_scale,
+                policy_residual_scale=args.policy_residual_scale,
+                **sensor_kwargs)
+            for idx, case in enumerate(eval_schedule)
+        ])
+        eval_env = VecNormalize(
+            eval_env, norm_obs=True, norm_reward=False,
+            clip_obs=10.0, training=False)
+        eval_env.obs_rms = vec_env.obs_rms
 
-    persistent_best = load_persistent_best_eval(
-        RUN_DIR, LOG_DIR,
-        eval_schedule_fingerprint=eval_schedule_fp,
-        selection_contract_version=DIRECTIONAL_SELECTION_CONTRACT_VERSION)
-    if np.isfinite(persistent_best):
-        print(f"  persistent_best_selection_score: {persistent_best:.2f}")
+        persistent_best = load_persistent_best_eval(
+            RUN_DIR, LOG_DIR,
+            eval_schedule_fingerprint=eval_schedule_fp,
+            selection_contract_version=DIRECTIONAL_SELECTION_CONTRACT_VERSION)
+        if np.isfinite(persistent_best):
+            print(f"  persistent_best_selection_score: {persistent_best:.2f}")
+        else:
+            print("  persistent_best_selection_score: reset for eval/selection contract")
+
+        eval_callback = DirectionalPersistentBestEvalCallback(
+            eval_env,
+            train_env=vec_env,
+            eval_schedule=eval_schedule,
+            eval_freq=max(args.directional_eval_freq_steps // n_envs, 1),
+            best_model_save_path=RUN_DIR,
+            persistent_best_score=persistent_best,
+            persistent_path=best_eval_summary_path(RUN_DIR),
+            eval_schedule_fingerprint=eval_schedule_fp,
+            deterministic=True,
+            eval_max_steps=eval_max_steps,
+        )
     else:
-        print("  persistent_best_selection_score: reset for eval/selection contract")
-
-    eval_callback = DirectionalPersistentBestEvalCallback(
-        eval_env,
-        train_env=vec_env,
-        eval_schedule=eval_schedule,
-        eval_freq=(
-            max(args.directional_eval_freq_steps // n_envs, 1)
-            if args.directional_eval_freq_steps > 0 else 0),
-        best_model_save_path=RUN_DIR,
-        persistent_best_score=persistent_best,
-        persistent_path=best_eval_summary_path(RUN_DIR),
-        eval_schedule_fingerprint=eval_schedule_fp,
-        deterministic=True,
-        eval_max_steps=eval_max_steps,
-    )
+        print("  directional_eval: disabled; no eval envs allocated")
 
     checkpoint_callback = CheckpointCallback(
         save_freq=max(20000 // n_envs, 1),
@@ -1403,13 +1407,16 @@ def train(args):
         save_path=RUN_DIR,
         print_freq=max(5000 // n_envs, 1),
     )
+    callbacks = [checkpoint_callback, norm_sync]
+    if eval_callback is not None:
+        callbacks.insert(0, eval_callback)
 
     # ── Train ──
     if learn_timesteps > 0:
         print(f"\n  Training started...")
         model.learn(
             total_timesteps=learn_timesteps,
-            callback=[eval_callback, checkpoint_callback, norm_sync],
+            callback=callbacks,
             progress_bar=True,
             reset_num_timesteps=(args.resume is None),
         )
@@ -1447,7 +1454,8 @@ def train(args):
     print(f"  Saved training result: {result_path}")
 
     vec_env.close()
-    eval_env.close()
+    if eval_env is not None:
+        eval_env.close()
 
 
 if __name__ == "__main__":

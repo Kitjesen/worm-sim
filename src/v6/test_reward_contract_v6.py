@@ -55,6 +55,10 @@ from worm_env_v6 import (  # noqa: E402
     WormEnvV6,
     reward_contract,
 )
+from action_adapter_v6 import (  # noqa: E402
+    YAW_ONLY_SLIDE_PRIOR_SCALE,
+    YAW_ONLY_YAW_PRIOR_SCALE,
+)
 
 
 class DummyModel:
@@ -202,7 +206,7 @@ def main():
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v18"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v19"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -215,6 +219,8 @@ def main():
     assert contract["normalization"]["continuous_omni_repair_oversampling"]
     assert contract["normalization"][
         "continuous_omni_mixed_yaw_repair_sampling"]
+    assert contract["normalization"]["axis_separation_curriculum"]
+    assert contract["normalization"]["yaw_only_prior_scaling_applied"]
     assert contract["normalization"]["gait_blend_is_policy_gate"]
     assert contract["normalization"][
         "command_conditioned_gait_gate_regularizer"]["enabled"]
@@ -240,7 +246,7 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v23")
+    assert adapter_contract["version"].endswith("_v24")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     centers = adapter_contract["gait_gate_mapping"]["command_centers"]
@@ -292,6 +298,8 @@ def main():
     assert yaw_left_tf["yaw_sign"] == 1.0
     assert yaw_right_tf["yaw_sign"] == -1.0
     assert yaw_right_tf["yaw_scale"] == yaw_left_tf["yaw_scale"]
+    assert yaw_left_tf["slide_scale"] == YAW_ONLY_SLIDE_PRIOR_SCALE
+    assert yaw_left_tf["yaw_scale"] == YAW_ONLY_YAW_PRIOR_SCALE
     base_prior = gait_prior_from_phase(0.3, gait_blend=1.0)
     reverse_prior = directional_gait_prior_from_phase(
         0.3, gait_blend=1.0, command=(-1.0, 0.0, 0.0))
@@ -306,7 +314,11 @@ def main():
     yaw_right_prior = directional_gait_prior_from_phase(
         0.3, gait_blend=0.5, command=(0.0, 0.0, -1.0))
     yaw_open_loop = inplace_yaw_prior_from_phase(0.3, 1.0)
-    assert np.allclose(yaw_left_prior, yaw_open_loop)
+    scaled_yaw_open_loop = yaw_open_loop.copy()
+    scaled_yaw_open_loop[:6] *= yaw_left_tf["slide_scale"]
+    scaled_yaw_open_loop[6:] *= yaw_left_tf["yaw_scale"]
+    scaled_yaw_open_loop = np.clip(scaled_yaw_open_loop, -1.0, 1.0)
+    assert np.allclose(yaw_left_prior, scaled_yaw_open_loop)
     assert np.allclose(yaw_left_prior[:6], yaw_right_prior[:6])
     assert np.allclose(yaw_left_prior[6:], -yaw_right_prior[6:])
     assert command_conditioned_prior_scale(1.0, 0.0, 0.0) == 1.0
@@ -369,6 +381,7 @@ def main():
     assert "heading_hold" in COMMAND_CURRICULA
     assert "heading_omni" in COMMAND_CURRICULA
     assert "continuous_omni" in COMMAND_CURRICULA
+    assert "axis_separation" in COMMAND_CURRICULA
 
     env.command_curriculum = "continuous_omni"
     samples = np.array([env._sample_command() for _ in range(240)])
@@ -396,6 +409,18 @@ def main():
                   & (mixed_yaw_samples[:, 2] > 0.0))
     assert np.any((mixed_yaw_samples[:, 0] < 0.0)
                   & (mixed_yaw_samples[:, 2] < 0.0))
+
+    env.command_curriculum = "axis_separation"
+    samples = np.array([env._sample_command() for _ in range(240)])
+    nonzero_dims = np.count_nonzero(np.abs(samples) > 1e-9, axis=1)
+    assert np.all(nonzero_dims <= 1)
+    assert np.any(nonzero_dims == 0)
+    assert np.any(samples[:, 0] > 0.0)
+    assert np.any(samples[:, 0] < 0.0)
+    assert np.any(samples[:, 1] > 0.0)
+    assert np.any(samples[:, 1] < 0.0)
+    assert np.any(samples[:, 2] > 0.0)
+    assert np.any(samples[:, 2] < 0.0)
 
     random_schedule = best_eval_schedule("random")
     expected_cases = {

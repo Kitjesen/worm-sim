@@ -361,7 +361,7 @@ and yaw-only commands translate forward while turning. The current paper wording
 must remain "weak omnidirectional prototype / six-direction primitive
 controller", not "continuous body-frame command tracking".
 
-## V29 HD Videos And V30-V34 Repair Attempts
+## V29 HD Videos And V30-V36 Repair Attempts
 
 The current best viewable flat candidate is V29:
 
@@ -413,6 +413,8 @@ Five short flat repair attempts were then run:
 | V32 | `280000` | `-1007879.03` | `0` | diagnostic only |
 | V33 | `310000` | `-1008438.39` | `1` | rejected |
 | V34 | `310000` | `-1007782.83` | `1` | rejected; low-LR V29 continuation |
+| V35 | `300960` | no in-training eval | scan yaw signs OK | diagnostic; axis-separation repair |
+| V36 | `341920` | no in-training eval | scan yaw signs OK | diagnostic; continuous rejoin |
 
 The retained code changes are:
 
@@ -425,9 +427,14 @@ V34's 35-command scan reports `planar_rmse_m_s=0.1635`,
 `yaw_rmse_rad_s=0.1128`, `planar_sign_rate=0.84`, `yaw_sign_rate=1.00`, and
 yaw-only planar drift about `0.1046 m/s`.
 
-None of V30-V34 is accepted as the current policy. The next technical target is
-to reduce lateral forward off-axis speed and yaw-only planar drift without
-reintroducing yaw-sign errors.
+V35 fixed the yaw-only prior scaling path and reduced yaw-only planar drift to
+`0.0631 m/s` on the 35-command scan, but planar RMSE stayed high at
+`0.1658 m/s`. V36 switched from `axis_separation` back to `continuous_omni` and
+reduced yaw RMSE to `0.0994 rad/s`, but planar RMSE worsened to `0.1673 m/s`.
+
+None of V30-V36 is accepted as the current policy. The next technical target is
+to reduce lateral forward off-axis speed without losing the yaw-only drift
+improvement or reintroducing yaw-sign errors.
 
 ## Viewable Evidence
 
@@ -468,6 +475,14 @@ reintroducing yaw-sign errors.
 - `record/current/flat_omni_v29_long15/lateral_right_15s_1080p.mp4`
 - `record/current/flat_omni_v29_long15/yaw_left_15s_1080p.mp4`
 - `record/current/flat_omni_v29_long15/yaw_right_15s_1080p.mp4`
+- `record/current/flat_omni_v35_axis_sep_long20/gait_comparison_3x2_20s_4k_uhd.mp4`
+- `record/current/flat_omni_v35_axis_sep_long20/gait_comparison_3x2_20s_3840x1440.mp4`
+- `record/current/flat_omni_v35_axis_sep_long20/forward_20s_1080p.mp4`
+- `record/current/flat_omni_v35_axis_sep_long20/reverse_20s_1080p.mp4`
+- `record/current/flat_omni_v35_axis_sep_long20/lateral_left_20s_1080p.mp4`
+- `record/current/flat_omni_v35_axis_sep_long20/lateral_right_20s_1080p.mp4`
+- `record/current/flat_omni_v35_axis_sep_long20/yaw_left_20s_1080p.mp4`
+- `record/current/flat_omni_v35_axis_sep_long20/yaw_right_20s_1080p.mp4`
 
 Large 4K videos should use Git LFS or external release assets before being
 pushed to GitHub.
