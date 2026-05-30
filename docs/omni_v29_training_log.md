@@ -147,6 +147,31 @@ Video verification:
 - 3x2 comparison MP4: `1920x720`, `25 fps`, `150 frames`, `6.0 s`.
 - Steel-strip visual overlay and head speed overlay are enabled.
 
+## HD Recording Pass
+
+A higher-resolution pass was recorded after the V29 training/evaluation commit:
+
+- Artifact directory: `record/v6/omni_v29_speed_gate_videos_hd1080`.
+- Six single-command videos: H.264 `1920x1080`, `25 fps`, `150 frames`,
+  `6.0 s`.
+- Comparison videos:
+  `gait_comparison_3x2_3840x1440.mp4` and
+  `gait_comparison_3x2_4k_uhd.mp4`.
+- Visual spring-steel strips and head speed overlay are enabled.
+
+HD rollout measurements:
+
+| Case | vx m/s | vy m/s | yaw rad/s | Note |
+| --- | ---: | ---: | ---: | --- |
+| forward | 0.1499 | 0.0222 | -0.0009 | forward works |
+| reverse | -0.0809 | 0.0394 | -0.0037 | reverse works |
+| lateral_left | 0.1044 | 0.0352 | 0.0757 | left sign exists, but forward off-axis dominates |
+| lateral_right | 0.1025 | -0.0158 | -0.0470 | right sign weak in this rollout |
+| yaw_left | 0.0952 | 0.0396 | 0.3909 | yaw sign strong, but translates |
+| yaw_right | 0.0924 | -0.0365 | -0.4023 | yaw sign strong, but translates |
+
+Full recording details are in `docs/omni_v29_hd_recording_log.md`.
+
 ## Current Verdict
 
 V29 is the best current flat candidate for the revised objective. It restores

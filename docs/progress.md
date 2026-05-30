@@ -135,6 +135,13 @@
   head speed overlay; the fixed-command videos verify as `1280x720`, `25 fps`,
   `150 frames`, `6.0 s`.
 - Detailed V29 notes are in `docs/omni_v29_training_log.md`.
+- HD V29 direction videos were regenerated under
+  `record/v6/omni_v29_speed_gate_videos_hd1080`: six H.264 `1920x1080`,
+  25 fps, 6 s single-command videos with visual spring-steel strips and head
+  speed overlay, plus `3840x1440` and `3840x2160` 3x2 comparison videos.
+  The HD rollouts confirm forward/reverse and yaw signs, but also make the
+  remaining lateral off-axis and yaw-only translation problems obvious. Exact
+  metrics are in `docs/omni_v29_hd_recording_log.md`.
 
 ## Not Done
 

@@ -220,6 +220,8 @@ prototype**, not final arbitrary velocity tracking.
 
 Detailed notes and exact artifact paths are in
 [V29 training log](docs/omni_v29_training_log.md).
+The latest HD visual pass is tracked in
+[V29 HD recording log](docs/omni_v29_hd_recording_log.md).
 
 The latest contract correction was made after comparing PPO rollouts with the
 stronger 4K CMA-ES gait-comparison video. That video is an open-loop CMA-ES
@@ -396,6 +398,14 @@ Interim result tables and figures:
 
 Current flat V29 videos with visual spring-steel strips and head speed overlay:
 
+- [flat V29 HD 3x2 comparison, 3840x1440](record/v6/omni_v29_speed_gate_videos_hd1080/gait_comparison_3x2_3840x1440.mp4)
+- [flat V29 HD 3x2 UHD comparison, 3840x2160](record/v6/omni_v29_speed_gate_videos_hd1080/gait_comparison_3x2_4k_uhd.mp4)
+- [flat V29 HD forward](record/v6/omni_v29_speed_gate_videos_hd1080/forward_1080p.mp4)
+- [flat V29 HD reverse](record/v6/omni_v29_speed_gate_videos_hd1080/reverse_1080p.mp4)
+- [flat V29 HD lateral left](record/v6/omni_v29_speed_gate_videos_hd1080/lateral_left_1080p.mp4)
+- [flat V29 HD lateral right](record/v6/omni_v29_speed_gate_videos_hd1080/lateral_right_1080p.mp4)
+- [flat V29 HD yaw left](record/v6/omni_v29_speed_gate_videos_hd1080/yaw_left_1080p.mp4)
+- [flat V29 HD yaw right](record/v6/omni_v29_speed_gate_videos_hd1080/yaw_right_1080p.mp4)
 - [flat V29 six-command comparison](record/v6/omni_v29_speed_gate_videos/gait_comparison_3x2.mp4)
 - [flat V29 forward](record/v6/omni_v29_speed_gate_videos/forward.mp4)
 - [flat V29 reverse](record/v6/omni_v29_speed_gate_videos/reverse.mp4)

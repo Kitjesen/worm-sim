@@ -16,6 +16,11 @@ Updated on 2026-05-31.
 - Latest V29 artifacts are under
   `record/v6/omni_v29_speed_gate_videos`, including six videos, a 3x2
   comparison video, per-segment trajectory CSV/plots, and a 35-command scan.
+- Latest HD visual artifacts are under
+  `record/v6/omni_v29_speed_gate_videos_hd1080`: six H.264 `1920x1080`
+  command videos and 3x2 comparison videos at `3840x1440` and `3840x2160`.
+  These videos keep spring-steel strip rendering and the head speed overlay
+  enabled.
 - Detailed V29 implementation and metrics are in
   `docs/omni_v29_training_log.md`.
 
