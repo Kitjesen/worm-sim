@@ -277,6 +277,7 @@ def main():
     frames = 0
     terminated = False
     truncated = False
+    first_truncated_step = None
     started = time.time()
     trajectory_times = []
     trajectory_positions = []
@@ -286,7 +287,7 @@ def main():
             action = np.zeros((1, sim_env.action_space.shape[0]), dtype=np.float32)
         else:
             action, _ = model.predict(obs, deterministic=True)
-        next_obs, reward, done, step_truncated, info = base_env.step(action[0])
+        next_obs, reward, done, step_truncated, info = sim_env.step(action[0])
         if args.prior_only:
             obs = next_obs.reshape(1, -1)
         else:
@@ -344,9 +345,10 @@ def main():
             writer.write(frame)
             frames += 1
 
-        if done or step_truncated:
+        if step_truncated and first_truncated_step is None:
+            first_truncated_step = step + 1
+        if done:
             terminated = bool(done)
-            truncated = bool(step_truncated)
             break
 
     writer.release()
@@ -395,7 +397,11 @@ def main():
         "frame_stride_steps": frame_stride,
         "video_fps": effective_fps,
         "terminated": terminated,
-        "truncated": truncated,
+        "truncated": bool(first_truncated_step is not None),
+        "first_truncated_step": (
+            int(first_truncated_step)
+            if first_truncated_step is not None else None),
+        "continued_after_time_limit": bool(first_truncated_step is not None),
         "reward": reward_sum,
         "world_delta_m": [float(v) for v in delta_world[:3]],
         "distance_mm": forward_m * 1000.0,

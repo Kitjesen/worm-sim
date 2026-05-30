@@ -240,6 +240,8 @@ not beat V29:
 | V34 | low-LR continuation from V29 best | did not beat V29; yaw success improved but one wrong-yaw case returned |
 | V35 | axis-separation repair from V29 best | fixed yaw-only prior scaling path; yaw-only drift improved, planar tracking still weak |
 | V36 | continuous rejoin from V35 final | yaw RMSE improved, planar RMSE worsened; diagnostic only |
+| V37 | worm-centered lateral prior from V36 final | planar sign improved to `0.96`, but lateral speed remained too weak |
+| V38 | lateral speed-deficit reward from V37 final | yaw-only planar drift improved to `0.060 m/s`, but planar RMSE worsened |
 
 The retained post-V29 code changes are the targeted mixed-yaw sampling contract
 (`omni_directional_offaxis_yaw_v18`) and configurable PPO learning rate. The
@@ -250,6 +252,8 @@ The latest V34 continuation is recorded in
 [V34 training log](docs/omni_v34_training_log.md).
 The V35/V36 axis-separation diagnostic is recorded in
 [V35/V36 training log](docs/omni_v35_v36_axis_separation_log.md).
+The V37/V38 lateral repair diagnostic is recorded in
+[V37/V38 training log](docs/omni_v37_v38_lateral_repair_log.md).
 
 The latest contract correction was made after comparing PPO rollouts with the
 stronger 4K CMA-ES gait-comparison video. That video is an open-loop CMA-ES
@@ -455,6 +459,18 @@ overlay:
 - [flat V35 long lateral right](record/current/flat_omni_v35_axis_sep_long20/lateral_right_20s_1080p.mp4)
 - [flat V35 long yaw left](record/current/flat_omni_v35_axis_sep_long20/yaw_left_20s_1080p.mp4)
 - [flat V35 long yaw right](record/current/flat_omni_v35_axis_sep_long20/yaw_right_20s_1080p.mp4)
+
+Latest diagnostic V37 videos with visual spring-steel strips and head speed
+overlay:
+
+- [flat V37 long 30 s 3x2 UHD comparison, 3840x2160](record/current/flat_omni_v37_lateral_wormcenter_long30/gait_comparison_3x2_30s_4k_uhd.mp4)
+- [flat V37 long 30 s 3x2 comparison, 3840x1440](record/current/flat_omni_v37_lateral_wormcenter_long30/gait_comparison_3x2_30s_3840x1440.mp4)
+- [flat V37 long forward](record/current/flat_omni_v37_lateral_wormcenter_long30/forward_30s_1080p.mp4)
+- [flat V37 long reverse](record/current/flat_omni_v37_lateral_wormcenter_long30/reverse_30s_1080p.mp4)
+- [flat V37 long lateral left](record/current/flat_omni_v37_lateral_wormcenter_long30/lateral_left_30s_1080p.mp4)
+- [flat V37 long lateral right](record/current/flat_omni_v37_lateral_wormcenter_long30/lateral_right_30s_1080p.mp4)
+- [flat V37 long yaw left](record/current/flat_omni_v37_lateral_wormcenter_long30/yaw_left_30s_1080p.mp4)
+- [flat V37 long yaw right](record/current/flat_omni_v37_lateral_wormcenter_long30/yaw_right_30s_1080p.mp4)
 
 Current flat V12 command videos:
 

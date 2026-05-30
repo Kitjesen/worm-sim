@@ -163,6 +163,21 @@ abstraction with an idealized force limit. That is acceptable for early policy
 development, but the next hardware-calibrated model should replace it with a
 unilateral cable/tendon pull model plus passive spring-steel return.
 
+The reduced force-law implementation is now written in
+`src/v6/unilateral_slide_actuator_v6.py`. It uses the same slide coordinate as
+the current model, where `q=0` is relaxed and `q<0` is contracted:
+
+```text
+c = -q
+c* = clip(-a, 0, 1) L
+T = clip(kp (c* - c - deadband) - kd c_dot, 0, Tmax)
+Qq = ks c + ds c_dot - T
+```
+
+`T` is rope tension and is never negative, so the motor cannot push extension.
+When the command relaxes, `T` goes to zero and the spring-steel term returns
+the segment.
+
 This means two real datasets are required:
 
 1. passive spring-steel force-displacement data;

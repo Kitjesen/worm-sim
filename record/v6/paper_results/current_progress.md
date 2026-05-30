@@ -24,6 +24,20 @@ Updated on 2026-05-31.
 - Detailed V29 implementation and metrics are in
   `docs/omni_v29_training_log.md`.
 
+- Latest flat diagnostic after V35/V36 is V37/V38. V25 moves dominant lateral
+  commands to a worm-centered `-pi/2` lateral prior and improves the V36
+  35-command planar sign rate from `0.84` to `0.96`, but lateral speed remains
+  too weak for the fixed six-command thresholds. V38 adds a pure-lateral
+  speed-deficit reward and reduces yaw-only planar drift to `0.0600 m/s`, but
+  planar RMSE worsens to `0.1677 m/s`. These runs are diagnostics only, not an
+  accepted continuous tracking result.
+- Latest long diagnostic videos are under
+  `record/current/flat_omni_v37_lateral_wormcenter_long30`: six 30 s
+  `1920x1080` direction videos plus 3x2 comparison videos at `3840x1440` and
+  `3840x2160`, with visual spring-steel strips and head speed overlay.
+- Detailed V37/V38 implementation and metrics are in
+  `docs/omni_v37_v38_lateral_repair_log.md`.
+
 - Flat-only directional gate now has a current accepted candidate. The overall
   paper goal is still incomplete because robust flat tests, ablations, deploy
   bundles, hardware logs, and sand/slope transfer are not done.

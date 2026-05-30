@@ -24,7 +24,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v24"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v25"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 POLICY_ACTION_DIM = NUM_ACTUATORS + 1
 GAIT_GATE_ACTION_GAIN = 3.0
@@ -34,7 +34,7 @@ COMMAND_GATE_WORM_CENTER_FAST = 0.50
 COMMAND_GATE_WORM_FAST_THRESHOLD = 0.80
 COMMAND_GATE_WORM_CENTER = COMMAND_GATE_WORM_CENTER_SLOW
 COMMAND_GATE_MIXED_CENTER = 0.50
-COMMAND_GATE_LATERAL_CENTER = 0.50
+COMMAND_GATE_LATERAL_CENTER = 0.00
 COMMAND_GATE_YAW_CENTER = 0.85
 DEFAULT_GAIT_PRIOR_SCALE = 1.0
 DEFAULT_POLICY_RESIDUAL_SCALE = 0.35
@@ -44,6 +44,7 @@ YAW_ONLY_PRIOR_SCALE_FLOOR = 1.00
 YAW_ONLY_SLIDE_PRIOR_SCALE = 0.80
 YAW_ONLY_YAW_PRIOR_SCALE = 5.00
 YAW_RIGHT_ONLY_YAW_PRIOR_SCALE = 5.00
+LATERAL_PHASE_OFFSET_RAD = -0.5 * math.pi
 ZERO_YAW_FORWARD_PHASE_OFFSET_RAD = math.pi
 ZERO_YAW_REVERSE_PHASE_OFFSET_RAD = math.pi
 ZERO_YAW_FORWARD_YAW_PRIOR_SCALE = 1.15
@@ -230,8 +231,9 @@ def action_adapter_contract(
             },
             "reverse": "dominant negative vx reverses phase",
             "lateral": (
-                "dominant vy uses a shared +pi/2 slide phase offset; "
-                "right-lateral motion mirrors the yaw-anchor sign"),
+                "dominant vy uses a worm-centered shared -pi/2 slide phase "
+                "offset; right-lateral motion mirrors only the yaw-anchor "
+                "sign"),
             "yaw": (
                 "pure yaw commands use an independent in-place yaw prior; "
                 "mixed yaw commands keep the signed yaw-anchor transform"),
@@ -246,8 +248,10 @@ def action_adapter_contract(
             },
             "lateral_right_yaw_flip": (
                 "negative vy flips only the yaw-anchor sign; the slide phase "
-                "offset is not mirrored because the current robot body/anchor "
-                "coupling loses right-lateral thrust with a -pi/2 offset"),
+                "offset is shared because the V35/V36 prior-only diagnosis "
+                "showed mixed-centered +pi/2 lateral motion was dominated by "
+                "forward off-axis speed"),
+            "lateral_phase_offset_rad": LATERAL_PHASE_OFFSET_RAD,
             "yaw_only_slide_scale": YAW_ONLY_SLIDE_PRIOR_SCALE,
             "yaw_only_yaw_scale": YAW_ONLY_YAW_PRIOR_SCALE,
             "yaw_right_only_yaw_scale": YAW_RIGHT_ONLY_YAW_PRIOR_SCALE,
@@ -338,7 +342,10 @@ def action_adapter_contract(
                 "combined anchor. V23 makes the axial "
                 "center speed-dependent: slow axial commands stay visibly "
                 "peristaltic, while full-speed axial commands use the mixed "
-                "center so tracking is not capped by the slower worm anchor."),
+                "center so tracking is not capped by the slower worm anchor. "
+                "V25 moves dominant lateral commands back to the worm anchor "
+                "after prior-only search showed this reduces forward "
+                "off-axis drift."),
         },
         "phase_projection": (
             "phase_cycle_s = (phase mod 2*pi) / (2*pi); "
@@ -477,7 +484,7 @@ def command_directional_prior_transform(
         and abs_vy > abs_vx
         and abs_vy >= abs_yaw)
     if lateral_dominant:
-        phase_offset = 0.5 * math.pi
+        phase_offset = LATERAL_PHASE_OFFSET_RAD
 
     yaw_only_command = is_yaw_only_command(
         cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm)

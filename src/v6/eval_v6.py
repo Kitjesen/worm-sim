@@ -7,6 +7,7 @@ encoders, per-segment IMUs, previous action, command, and phase.
 
 import argparse
 import json
+import math
 import os
 import sys
 
@@ -20,6 +21,11 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from motor_contract_v6 import motor_contract
+from training_contract_v6 import (
+    DIRECTION_MIN_TURN_DELTA_RAD,
+    DIRECTION_STRAIGHT_TOLERANCE_RAD,
+    PLANAR_STATIONARY_TOLERANCE_M,
+)
 from worm_env_v6 import (
     WormEnvV6,
     CMD_VEL_RANGE,
@@ -34,6 +40,70 @@ from worm_env_v6 import (
     reward_contract,
     action_adapter_contract,
 )
+
+
+def wrap_angle_rad(angle):
+    return (float(angle) + math.pi) % (2.0 * math.pi) - math.pi
+
+
+def command_tracking_metrics(cmd_vx, cmd_vy, cmd_yaw,
+                             body_delta_x, body_delta_y, yaw_delta,
+                             elapsed_s, success_distance):
+    elapsed_s = max(float(elapsed_s), CTRL_DT)
+    cmd_vec = np.array([cmd_vx, cmd_vy], dtype=np.float64)
+    delta_vec = np.array([body_delta_x, body_delta_y], dtype=np.float64)
+    body_vel = delta_vec / elapsed_s
+    cmd_speed = float(np.linalg.norm(cmd_vec))
+    planar_velocity_error = float(np.linalg.norm(body_vel - cmd_vec))
+
+    if cmd_speed > 1e-9:
+        cmd_unit = cmd_vec / cmd_speed
+        commanded_planar_distance = float(np.dot(delta_vec, cmd_unit))
+        off_axis_vec = delta_vec - commanded_planar_distance * cmd_unit
+        off_axis_distance = float(np.linalg.norm(off_axis_vec))
+        required_planar_distance = min(
+            float(success_distance),
+            max(0.0, 0.25 * cmd_speed * elapsed_s),
+        )
+        planar_success = commanded_planar_distance >= required_planar_distance
+    else:
+        commanded_planar_distance = 0.0
+        off_axis_distance = float(np.linalg.norm(delta_vec))
+        required_planar_distance = 0.0
+        planar_success = off_axis_distance <= PLANAR_STATIONARY_TOLERANCE_M
+
+    yaw_delta = float(yaw_delta)
+    cmd_yaw = float(cmd_yaw)
+    if abs(cmd_yaw) <= 1e-9:
+        yaw_success = abs(yaw_delta) <= DIRECTION_STRAIGHT_TOLERANCE_RAD
+    else:
+        yaw_success = (
+            abs(yaw_delta) >= DIRECTION_MIN_TURN_DELTA_RAD
+            and yaw_delta * cmd_yaw > 0.0)
+
+    return {
+        "cmd_vx_m_s": float(cmd_vx),
+        "cmd_vy_m_s": float(cmd_vy),
+        "cmd_yaw_rad_s": float(cmd_yaw),
+        "elapsed_s": float(elapsed_s),
+        "body_delta_x_m": float(body_delta_x),
+        "body_delta_y_m": float(body_delta_y),
+        "body_vx_m_s": float(body_vel[0]),
+        "body_vy_m_s": float(body_vel[1]),
+        "yaw_delta_rad": yaw_delta,
+        "mean_yaw_rate_rad_s": float(yaw_delta / elapsed_s),
+        "commanded_planar_distance_m": commanded_planar_distance,
+        "commanded_planar_speed_m_s": float(
+            commanded_planar_distance / elapsed_s),
+        "off_axis_distance_m": off_axis_distance,
+        "off_axis_speed_m_s": float(off_axis_distance / elapsed_s),
+        "required_planar_distance_m": float(required_planar_distance),
+        "planar_velocity_error_m_s": planar_velocity_error,
+        "yaw_rate_error_rad_s": float((yaw_delta / elapsed_s) - cmd_yaw),
+        "planar_success": bool(planar_success),
+        "yaw_success": bool(yaw_success),
+        "success": bool(planar_success and yaw_success),
+    }
 
 
 def default_run_dir(terrain, gait_mode):
@@ -55,6 +125,15 @@ def find_vecnormalize(model_path):
         os.path.join(os.path.dirname(model_path), "best_model_vecnormalize.pkl"),
         os.path.join(os.path.dirname(model_path), "final_model_vecnormalize.pkl"),
     ]
+    base = os.path.basename(model_path)
+    marker = "_steps.zip"
+    if base.endswith(marker):
+        step_part = base[:-len(marker)].split("_")[-1]
+        prefix = base[:-len(step_part + marker)]
+        candidates.insert(1, os.path.join(
+            os.path.dirname(model_path),
+            f"{prefix}vecnormalize_{step_part}_steps.pkl",
+        ))
     for path in candidates:
         if os.path.exists(path):
             return path
@@ -120,6 +199,15 @@ def evaluate(args):
     slip_proxies = []
     propulsion_efficiencies = []
     successes = []
+    planar_successes = []
+    yaw_successes = []
+    body_vxs = []
+    body_vys = []
+    yaw_rates = []
+    planar_tracking_errors = []
+    yaw_tracking_errors = []
+    commanded_planar_distances = []
+    off_axis_distances = []
     terminations = 0
 
     for ep in range(args.episodes):
@@ -129,13 +217,17 @@ def evaluate(args):
             gait_blend=gait_blend)
         obs = raw_env._get_obs()
         start_pos = raw_env.data.xpos[raw_env._root_body_id].copy()
+        start_yaw = raw_env._root_yaw_rad()
+        start_xmat = raw_env.data.xmat[raw_env._root_body_id].reshape(3, 3)
+        start_forward_axis = -start_xmat[:2, 0].copy()
+        start_lateral_axis = start_xmat[:2, 1].copy()
         prev_pos = start_pos.copy()
         path_length = 0.0
         ep_reward = 0.0
         steps = 0
         ep_action_l2 = 0.0
         ep_action_rate_l2 = 0.0
-        prev_applied_action = np.zeros(raw_env.action_space.shape, dtype=np.float32)
+        prev_applied_action = raw_env._last_action.copy()
         episode_terminated = False
 
         for step in range(max_steps):
@@ -166,32 +258,59 @@ def evaluate(args):
                 break
 
         end_pos = raw_env.data.xpos[raw_env._root_body_id].copy()
-        distance = -(end_pos[0] - start_pos[0])
-        lateral = abs(end_pos[1] - start_pos[1])
         elapsed = max(steps * CTRL_DT, CTRL_DT)
+        delta_world = end_pos[:2] - start_pos[:2]
+        body_delta_x = float(np.dot(delta_world, start_forward_axis))
+        body_delta_y = float(np.dot(delta_world, start_lateral_axis))
+        yaw_delta = wrap_angle_rad(raw_env._root_yaw_rad() - start_yaw)
+        tracking = command_tracking_metrics(
+            cmd_vx=cmd_vx,
+            cmd_vy=cmd_vy,
+            cmd_yaw=args.cmd_yaw,
+            body_delta_x=body_delta_x,
+            body_delta_y=body_delta_y,
+            yaw_delta=yaw_delta,
+            elapsed_s=elapsed,
+            success_distance=args.success_distance,
+        )
+        distance = tracking["commanded_planar_distance_m"]
+        lateral = tracking["off_axis_distance_m"]
         forward_distance = max(distance, 0.0)
         path_efficiency = forward_distance / max(path_length, 1e-6)
         path_efficiency = float(np.clip(path_efficiency, 0.0, 1.0))
         slip_proxy = 1.0 - path_efficiency
         propulsion_efficiency = forward_distance / max(ep_action_l2, 1e-6)
-        success = (
-            distance >= args.success_distance and not episode_terminated)
+        success = tracking["success"] and not episode_terminated
         rewards.append(ep_reward)
         distances.append(distance)
-        speeds.append(distance / elapsed)
+        speeds.append(tracking["commanded_planar_speed_m_s"])
         lateral_drifts.append(lateral)
         action_l2_per_step.append(ep_action_l2 / max(steps, 1))
         action_rate_l2_per_step.append(ep_action_rate_l2 / max(steps, 1))
-        action_l2_per_m.append(ep_action_l2 / max(distance, 1e-6))
+        action_l2_per_m.append(ep_action_l2 / max(abs(distance), 1e-6))
         path_efficiencies.append(path_efficiency)
         slip_proxies.append(slip_proxy)
         propulsion_efficiencies.append(propulsion_efficiency)
         successes.append(float(success))
+        planar_successes.append(float(
+            tracking["planar_success"] and not episode_terminated))
+        yaw_successes.append(float(
+            tracking["yaw_success"] and not episode_terminated))
+        body_vxs.append(tracking["body_vx_m_s"])
+        body_vys.append(tracking["body_vy_m_s"])
+        yaw_rates.append(tracking["mean_yaw_rate_rad_s"])
+        planar_tracking_errors.append(
+            tracking["planar_velocity_error_m_s"])
+        yaw_tracking_errors.append(tracking["yaw_rate_error_rad_s"])
+        commanded_planar_distances.append(distance)
+        off_axis_distances.append(lateral)
         print(
             f"ep {ep + 1}/{args.episodes}: "
-            f"speed={speeds[-1] * 1000:.2f} mm/s "
-            f"distance={distance * 1000:.1f} mm "
-            f"lateral={lateral * 1000:.1f} mm "
+            f"cmd_speed={speeds[-1] * 1000:.2f} mm/s "
+            f"cmd_dist={distance * 1000:.1f} mm "
+            f"off_axis={lateral * 1000:.1f} mm "
+            f"body_v=({body_vxs[-1]:+.3f},{body_vys[-1]:+.3f}) m/s "
+            f"yaw_rate={yaw_rates[-1]:+.3f} rad/s "
             f"slip_proxy={slip_proxy:.2f} "
             f"success={int(success)} "
             f"action_l2/m={action_l2_per_m[-1]:.2f} reward={ep_reward:.2f}")
@@ -230,9 +349,20 @@ def evaluate(args):
         "mean_reward": float(np.mean(rewards)),
         "std_reward": float(np.std(rewards)),
         "mean_distance_mm": float(np.mean(distances) * 1000.0),
+        "mean_commanded_planar_distance_mm": float(
+            np.mean(commanded_planar_distances) * 1000.0),
         "mean_speed_mm_s": float(np.mean(speeds) * 1000.0),
         "std_speed_mm_s": float(np.std(speeds) * 1000.0),
         "mean_lateral_drift_mm": float(np.mean(lateral_drifts) * 1000.0),
+        "mean_off_axis_distance_mm": float(
+            np.mean(off_axis_distances) * 1000.0),
+        "mean_body_vx_m_s": float(np.mean(body_vxs)),
+        "mean_body_vy_m_s": float(np.mean(body_vys)),
+        "mean_yaw_rate_rad_s": float(np.mean(yaw_rates)),
+        "mean_planar_tracking_error_m_s": float(
+            np.mean(planar_tracking_errors)),
+        "mean_yaw_tracking_error_rad_s": float(
+            np.mean(yaw_tracking_errors)),
         "mean_action_l2_per_step": float(np.mean(action_l2_per_step)),
         "mean_action_rate_l2_per_step": float(np.mean(action_rate_l2_per_step)),
         "mean_action_l2_per_m": float(np.mean(action_l2_per_m)),
@@ -242,6 +372,8 @@ def evaluate(args):
             np.mean(propulsion_efficiencies)),
         "success_distance_m": args.success_distance,
         "success_rate": float(np.mean(successes)),
+        "planar_success_rate": float(np.mean(planar_successes)),
+        "yaw_success_rate": float(np.mean(yaw_successes)),
         "slope_success_rate": (
             float(np.mean(successes)) if args.terrain == "slope" else None),
         "sand_slip_proxy": (

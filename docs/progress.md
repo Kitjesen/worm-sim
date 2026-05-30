@@ -178,6 +178,19 @@
   comparison videos. The long-video recorder now avoids VecNormalize
   auto-reset at the 20 s episode limit, so final pose metrics are not reset
   contaminated.
+- V37/V38 were run as a lateral repair diagnostic after prior-only analysis
+  showed the mixed-centered lateral prior was dominated by forward off-axis
+  speed. V25 moves dominant lateral commands to a worm-centered `-pi/2`
+  lateral prior, improving the V36 35-command planar sign rate from `0.84` to
+  `0.96`, but lateral speed remains below threshold. V38 adds a pure-lateral
+  speed-deficit reward, reducing yaw-only planar drift to `0.0600 m/s` at the
+  scanned `422880` checkpoint, but planar RMSE worsens to `0.1677 m/s`.
+  Details are in `docs/omni_v37_v38_lateral_repair_log.md`.
+- V37 30 s direction videos were generated under
+  `record/current/flat_omni_v37_lateral_wormcenter_long30`: six H.264
+  `1920x1080`, 25 fps, 30 s single-command videos plus `3840x1440` and
+  `3840x2160` 3x2 comparison videos. They include visual spring-steel strips
+  and the head speed overlay.
 
 ## Not Done
 

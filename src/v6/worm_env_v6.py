@@ -157,10 +157,12 @@ W_YAW_ERROR = 6.0
 W_YAW_DRIFT = 6.0
 W_YAW_STATIONARY = 8.0
 W_LATERAL_ONLY_FORWARD_DRIFT = 5.0
+W_LATERAL_ONLY_SPEED_DEFICIT = 4.0
 W_GAIT_GATE_TARGET = 3.0
 YAW_DRIFT_TOLERANCE_RAD = 0.20
 YAW_STATIONARY_TOLERANCE_M_S = 0.02
 LATERAL_ONLY_FORWARD_TOLERANCE_M_S = 0.04
+LATERAL_ONLY_PROGRESS_TARGET_M_S = 0.06
 GAIT_GATE_WORM_TARGET_SLOW = COMMAND_GATE_WORM_CENTER_SLOW
 GAIT_GATE_WORM_TARGET_FAST = COMMAND_GATE_WORM_CENTER_FAST
 GAIT_GATE_WORM_FAST_THRESHOLD = COMMAND_GATE_WORM_FAST_THRESHOLD
@@ -168,7 +170,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v19"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v20"
 
 
 def reward_contract():
@@ -189,6 +191,7 @@ def reward_contract():
             "yaw_drift": W_YAW_DRIFT,
             "yaw_stationary": W_YAW_STATIONARY,
             "lateral_only_forward_drift": W_LATERAL_ONLY_FORWARD_DRIFT,
+            "lateral_only_speed_deficit": W_LATERAL_ONLY_SPEED_DEFICIT,
             "gait_gate_target": W_GAIT_GATE_TARGET,
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
@@ -213,6 +216,9 @@ def reward_contract():
             "pure_lateral_forward_drift_penalty": True,
             "pure_lateral_forward_tolerance_m_s": (
                 LATERAL_ONLY_FORWARD_TOLERANCE_M_S),
+            "pure_lateral_speed_deficit_penalty": True,
+            "pure_lateral_progress_target_m_s": (
+                LATERAL_ONLY_PROGRESS_TARGET_M_S),
             "continuous_omni_repair_oversampling": True,
             "continuous_omni_mixed_yaw_repair_sampling": True,
             "axis_separation_curriculum": True,
@@ -228,7 +234,7 @@ def reward_contract():
                     "fast_axial_threshold_norm": (
                         GAIT_GATE_WORM_FAST_THRESHOLD),
                     "mixed_target_for_mixed_commands": GAIT_GATE_MIXED_TARGET,
-                    "snake_target_for_lateral_translation": (
+                    "lateral_target_for_translation": (
                         GAIT_GATE_LATERAL_TARGET),
                     "snake_target_for_yaw": GAIT_GATE_YAW_TARGET,
                     "reason": (
@@ -239,7 +245,10 @@ def reward_contract():
                     "the axial target speed-dependent: low-speed axial "
                     "commands remain visibly worm-like, while full-speed "
                     "axial commands return to the mixed target to avoid "
-                    "capping forward tracking speed."),
+                    "capping forward tracking speed. V20 keeps lateral "
+                    "translation at the current adapter target and adds a "
+                    "separate lateral speed-deficit reward so the policy "
+                    "cannot pass the repair curriculum by barely moving."),
             },
             "command_curriculum_supported": list(COMMAND_CURRICULA),
         },
@@ -1185,6 +1194,18 @@ class WormEnvV6(gym.Env):
             / max(LATERAL_ONLY_FORWARD_TOLERANCE_M_S, 1e-6),
             3.0,
         )
+        lateral_progress_target = min(
+            abs(cmd_vy),
+            LATERAL_ONLY_PROGRESS_TARGET_M_S,
+        )
+        lateral_progress = (
+            lateral_speed * float(np.sign(cmd_vy))
+            if lateral_only_gate > 0.0 else 0.0)
+        lateral_only_speed_deficit = min(
+            max(0.0, lateral_progress_target - lateral_progress)
+            / max(CMD_VY_RANGE[1], 1e-6),
+            3.0,
+        )
 
         energy = 0.0
         for i in range(self.model.nu):
@@ -1217,6 +1238,8 @@ class WormEnvV6(gym.Env):
                 yaw_only_gate * yaw_stationary_speed_norm),
             "reward_lateral_only_forward_penalty": float(
                 lateral_only_gate * lateral_only_forward_norm),
+            "reward_lateral_only_speed_deficit_penalty": float(
+                lateral_only_gate * lateral_only_speed_deficit),
             "desired_gait_blend": float(desired_gait_blend),
             "gait_gate_error": float(gate_target_active * gait_gate_error),
         }
@@ -1236,6 +1259,8 @@ class WormEnvV6(gym.Env):
             - W_YAW_STATIONARY * yaw_only_gate * yaw_stationary_speed_norm
             - W_LATERAL_ONLY_FORWARD_DRIFT * lateral_only_gate * (
                 lateral_only_forward_norm)
+            - W_LATERAL_ONLY_SPEED_DEFICIT * lateral_only_gate * (
+                lateral_only_speed_deficit)
             - W_GAIT_GATE_TARGET * gate_target_active * gait_gate_error
             - W_ENERGY    * energy
             - W_SMOOTH    * action_rate

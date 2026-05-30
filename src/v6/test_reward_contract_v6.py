@@ -56,6 +56,7 @@ from worm_env_v6 import (  # noqa: E402
     reward_contract,
 )
 from action_adapter_v6 import (  # noqa: E402
+    LATERAL_PHASE_OFFSET_RAD,
     YAW_ONLY_SLIDE_PRIOR_SCALE,
     YAW_ONLY_YAW_PRIOR_SCALE,
 )
@@ -206,7 +207,7 @@ def main():
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v19"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v20"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -216,6 +217,8 @@ def main():
     assert contract["normalization"]["zero_yaw_heading_hold_weight_boost"]
     assert contract["normalization"]["yaw_only_stationary_speed_penalty"]
     assert contract["normalization"]["pure_lateral_forward_drift_penalty"]
+    assert contract["normalization"]["pure_lateral_speed_deficit_penalty"]
+    assert contract["normalization"]["pure_lateral_progress_target_m_s"] > 0.0
     assert contract["normalization"]["continuous_omni_repair_oversampling"]
     assert contract["normalization"][
         "continuous_omni_mixed_yaw_repair_sampling"]
@@ -227,6 +230,7 @@ def main():
     assert contract["weights"]["yaw_drift"] >= 6.0
     assert contract["weights"]["yaw_stationary"] >= 3.0
     assert contract["weights"]["lateral_only_forward_drift"] > 0.0
+    assert contract["weights"]["lateral_only_speed_deficit"] > 0.0
     assert contract["weights"]["gait_gate_target"] > 0.0
     selection_contract = best_selection_contract()
     assert selection_contract["version"] == "omni_tracking_scan_v3"
@@ -246,15 +250,16 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v24")
+    assert adapter_contract["version"].endswith("_v25")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     centers = adapter_contract["gait_gate_mapping"]["command_centers"]
     assert centers["axial_translation"] < centers["mixed_or_stop"]
     assert centers["axial_translation_slow"] < centers["axial_translation_fast"]
     assert centers["axial_translation_fast"] == centers["mixed_or_stop"]
-    assert centers["lateral_translation"] == centers["mixed_or_stop"]
-    assert centers["yaw"] >= centers["lateral_translation"]
+    assert centers["lateral_translation"] < centers["mixed_or_stop"]
+    assert centers["lateral_translation"] == 0.0
+    assert centers["yaw"] >= centers["mixed_or_stop"]
     assert command_conditioned_gate_center((0.25, 0.0, 0.0)) < (
         command_conditioned_gate_center((1.0, 0.0, 0.0)))
     assert np.isclose(
@@ -283,7 +288,8 @@ def main():
     assert forward_tf["yaw_scale"] > 1.0
     left_tf = command_directional_prior_transform(0.0, 1.0, 0.0)
     right_tf = command_directional_prior_transform(0.0, -1.0, 0.0)
-    assert left_tf["phase_offset_rad"] > 0.0
+    assert left_tf["phase_offset_rad"] == LATERAL_PHASE_OFFSET_RAD
+    assert left_tf["phase_offset_rad"] < 0.0
     assert right_tf["phase_offset_rad"] == left_tf["phase_offset_rad"]
     assert left_tf["yaw_sign"] == 1.0
     assert right_tf["yaw_sign"] == -1.0
