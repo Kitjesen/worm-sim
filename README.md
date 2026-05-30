@@ -223,6 +223,8 @@ Detailed notes and exact artifact paths are in
 [V29 training log](docs/omni_v29_training_log.md).
 The latest HD visual pass is tracked in
 [V29 HD recording log](docs/omni_v29_hd_recording_log.md).
+The organized video entry point is
+[V6 video index](record/v6/VIDEO_INDEX.md).
 
 After the HD pass, V30-V33 were run as short flat repair experiments. They did
 not beat V29:
