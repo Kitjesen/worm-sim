@@ -30,10 +30,40 @@ from motor_contract_v6 import (  # noqa: E402
 )
 from action_adapter_v6 import (  # noqa: E402
     CMAES_ANCHORS,
+    COMMAND_ACTIVITY_MIN_ACTIVE_SCALE,
     DEFAULT_GAIT_PRIOR_SCALE,
     DEFAULT_POLICY_RESIDUAL_SCALE,
+    DIRECTIONAL_PRIOR_THRESHOLD,
+    COMMAND_GATE_CENTER_RESIDUAL_RANGE,
+    COMMAND_GATE_LATERAL_CENTER,
+    COMMAND_GATE_MIXED_CENTER,
+    COMMAND_GATE_WORM_CENTER_FAST,
+    COMMAND_GATE_WORM_CENTER_SLOW,
+    COMMAND_GATE_WORM_FAST_THRESHOLD,
+    COMMAND_GATE_YAW_CENTER,
+    GAIT_GATE_ACTION_GAIN,
+    INPLACE_YAW_SLIDE_AMP,
+    INPLACE_YAW_SLIDE_BIAS,
+    INPLACE_YAW_SLIDE_FREQ,
+    INPLACE_YAW_SLIDE_WAVE_N,
+    INPLACE_YAW_YAW_AMP,
+    INPLACE_YAW_YAW_FREQ,
+    INPLACE_YAW_YAW_PHASE_RAD,
+    INPLACE_YAW_YAW_WAVE_N,
+    LATERAL_PRIOR_SCALE_FLOOR,
     POLICY_ACTION_DIM,
+    REVERSE_PRIOR_SCALE_FLOOR,
+    USE_CONTINUOUS_VECTOR_PRIOR_BLEND,
+    YAW_ONLY_PRIOR_SCALE_FLOOR,
+    YAW_ONLY_SLIDE_PRIOR_SCALE,
+    ZERO_YAW_FORWARD_PHASE_OFFSET_RAD,
+    ZERO_YAW_FORWARD_YAW_PRIOR_SCALE,
+    ZERO_YAW_LATERAL_YAW_PRIOR_SCALE,
+    ZERO_YAW_LATERAL_YAW_TRIM,
+    ZERO_YAW_REVERSE_PHASE_OFFSET_RAD,
+    ZERO_YAW_REVERSE_YAW_PRIOR_SCALE,
     action_adapter_contract,
+    command_conditioned_gait_blend,
     compose_deployable_action,
     phase_from_clock,
     policy_action_to_residual_and_gait_blend,
@@ -100,23 +130,7 @@ class DeployablePPOActor(torch.nn.Module):
         return torch.clamp(
             torch.cat([slide_prior, yaw_prior], dim=1), -1.0, 1.0)
 
-    def forward(self, raw_obs):
-        if raw_obs.dim() == 1:
-            raw_obs = raw_obs.unsqueeze(0)
-        raw_obs = raw_obs.to(dtype=torch.float32)
-        obs = (raw_obs - self.obs_mean) * torch.rsqrt(
-            self.obs_var + self.epsilon)
-        obs = torch.clamp(obs, -self.clip_obs, self.clip_obs)
-        features = self.features_extractor(obs)
-        latent_pi = self.mlp_extractor.forward_actor(features)
-        policy_action = torch.clamp(self.action_net(latent_pi), -1.0, 1.0)
-        residual = policy_action[:, :NUM_SLIDES + NUM_YAWS]
-        gait_blend = torch.clamp(
-            0.5 * (policy_action[:, NUM_SLIDES + NUM_YAWS:] + 1.0),
-            0.0,
-            1.0,
-        )
-        phase = torch.atan2(raw_obs[:, 78:79], raw_obs[:, 79:80])
+    def _base_gait_prior(self, phase, gait_blend):
         phase_cycle_s = torch.remainder(
             phase, 2.0 * torch.pi) / (2.0 * torch.pi)
         worm_prior = self._anchor_prior(
@@ -130,10 +144,311 @@ class DeployablePPOActor(torch.nn.Module):
         low_prior = (1.0 - low_alpha) * worm_prior + low_alpha * full_prior
         high_prior = (1.0 - high_alpha) * full_prior + high_alpha * snake_prior
         use_low = (gait_blend <= 0.5).to(dtype=torch.float32)
-        prior = use_low * low_prior + (1.0 - use_low) * high_prior
+        return torch.clamp(
+            use_low * low_prior + (1.0 - use_low) * high_prior,
+            -1.0,
+            1.0,
+        )
+
+    def _inplace_yaw_prior(self, phase, cmd_yaw):
+        phase_cycle_s = torch.remainder(
+            phase, 2.0 * torch.pi) / (2.0 * torch.pi)
+        slide_phase = (
+            2.0 * torch.pi
+            * (phase_cycle_s * float(INPLACE_YAW_SLIDE_FREQ)
+               - float(INPLACE_YAW_SLIDE_WAVE_N)
+               * self.slide_fraction.unsqueeze(0)))
+        slide_prior = -(
+            float(INPLACE_YAW_SLIDE_BIAS)
+            + float(INPLACE_YAW_SLIDE_AMP)
+            * (0.5 + 0.5 * torch.sin(slide_phase)))
+
+        yaw_phase = (
+            2.0 * torch.pi
+            * (phase_cycle_s * float(INPLACE_YAW_YAW_FREQ)
+               + float(INPLACE_YAW_YAW_WAVE_N)
+               * self.yaw_fraction.unsqueeze(0))
+            + float(INPLACE_YAW_YAW_PHASE_RAD))
+        yaw_sign = torch.where(
+            cmd_yaw >= 0.0,
+            torch.ones_like(cmd_yaw),
+            -torch.ones_like(cmd_yaw),
+        )
+        yaw_prior = (
+            yaw_sign
+            * float(INPLACE_YAW_YAW_AMP)
+            * torch.sin(yaw_phase))
+        return torch.clamp(
+            torch.cat([slide_prior, yaw_prior], dim=1), -1.0, 1.0)
+
+    def _dominant_directional_prior(
+            self, phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw):
+        abs_vx = torch.abs(cmd_vx)
+        abs_vy = torch.abs(cmd_vy)
+        abs_yaw = torch.abs(cmd_yaw)
+        threshold = float(DIRECTIONAL_PRIOR_THRESHOLD)
+        reverse = torch.clamp(-cmd_vx, min=0.0)
+        reverse_mask = (
+            (reverse >= threshold)
+            & (reverse >= abs_vy)
+            & (reverse >= abs_yaw))
+        lateral_mask = (
+            (abs_vy >= threshold)
+            & (abs_vy > abs_vx)
+            & (abs_vy >= abs_yaw))
+        yaw_only_mask = (
+            (abs_yaw >= threshold)
+            & (torch.maximum(abs_vx, abs_vy) < threshold))
+        zero_yaw_planar_mask = (
+            (abs_yaw < threshold)
+            & (torch.maximum(abs_vx, abs_vy) >= threshold))
+        zero_yaw_forward_mask = (
+            zero_yaw_planar_mask
+            & (~lateral_mask)
+            & (cmd_vx > threshold))
+        zero_yaw_reverse_mask = (
+            zero_yaw_planar_mask
+            & (~lateral_mask)
+            & (cmd_vx < -threshold))
+        ones = torch.ones_like(cmd_vx)
+        zeros = torch.zeros_like(cmd_vx)
+        phase_sign = torch.where(reverse_mask, -ones, ones)
+        phase_offset = torch.where(
+            lateral_mask,
+            ones * (0.5 * torch.pi),
+            zeros,
+        )
+        phase_offset = torch.where(
+            zero_yaw_forward_mask,
+            ones * float(ZERO_YAW_FORWARD_PHASE_OFFSET_RAD),
+            phase_offset,
+        )
+        phase_offset = torch.where(
+            zero_yaw_reverse_mask,
+            ones * float(ZERO_YAW_REVERSE_PHASE_OFFSET_RAD),
+            phase_offset,
+        )
+        yaw_sign = torch.where(
+            yaw_only_mask,
+            torch.where(cmd_yaw >= 0.0, ones, -ones),
+            torch.where(cmd_yaw >= threshold, -ones, ones),
+        )
+        yaw_sign = torch.where(
+            lateral_mask & (cmd_vy < 0.0),
+            -ones,
+            yaw_sign,
+        )
+        slide_scale = torch.where(
+            yaw_only_mask,
+            ones * float(YAW_ONLY_SLIDE_PRIOR_SCALE),
+            ones,
+        )
+        yaw_scale = torch.where(
+            yaw_only_mask,
+            ones,
+            ones,
+        )
+        yaw_scale = torch.where(
+            zero_yaw_planar_mask & lateral_mask,
+            ones * float(ZERO_YAW_LATERAL_YAW_PRIOR_SCALE),
+            yaw_scale,
+        )
+        yaw_scale = torch.where(
+            zero_yaw_forward_mask,
+            ones * float(ZERO_YAW_FORWARD_YAW_PRIOR_SCALE),
+            yaw_scale,
+        )
+        yaw_scale = torch.where(
+            zero_yaw_reverse_mask,
+            ones * float(ZERO_YAW_REVERSE_YAW_PRIOR_SCALE),
+            yaw_scale,
+        )
+        yaw_trim = torch.where(
+            zero_yaw_planar_mask & lateral_mask,
+            ones * float(ZERO_YAW_LATERAL_YAW_TRIM) * torch.sign(cmd_vy),
+            zeros,
+        )
+        prior = self._base_gait_prior(phase_sign * phase + phase_offset,
+                                      gait_blend)
+        prior = torch.cat(
+            [
+                prior[:, :NUM_SLIDES] * slide_scale,
+                prior[:, NUM_SLIDES:] * yaw_sign * yaw_scale + yaw_trim,
+            ],
+            dim=1,
+        )
+        prior = torch.clamp(prior, -1.0, 1.0)
+        inplace_yaw_prior = self._inplace_yaw_prior(phase, cmd_yaw)
+        return torch.where(yaw_only_mask, inplace_yaw_prior, prior)
+
+    def _continuous_directional_prior(
+            self, phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw):
+        ones = torch.ones_like(cmd_vx)
+        zeros = torch.zeros_like(cmd_vx)
+        forward_w = torch.clamp(cmd_vx, min=0.0)
+        reverse_w = torch.clamp(-cmd_vx, min=0.0)
+        lateral_left_w = torch.clamp(cmd_vy, min=0.0)
+        lateral_right_w = torch.clamp(-cmd_vy, min=0.0)
+        yaw_left_w = torch.clamp(cmd_yaw, min=0.0)
+        yaw_right_w = torch.clamp(-cmd_yaw, min=0.0)
+        total_w = (
+            forward_w + reverse_w + lateral_left_w + lateral_right_w
+            + yaw_left_w + yaw_right_w)
+        blended = (
+            forward_w * self._dominant_directional_prior(
+                phase, gait_blend, ones, zeros, zeros)
+            + reverse_w * self._dominant_directional_prior(
+                phase, gait_blend, -ones, zeros, zeros)
+            + lateral_left_w * self._dominant_directional_prior(
+                phase, gait_blend, zeros, ones, zeros)
+            + lateral_right_w * self._dominant_directional_prior(
+                phase, gait_blend, zeros, -ones, zeros)
+            + yaw_left_w * self._dominant_directional_prior(
+                phase, gait_blend, zeros, zeros, ones)
+            + yaw_right_w * self._dominant_directional_prior(
+                phase, gait_blend, zeros, zeros, -ones))
+        blended = blended / torch.clamp(total_w, min=1e-9)
+        base = self._base_gait_prior(phase, gait_blend)
+        return torch.where(total_w > 1e-9, blended, base)
+
+    def forward(self, raw_obs):
+        if raw_obs.dim() == 1:
+            raw_obs = raw_obs.unsqueeze(0)
+        raw_obs = raw_obs.to(dtype=torch.float32)
+        obs = (raw_obs - self.obs_mean) * torch.rsqrt(
+            self.obs_var + self.epsilon)
+        obs = torch.clamp(obs, -self.clip_obs, self.clip_obs)
+        features = self.features_extractor(obs)
+        latent_pi = self.mlp_extractor.forward_actor(features)
+        policy_action = torch.clamp(self.action_net(latent_pi), -1.0, 1.0)
+        residual = policy_action[:, :NUM_SLIDES + NUM_YAWS]
+        learned_gait_blend = torch.clamp(
+            0.5
+            + 0.5
+            * float(GAIT_GATE_ACTION_GAIN)
+            * policy_action[:, NUM_SLIDES + NUM_YAWS:],
+            0.0,
+            1.0,
+        )
+        cmd_vx = raw_obs[:, 0:1]
+        cmd_vy = raw_obs[:, 1:2]
+        cmd_yaw = raw_obs[:, 2:3]
+        abs_vx = torch.abs(cmd_vx)
+        abs_vy = torch.abs(cmd_vy)
+        abs_yaw = torch.abs(cmd_yaw)
+        ones = torch.ones_like(cmd_vx)
+        threshold = float(DIRECTIONAL_PRIOR_THRESHOLD)
+        mixed_center = ones * float(COMMAND_GATE_MIXED_CENTER)
+        axial_alpha = torch.clamp(
+            (abs_vx - threshold)
+            / max(
+                float(COMMAND_GATE_WORM_FAST_THRESHOLD) - threshold,
+                1e-6,
+            ),
+            0.0,
+            1.0,
+        )
+        worm_center = (
+            float(COMMAND_GATE_WORM_CENTER_SLOW)
+            + axial_alpha
+            * (
+                float(COMMAND_GATE_WORM_CENTER_FAST)
+                - float(COMMAND_GATE_WORM_CENTER_SLOW)
+            )
+        )
+        lateral_center = ones * float(COMMAND_GATE_LATERAL_CENTER)
+        yaw_center = ones * float(COMMAND_GATE_YAW_CENTER)
+        yaw_center_mask = (
+            (abs_yaw >= threshold)
+            & (torch.maximum(abs_vx, abs_vy) < threshold)
+        )
+        lateral_center_mask = (
+            (abs_vy >= threshold)
+            & (abs_vy > abs_vx)
+            & (abs_vy >= abs_yaw)
+        )
+        axial_center_mask = (
+            (abs_vx >= threshold)
+            & (abs_vy < threshold)
+            & (abs_yaw < threshold)
+        )
+        command_center = torch.where(axial_center_mask, worm_center, mixed_center)
+        command_center = torch.where(
+            lateral_center_mask, lateral_center, command_center)
+        command_center = torch.where(yaw_center_mask, yaw_center, command_center)
+        gait_blend = torch.clamp(
+            command_center
+            + 2.0
+            * float(COMMAND_GATE_CENTER_RESIDUAL_RANGE)
+            * (learned_gait_blend - 0.5),
+            0.0,
+            1.0,
+        )
+        abs_vx = torch.abs(cmd_vx)
+        abs_vy = torch.abs(cmd_vy)
+        abs_yaw = torch.abs(cmd_yaw)
+        threshold = float(DIRECTIONAL_PRIOR_THRESHOLD)
+        lateral_mask = (
+            (abs_vy >= threshold)
+            & (abs_vy > abs_vx)
+            & (abs_vy >= abs_yaw))
+        yaw_only_mask = (
+            (abs_yaw >= threshold)
+            & (torch.maximum(abs_vx, abs_vy) < threshold))
+        ones = torch.ones_like(cmd_vx)
+        phase = torch.atan2(raw_obs[:, 78:79], raw_obs[:, 79:80])
+        if bool(USE_CONTINUOUS_VECTOR_PRIOR_BLEND):
+            prior = self._continuous_directional_prior(
+                phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw)
+        else:
+            prior = self._dominant_directional_prior(
+                phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw)
+        forward = torch.clamp(cmd_vx, min=0.0)
+        non_forward = torch.maximum(
+            torch.maximum(torch.clamp(-cmd_vx, min=0.0), torch.abs(cmd_vy)),
+            torch.abs(cmd_yaw),
+        )
+        forward_share = forward / torch.clamp(
+            forward + non_forward, min=1e-9)
+        floor = torch.where(
+            lateral_mask,
+            ones * float(LATERAL_PRIOR_SCALE_FLOOR),
+            ones * float(REVERSE_PRIOR_SCALE_FLOOR),
+        )
+        floor = torch.where(
+            yaw_only_mask,
+            ones * float(YAW_ONLY_PRIOR_SCALE_FLOOR),
+            floor,
+        )
+        conditioned_prior_scale = torch.where(
+            non_forward <= 1e-9,
+            torch.ones_like(forward_share),
+            floor + (1.0 - floor) * forward_share,
+        )
+        command_mag = torch.maximum(
+            torch.maximum(torch.abs(cmd_vx), torch.abs(cmd_vy)),
+            torch.abs(cmd_yaw),
+        )
+        command_activity_scale = torch.where(
+            command_mag <= 1e-9,
+            torch.zeros_like(command_mag),
+            torch.clamp(
+                float(COMMAND_ACTIVITY_MIN_ACTIVE_SCALE)
+                + (1.0 - float(COMMAND_ACTIVITY_MIN_ACTIVE_SCALE))
+                * command_mag,
+                0.0,
+                1.0,
+            ),
+        )
+        command_activity_scale = torch.where(
+            yaw_only_mask,
+            torch.ones_like(command_activity_scale),
+            command_activity_scale,
+        )
         actions = (
-            self.gait_prior_scale * prior
+            self.gait_prior_scale * conditioned_prior_scale * prior
             + self.policy_residual_scale * residual)
+        actions = command_activity_scale * actions
         return torch.clamp(actions, -1.0, 1.0)
 
 
@@ -268,12 +583,16 @@ def export_policy(args):
             np.sqrt(norm["var"] + norm["epsilon"]))
         dummy_norm = np.clip(dummy_norm, -norm["clip_obs"], norm["clip_obs"])
         sb3_action, _ = model.predict(dummy_norm, deterministic=True)
-        residual, gait_blend = policy_action_to_residual_and_gait_blend(
+        residual, learned_gait_blend = policy_action_to_residual_and_gait_blend(
             sb3_action[0])
+        command = dummy_raw[0, 0:3].cpu().numpy()
+        gait_blend = command_conditioned_gait_blend(
+            learned_gait_blend, command)
         expected_action = compose_deployable_action(
             residual,
             phase=phase_from_clock(dummy_raw[0, 78], dummy_raw[0, 79]),
             gait_blend=gait_blend,
+            command=command,
         )[None, :]
         max_diff = float(np.max(np.abs(actor_action - expected_action)))
         if max_diff > args.max_export_diff:

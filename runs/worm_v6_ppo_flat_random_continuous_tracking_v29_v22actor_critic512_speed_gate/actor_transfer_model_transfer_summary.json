@@ -1,0 +1,27 @@
+{
+  "format_version": 1,
+  "source_model": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_random_continuous_tracking_v22_actor512_gate_gain_from_v21best\\best_model.zip",
+  "source_vecnormalize": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_random_continuous_tracking_v22_actor512_gate_gain_from_v21best\\best_model_vecnormalize.pkl",
+  "out_model": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_gate\\actor_transfer_model.zip",
+  "out_vecnormalize": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_gate\\actor_transfer_model_vecnormalize.pkl",
+  "training_config": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\runs\\worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_gate\\training_config.json",
+  "copied_actor": true,
+  "copied_critic": false,
+  "source_num_timesteps": 230000,
+  "target_num_timesteps": 230000,
+  "policy_net_arch": {
+    "pi": [
+      512,
+      256,
+      128
+    ],
+    "vf": [
+      512,
+      256,
+      128
+    ]
+  },
+  "max_policy_net_diff": 0.0,
+  "max_action_net_diff": 0.0,
+  "max_log_std_diff": 0.0
+}

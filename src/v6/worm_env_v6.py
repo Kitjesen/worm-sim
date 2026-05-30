@@ -18,7 +18,7 @@ Command:       [vx_cmd, vy_cmd, yaw_rate_cmd]
                - yaw_rate_cmd  in [-0.5, 0.5] rad/s (turning rate target)
 
 Policy action: residual joint action(11) + learned gait gate(1)
-               - gait gate maps [-1, 1] to gait_blend [0, 1]
+               - high-sensitivity gait gate maps [-1, 1] to gait_blend [0, 1]
                  (0=worm, 0.5=mixed, 1=snake)
 
 Reward:        velocity tracking (exp kernel) - energy - action smoothness
@@ -47,10 +47,19 @@ from motor_contract_v6 import (
     normalized_action_to_ctrl,
 )
 from action_adapter_v6 import (
+    COMMAND_GATE_LATERAL_CENTER,
+    COMMAND_GATE_MIXED_CENTER,
+    COMMAND_GATE_WORM_CENTER_FAST,
+    COMMAND_GATE_WORM_CENTER_SLOW,
+    COMMAND_GATE_WORM_FAST_THRESHOLD,
+    COMMAND_GATE_YAW_CENTER,
     DEFAULT_GAIT_PRIOR_SCALE,
     DEFAULT_POLICY_RESIDUAL_SCALE,
     action_adapter_contract,
+    command_conditioned_gate_center,
+    command_conditioned_gait_blend,
     compose_deployable_action,
+    gait_blend_from_policy_gate,
 )
 
 # ─── Environment constants ────────────────────────────────────────────────────
@@ -81,6 +90,19 @@ GAIT_BLENDS = {
     "serpentine": 1.0,
 }
 GAIT_MODES = tuple(list(GAIT_BLENDS.keys()) + ["random"])
+COMMAND_CURRICULA = (
+    "straight",
+    "planar",
+    "heading_hold",
+    "heading_omni",
+    "lateral",
+    "lateral_right",
+    "yaw",
+    "yaw_right",
+    "right_recovery",
+    "omni",
+    "continuous_omni",
+)
 
 SLIDE_VEL_SCALE = 0.10
 YAW_VEL_SCALE = math.pi
@@ -119,16 +141,31 @@ REWARD_CONTRACT_VERSION = "forward_progress_v3"
 # observation layout.
 SIGMA_VEL = 0.050
 SIGMA_YAW = 0.20
+W_VEL_TRACK = 3.0
 W_YAW_TRACK = 3.0
 W_YAW_ALIGN = 4.0
-W_OVERSPEED = 2.0
+W_VEL_LIN = 6.0
+W_OVERSPEED = 3.0
 W_FORWARD_DEFICIT = 0.5
 W_COMMAND_COST = 1.0
-W_LATERAL = 0.3
+W_LATERAL = 3.0
 W_BACKWARD = 0.5
 W_ENERGY = 0.001
 W_SMOOTH = 0.01
-REWARD_CONTRACT_VERSION = "omni_auto_gate_v4"
+W_YAW_ERROR = 6.0
+W_YAW_DRIFT = 6.0
+W_YAW_STATIONARY = 1.5
+W_GAIT_GATE_TARGET = 3.0
+YAW_DRIFT_TOLERANCE_RAD = 0.20
+YAW_STATIONARY_TOLERANCE_M_S = 0.02
+GAIT_GATE_WORM_TARGET_SLOW = COMMAND_GATE_WORM_CENTER_SLOW
+GAIT_GATE_WORM_TARGET_FAST = COMMAND_GATE_WORM_CENTER_FAST
+GAIT_GATE_WORM_FAST_THRESHOLD = COMMAND_GATE_WORM_FAST_THRESHOLD
+GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
+GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
+GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
+GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v16"
 
 
 def reward_contract():
@@ -145,6 +182,10 @@ def reward_contract():
             "command_cost": W_COMMAND_COST,
             "lateral": W_LATERAL,
             "backward": W_BACKWARD,
+            "yaw_error": W_YAW_ERROR,
+            "yaw_drift": W_YAW_DRIFT,
+            "yaw_stationary": W_YAW_STATIONARY,
+            "gait_gate_target": W_GAIT_GATE_TARGET,
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
         },
@@ -157,8 +198,39 @@ def reward_contract():
             "cyclic_backslip_is_soft_penalized": True,
             "yaw_range_m_s_is_authority_matched": True,
             "off_axis_penalty_tapers_with_planar_command": True,
+            "strong_off_axis_suppression": True,
             "signed_yaw_alignment_reward": True,
+            "zero_yaw_integrated_drift_penalty": True,
+            "zero_yaw_translation_uses_reset_body_axes": True,
+            "zero_yaw_heading_hold_weight_boost": True,
+            "yaw_drift_tolerance_rad": YAW_DRIFT_TOLERANCE_RAD,
+            "yaw_only_stationary_speed_penalty": True,
+            "yaw_stationary_tolerance_m_s": YAW_STATIONARY_TOLERANCE_M_S,
             "gait_blend_is_policy_gate": True,
+                "command_conditioned_gait_gate_regularizer": {
+                    "enabled": True,
+                    "worm_target_for_axial_translation": GAIT_GATE_WORM_TARGET,
+                    "worm_target_for_slow_axial_translation": (
+                        GAIT_GATE_WORM_TARGET_SLOW),
+                    "mixed_target_for_fast_axial_translation": (
+                        GAIT_GATE_WORM_TARGET_FAST),
+                    "fast_axial_threshold_norm": (
+                        GAIT_GATE_WORM_FAST_THRESHOLD),
+                    "mixed_target_for_mixed_commands": GAIT_GATE_MIXED_TARGET,
+                    "snake_target_for_lateral_translation": (
+                        GAIT_GATE_LATERAL_TARGET),
+                    "snake_target_for_yaw": GAIT_GATE_YAW_TARGET,
+                    "reason": (
+                        "A deployable-command-conditioned regularizer keeps "
+                        "the learned latent gate from collapsing to the combined "
+                    "anchor while still allowing the policy to override it "
+                    "when tracking reward requires another gait. V16 makes "
+                    "the axial target speed-dependent: low-speed axial "
+                    "commands remain visibly worm-like, while full-speed "
+                    "axial commands return to the mixed target to avoid "
+                    "capping forward tracking speed."),
+            },
+            "command_curriculum_supported": list(COMMAND_CURRICULA),
         },
     }
 
@@ -175,6 +247,7 @@ class WormEnvV6(gym.Env):
                  action_delay_steps=0, action_saturation=1.0,
                  fixed_cmd_vel=None, fixed_cmd_yaw=None,
                  fixed_cmd_vx=None, fixed_cmd_vy=None,
+                 command_curriculum="omni",
                  command_resample_prob=CMD_RESAMPLE_P,
                  gait_prior_scale=DEFAULT_GAIT_PRIOR_SCALE,
                  policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE):
@@ -193,6 +266,7 @@ class WormEnvV6(gym.Env):
             self._fixed_cmd_vx = fixed_cmd_vel
         self._fixed_cmd_vy = fixed_cmd_vy
         self._fixed_cmd_yaw = fixed_cmd_yaw
+        self.command_curriculum = command_curriculum
         self.command_resample_prob = float(command_resample_prob)
         self.gait_prior_scale = float(gait_prior_scale)
         self.policy_residual_scale = float(policy_residual_scale)
@@ -208,6 +282,10 @@ class WormEnvV6(gym.Env):
         if gait_mode not in GAIT_MODES:
             raise ValueError(
                 f"Unknown gait_mode: {gait_mode}. Expected one of {GAIT_MODES}")
+        if command_curriculum not in COMMAND_CURRICULA:
+            raise ValueError(
+                f"Unknown command_curriculum: {command_curriculum}. "
+                f"Expected one of {COMMAND_CURRICULA}")
         if gait_blend is not None and not 0.0 <= gait_blend <= 1.0:
             raise ValueError("gait_blend must be in [0, 1]")
         if self.action_delay_steps < 0:
@@ -318,9 +396,7 @@ class WormEnvV6(gym.Env):
         mujoco.mj_resetData(self.model, self.data)
 
         # Sample velocity command for this episode, unless fixed for eval.
-        self._cmd_vx = self._sample_cmd_vx()
-        self._cmd_vy = self._sample_cmd_vy()
-        self._cmd_yaw = self._sample_cmd_yaw()
+        self._cmd_vx, self._cmd_vy, self._cmd_yaw = self._sample_command()
         self._gait_blend = self._initial_gait_blend()
 
         # Small random noise on actuated joints
@@ -345,6 +421,10 @@ class WormEnvV6(gym.Env):
             for _ in range(self.action_delay_steps)
         ]
         self._last_root_pos = self.data.xpos[self._root_body_id].copy()
+        self._start_root_yaw = self._root_yaw_rad()
+        start_xmat = self.data.xmat[self._root_body_id].reshape(3, 3)
+        self._start_forward_axis = -start_xmat[:2, 0].copy()
+        self._start_lateral_axis = start_xmat[:2, 1].copy()
         self._step_count = 0
         return self._get_obs(), {}
 
@@ -355,17 +435,21 @@ class WormEnvV6(gym.Env):
                 f"policy action shape {action.shape} != {(NUM_POLICY_ACTIONS,)}")
         action = np.clip(action, -1.0, 1.0).astype(np.float32)
         residual_command = action[:NUM_ACTUATORS]
-        learned_gait_blend = float(np.clip(0.5 * (action[-1] + 1.0), 0.0, 1.0))
-        self._gait_blend = (
-            float(self._fixed_gait_blend)
-            if self._fixed_gait_blend is not None
-            else learned_gait_blend)
+        learned_gait_blend = gait_blend_from_policy_gate(action[-1])
 
         # Occasionally resample command mid-episode (curriculum diversity)
         if self.np_random.random() < self.command_resample_prob:
-            self._cmd_vx = self._sample_cmd_vx()
-            self._cmd_vy = self._sample_cmd_vy()
-            self._cmd_yaw = self._sample_cmd_yaw()
+            self._cmd_vx, self._cmd_vy, self._cmd_yaw = self._sample_command()
+        command_norm = (
+            self._cmd_vx / max(abs(CMD_VX_RANGE[1]), 1e-6),
+            self._cmd_vy / max(abs(CMD_VY_RANGE[1]), 1e-6),
+            self._cmd_yaw / max(abs(CMD_YAW_RANGE[1]), 1e-6),
+        )
+        self._gait_blend = (
+            float(self._fixed_gait_blend)
+            if self._fixed_gait_blend is not None
+            else command_conditioned_gait_blend(
+                learned_gait_blend, command_norm))
 
         # EMA filter — anti-vibration
         residual_action = (
@@ -376,6 +460,7 @@ class WormEnvV6(gym.Env):
             residual_action,
             phase=phase,
             gait_blend=self._gait_blend,
+            command=command_norm,
             gait_prior_scale=self.gait_prior_scale,
             policy_residual_scale=self.policy_residual_scale,
         )
@@ -417,6 +502,7 @@ class WormEnvV6(gym.Env):
             "root_yaw_rad": float(self._root_yaw_rad()),
             "elapsed_s": float(self._step_count * CTRL_DT),
         }
+        info.update(getattr(self, "_last_reward_terms", {}))
 
         self._last_action = applied_action.copy()
         self._last_residual_action = residual_action.copy()
@@ -572,11 +658,248 @@ class WormEnvV6(gym.Env):
                 self._fixed_cmd_yaw, CMD_YAW_RANGE[0], CMD_YAW_RANGE[1]))
         return float(self.np_random.uniform(*CMD_YAW_RANGE))
 
+    def _sample_signed_range(self, bounds, min_abs_fraction=0.30):
+        lo, hi = bounds
+        max_abs = max(abs(lo), abs(hi))
+        min_abs = max_abs * min_abs_fraction
+        if self.np_random.random() < 0.5 and lo < -min_abs:
+            return float(self.np_random.uniform(lo, -min_abs))
+        if hi > min_abs:
+            return float(self.np_random.uniform(min_abs, hi))
+        return float(self.np_random.uniform(lo, hi))
+
+    def _sample_low_axis_command(self, bounds, max_fraction=0.25):
+        lo, hi = bounds
+        max_abs = max(abs(lo), abs(hi))
+        if max_abs <= 0.0:
+            return 0.0
+        value = self.np_random.uniform(-max_abs * max_fraction,
+                                       max_abs * max_fraction)
+        return float(np.clip(value, lo, hi))
+
+    def _with_fixed_command_overrides(self, vx, vy, yaw):
+        if self._fixed_cmd_vx is not None:
+            vx = float(np.clip(
+                self._fixed_cmd_vx, CMD_VX_RANGE[0], CMD_VX_RANGE[1]))
+        if self._fixed_cmd_vy is not None:
+            vy = float(np.clip(
+                self._fixed_cmd_vy, CMD_VY_RANGE[0], CMD_VY_RANGE[1]))
+        if self._fixed_cmd_yaw is not None:
+            yaw = float(np.clip(
+                self._fixed_cmd_yaw, CMD_YAW_RANGE[0], CMD_YAW_RANGE[1]))
+        return float(vx), float(vy), float(yaw)
+
+    def _sample_command(self):
+        if self.command_curriculum == "straight":
+            return self._with_fixed_command_overrides(
+                self._sample_signed_range(CMD_VX_RANGE), 0.0, 0.0)
+
+        if self.command_curriculum == "planar":
+            if self.np_random.random() < 0.5:
+                vx = self._sample_signed_range(CMD_VX_RANGE)
+                vy = 0.0
+            else:
+                vx = 0.0
+                vy = self._sample_signed_range(CMD_VY_RANGE)
+            return self._with_fixed_command_overrides(vx, vy, 0.0)
+
+        if self.command_curriculum == "heading_hold":
+            primitive = int(self.np_random.integers(0, 4))
+            if primitive == 0:
+                vx, vy = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.50), 0.0
+            elif primitive == 1:
+                vx, vy = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.50), 0.0
+            elif primitive == 2:
+                vx, vy = 0.0, self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]), min_abs_fraction=0.50)
+            else:
+                vx, vy = 0.0, self._sample_signed_range(
+                    (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.50)
+            return self._with_fixed_command_overrides(vx, vy, 0.0)
+
+        if self.command_curriculum == "heading_omni":
+            primitive = int(self.np_random.integers(0, 8))
+            if primitive == 0:
+                vx, vy, yaw = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.50), 0.0, 0.0
+            elif primitive == 1:
+                vx, vy, yaw = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.50), 0.0, 0.0
+            elif primitive == 2:
+                vx, vy, yaw = 0.0, self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]), min_abs_fraction=0.50), 0.0
+            elif primitive == 3:
+                vx, vy, yaw = 0.0, self._sample_signed_range(
+                    (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.50), 0.0
+            elif primitive == 4:
+                vx, vy, yaw = 0.0, 0.0, self._sample_signed_range(
+                    (0.0, CMD_YAW_RANGE[1]), min_abs_fraction=0.50)
+            elif primitive == 5:
+                vx, vy, yaw = 0.0, 0.0, self._sample_signed_range(
+                    (CMD_YAW_RANGE[0], 0.0), min_abs_fraction=0.50)
+            elif primitive == 6:
+                vx, vy, yaw = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.50), 0.0, (
+                    self._sample_signed_range(
+                        (0.0, CMD_YAW_RANGE[1]), min_abs_fraction=0.50))
+            else:
+                vx, vy, yaw = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.50), 0.0, (
+                    self._sample_signed_range(
+                        (CMD_YAW_RANGE[0], 0.0), min_abs_fraction=0.50))
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "lateral":
+            return self._with_fixed_command_overrides(
+                0.0, self._sample_signed_range(CMD_VY_RANGE), 0.0)
+
+        if self.command_curriculum == "lateral_right":
+            return self._with_fixed_command_overrides(
+                0.0, self._sample_signed_range((CMD_VY_RANGE[0], 0.0)), 0.0)
+
+        if self.command_curriculum == "yaw":
+            return self._with_fixed_command_overrides(
+                0.0, 0.0, self._sample_signed_range(CMD_YAW_RANGE))
+
+        if self.command_curriculum == "yaw_right":
+            return self._with_fixed_command_overrides(
+                0.0, 0.0, self._sample_signed_range((CMD_YAW_RANGE[0], 0.0)))
+
+        if self.command_curriculum == "right_recovery":
+            primitive = int(self.np_random.integers(0, 6))
+            if primitive in (0, 1):
+                vx, vy, yaw = (
+                    0.0,
+                    self._sample_signed_range((CMD_VY_RANGE[0], 0.0)),
+                    0.0,
+                )
+            elif primitive == 2:
+                vx, vy, yaw = (
+                    0.0,
+                    0.0,
+                    self._sample_signed_range((CMD_YAW_RANGE[0], 0.0)),
+                )
+            elif primitive == 3:
+                vx = self._sample_signed_range((0.0, CMD_VX_RANGE[1]))
+                vy = 0.0
+                yaw = self._sample_signed_range((CMD_YAW_RANGE[0], 0.0))
+            elif primitive == 4:
+                vx, vy, yaw = (
+                    0.0,
+                    self._sample_signed_range((0.0, CMD_VY_RANGE[1])),
+                    0.0,
+                )
+            else:
+                vx, vy, yaw = (
+                    0.0,
+                    0.0,
+                    self._sample_signed_range((0.0, CMD_YAW_RANGE[1])),
+                )
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "continuous_omni":
+            primitive = int(self.np_random.integers(0, 16))
+            if primitive in (0, 1):
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive == 2:
+                vx = self._sample_low_axis_command(CMD_VX_RANGE)
+                vy, yaw = 0.0, 0.0
+            elif primitive == 3:
+                vx = 0.0
+                vy = self._sample_low_axis_command(CMD_VY_RANGE)
+                yaw = 0.0
+            elif primitive == 4:
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_low_axis_command(CMD_YAW_RANGE)
+            elif primitive == 5:
+                vx = self._sample_signed_range(CMD_VX_RANGE,
+                                               min_abs_fraction=0.05)
+                vy, yaw = 0.0, 0.0
+            elif primitive == 6:
+                vx = 0.0
+                vy = self._sample_signed_range(CMD_VY_RANGE,
+                                               min_abs_fraction=0.05)
+                yaw = 0.0
+            elif primitive == 7:
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_range(CMD_YAW_RANGE,
+                                                min_abs_fraction=0.05)
+            elif primitive == 8:
+                vx = self.np_random.uniform(*CMD_VX_RANGE)
+                vy = self.np_random.uniform(*CMD_VY_RANGE)
+                yaw = 0.0
+            elif primitive == 9:
+                vx = self.np_random.uniform(*CMD_VX_RANGE)
+                vy = 0.0
+                yaw = self.np_random.uniform(*CMD_YAW_RANGE)
+            elif primitive == 10:
+                vx = 0.0
+                vy = self.np_random.uniform(*CMD_VY_RANGE)
+                yaw = self.np_random.uniform(*CMD_YAW_RANGE)
+            elif primitive == 11:
+                vx = self.np_random.uniform(*CMD_VX_RANGE)
+                vy = self.np_random.uniform(*CMD_VY_RANGE)
+                yaw = self.np_random.uniform(*CMD_YAW_RANGE)
+            elif primitive == 12:
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_range(
+                    (0.0, CMD_YAW_RANGE[1]), min_abs_fraction=0.50)
+            elif primitive == 13:
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_range(
+                    (CMD_YAW_RANGE[0], 0.0), min_abs_fraction=0.50)
+            elif primitive == 14:
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.50)
+                vy = self.np_random.uniform(*CMD_VY_RANGE)
+                yaw = 0.0
+            else:
+                vx = self.np_random.uniform(*CMD_VX_RANGE)
+                vy = self.np_random.uniform(*CMD_VY_RANGE)
+                yaw = 0.0
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        primitive = int(self.np_random.integers(0, 10))
+        if primitive == 0:
+            vx, vy, yaw = self._sample_signed_range((0.0, CMD_VX_RANGE[1])), 0.0, 0.0
+        elif primitive == 1:
+            vx, vy, yaw = self._sample_signed_range((CMD_VX_RANGE[0], 0.0)), 0.0, 0.0
+        elif primitive == 2:
+            vx, vy, yaw = 0.0, self._sample_signed_range((0.0, CMD_VY_RANGE[1])), 0.0
+        elif primitive == 3:
+            vx, vy, yaw = 0.0, self._sample_signed_range((CMD_VY_RANGE[0], 0.0)), 0.0
+        elif primitive == 4:
+            vx, vy, yaw = 0.0, 0.0, self._sample_signed_range((0.0, CMD_YAW_RANGE[1]))
+        elif primitive == 5:
+            vx, vy, yaw = 0.0, 0.0, self._sample_signed_range((CMD_YAW_RANGE[0], 0.0))
+        elif primitive == 6:
+            vx = self._sample_signed_range((0.0, CMD_VX_RANGE[1]))
+            vy = 0.0
+            yaw = self._sample_signed_range((0.0, CMD_YAW_RANGE[1]))
+        elif primitive == 7:
+            vx = self._sample_signed_range((0.0, CMD_VX_RANGE[1]))
+            vy = 0.0
+            yaw = self._sample_signed_range((CMD_YAW_RANGE[0], 0.0))
+        elif primitive == 8:
+            vx = self._sample_signed_range(CMD_VX_RANGE, min_abs_fraction=0.20)
+            vy = self._sample_signed_range(CMD_VY_RANGE, min_abs_fraction=0.20)
+            yaw = 0.0
+        else:
+            vx = self.np_random.uniform(*CMD_VX_RANGE)
+            vy = self.np_random.uniform(*CMD_VY_RANGE)
+            yaw = self.np_random.uniform(*CMD_YAW_RANGE)
+        return self._with_fixed_command_overrides(vx, vy, yaw)
+
     # ──────────────────────────────────────────────────────────────────────
     # Reward
     # ──────────────────────────────────────────────────────────────────────
 
     def _compute_reward(self, action, residual_action=None):
+        cmd_vx = float(getattr(self, "_cmd_vx", getattr(self, "_cmd_vel", 0.0)))
+        cmd_vy = float(getattr(self, "_cmd_vy", 0.0))
+        cmd_yaw = float(getattr(self, "_cmd_yaw", 0.0))
         # ── Actual velocities ──
         # Forward speed: -X direction in world frame. Prefer per-control-step
         # root displacement for locomotion reward because worm gaits have large
@@ -586,8 +909,14 @@ class WormEnvV6(gym.Env):
             delta_pos = root_pos - self._last_root_pos
             world_vel_xy = delta_pos[:2] / CTRL_DT
             root_xmat = self.data.xmat[self._root_body_id].reshape(3, 3)
-            forward_axis = -root_xmat[:2, 0]
-            lateral_axis = root_xmat[:2, 1]
+            if (abs(cmd_yaw) <= 1e-6
+                    and hasattr(self, "_start_forward_axis")
+                    and hasattr(self, "_start_lateral_axis")):
+                forward_axis = self._start_forward_axis
+                lateral_axis = self._start_lateral_axis
+            else:
+                forward_axis = -root_xmat[:2, 0]
+                lateral_axis = root_xmat[:2, 1]
             forward_speed = float(np.dot(world_vel_xy, forward_axis))
             lateral_speed = float(np.dot(world_vel_xy, lateral_axis))
         else:
@@ -598,8 +927,6 @@ class WormEnvV6(gym.Env):
         yaw_rate = self.data.qvel[5]
 
         # ── Velocity tracking (exp kernel) ──
-        cmd_vx = float(getattr(self, "_cmd_vx", getattr(self, "_cmd_vel", 0.0)))
-        cmd_vy = float(getattr(self, "_cmd_vy", 0.0))
         cmd_vec = np.array([cmd_vx, cmd_vy], dtype=np.float64)
         vel_vec = np.array([forward_speed, lateral_speed], dtype=np.float64)
         cmd_speed = float(np.linalg.norm(cmd_vec))
@@ -614,7 +941,36 @@ class WormEnvV6(gym.Env):
             off_axis_speed = float(np.linalg.norm(vel_vec))
             progress_ratio = 1.0
         vel_err = float(np.linalg.norm(vel_vec - cmd_vec))
-        yaw_err = yaw_rate - self._cmd_yaw
+        yaw_err = yaw_rate - cmd_yaw
+        yaw_error_norm = min(
+            abs(yaw_err) / max(abs(CMD_YAW_RANGE[1]), 1e-6),
+            2.0,
+        )
+        if hasattr(self, "_root_body_id"):
+            current_yaw = self._root_yaw_rad()
+        else:
+            current_yaw = 0.0
+        start_yaw = float(getattr(self, "_start_root_yaw", current_yaw))
+        yaw_drift = (
+            (current_yaw - start_yaw + math.pi) % (2.0 * math.pi)
+            - math.pi)
+        yaw_drift_norm = min(
+            abs(yaw_drift) / max(YAW_DRIFT_TOLERANCE_RAD, 1e-6),
+            3.0,
+        )
+        yaw_hold_gate = 1.0 if abs(cmd_yaw) <= 1e-6 else 0.0
+        yaw_only_gate = (
+            1.0 if abs(cmd_yaw) > 1e-6 and cmd_speed <= 1e-6 else 0.0)
+        cmd_vx_norm = abs(cmd_vx) / max(abs(CMD_VX_RANGE[1]), 1e-6)
+        cmd_vy_norm = abs(cmd_vy) / max(abs(CMD_VY_RANGE[1]), 1e-6)
+        cmd_yaw_norm = abs(cmd_yaw) / max(abs(CMD_YAW_RANGE[1]), 1e-6)
+        cmd_mag_norm = max(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm)
+        gate_target_active = 1.0 if cmd_mag_norm > 1e-6 else 0.0
+        desired_gait_blend = command_conditioned_gate_center(
+            (cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm))
+        gait_gate_error = abs(
+            float(getattr(self, "_gait_blend", GAIT_GATE_MIXED_TARGET))
+            - desired_gait_blend)
         r_vel_track = math.exp(-(vel_err ** 2) / (SIGMA_VEL ** 2))
         if cmd_speed > 1e-6 and along_cmd <= 0.0:
             r_vel_track *= 0.25
@@ -622,10 +978,10 @@ class WormEnvV6(gym.Env):
         if cmd_speed > 1e-6:
             r_yaw_track *= 0.25 + 0.75 * progress_ratio
         r_yaw_align = 0.0
-        if abs(self._cmd_yaw) > 1e-6:
+        if abs(cmd_yaw) > 1e-6:
             yaw_scale = max(abs(CMD_YAW_RANGE[1]), 1e-6)
             r_yaw_align = np.clip(
-                (yaw_rate * self._cmd_yaw) / (yaw_scale ** 2),
+                (yaw_rate * cmd_yaw) / (yaw_scale ** 2),
                 -1.0,
                 1.0,
             )
@@ -646,6 +1002,11 @@ class WormEnvV6(gym.Env):
         forward_deficit = max(0.0, cmd_speed - along_cmd) / speed_scale
         backward_speed = max(0.0, -along_cmd) / speed_scale
         lateral_speed = off_axis_speed / speed_scale
+        yaw_stationary_speed_norm = min(
+            float(np.linalg.norm(vel_vec))
+            / max(YAW_STATIONARY_TOLERANCE_M_S, 1e-6),
+            3.0,
+        )
 
         energy = 0.0
         for i in range(self.model.nu):
@@ -659,6 +1020,26 @@ class WormEnvV6(gym.Env):
             rate_source = residual_action
             last_rate_source = self._last_residual_action
         action_rate = float(np.sum(np.square(rate_source - last_rate_source)))
+        self._last_reward_terms = {
+            "body_vx_m_s": float(forward_speed),
+            "body_vy_m_s": float(vel_vec[1]),
+            "body_yaw_rate_rad_s": float(yaw_rate),
+            "planar_velocity_error_m_s": float(vel_err),
+            "yaw_rate_error_rad_s": float(yaw_err),
+            "yaw_drift_rad": float(yaw_drift),
+            "command_aligned_speed_m_s": float(along_cmd),
+            "off_axis_speed_m_s": float(off_axis_speed),
+            "reward_vel_track": float(r_vel_track),
+            "reward_yaw_track": float(r_yaw_track),
+            "reward_yaw_align": float(r_yaw_align),
+            "reward_vel_lin": float(r_vel_lin),
+            "reward_yaw_error_penalty": float(yaw_error_norm),
+            "reward_yaw_drift_penalty": float(yaw_hold_gate * yaw_drift_norm),
+            "reward_yaw_stationary_penalty": float(
+                yaw_only_gate * yaw_stationary_speed_norm),
+            "desired_gait_blend": float(desired_gait_blend),
+            "gait_gate_error": float(gate_target_active * gait_gate_error),
+        }
 
         reward = (
             + W_VEL_TRACK * r_vel_track    # exp tracking (precision)
@@ -670,6 +1051,10 @@ class WormEnvV6(gym.Env):
             - W_COMMAND_COST * float(cmd_speed > 1e-6)
             - W_LATERAL   * lateral_speed
             - W_BACKWARD  * backward_speed  # penalize going backward
+            - W_YAW_ERROR * yaw_error_norm
+            - W_YAW_DRIFT * yaw_hold_gate * yaw_drift_norm
+            - W_YAW_STATIONARY * yaw_only_gate * yaw_stationary_speed_norm
+            - W_GAIT_GATE_TARGET * gate_target_active * gait_gate_error
             - W_ENERGY    * energy
             - W_SMOOTH    * action_rate
         )

@@ -24,11 +24,64 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_v2"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v23"
+USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 POLICY_ACTION_DIM = NUM_ACTUATORS + 1
+GAIT_GATE_ACTION_GAIN = 3.0
+COMMAND_GATE_CENTER_RESIDUAL_RANGE = 0.35
+COMMAND_GATE_WORM_CENTER_SLOW = 0.35
+COMMAND_GATE_WORM_CENTER_FAST = 0.50
+COMMAND_GATE_WORM_FAST_THRESHOLD = 0.80
+COMMAND_GATE_WORM_CENTER = COMMAND_GATE_WORM_CENTER_SLOW
+COMMAND_GATE_MIXED_CENTER = 0.50
+COMMAND_GATE_LATERAL_CENTER = 0.50
+COMMAND_GATE_YAW_CENTER = 0.85
 DEFAULT_GAIT_PRIOR_SCALE = 1.0
 DEFAULT_POLICY_RESIDUAL_SCALE = 0.35
+REVERSE_PRIOR_SCALE_FLOOR = 0.40
+LATERAL_PRIOR_SCALE_FLOOR = 0.80
+YAW_ONLY_PRIOR_SCALE_FLOOR = 1.00
+YAW_ONLY_SLIDE_PRIOR_SCALE = 0.80
+YAW_ONLY_YAW_PRIOR_SCALE = 5.00
+YAW_RIGHT_ONLY_YAW_PRIOR_SCALE = 5.00
+ZERO_YAW_FORWARD_PHASE_OFFSET_RAD = math.pi
+ZERO_YAW_REVERSE_PHASE_OFFSET_RAD = math.pi
+ZERO_YAW_FORWARD_YAW_PRIOR_SCALE = 1.15
+ZERO_YAW_REVERSE_YAW_PRIOR_SCALE = 1.25
+ZERO_YAW_LATERAL_YAW_PRIOR_SCALE = 0.65
+ZERO_YAW_LATERAL_YAW_TRIM = 0.24
+COMMAND_ACTIVITY_MIN_ACTIVE_SCALE = 0.20
+NON_FORWARD_PRIOR_SCALE_FLOOR = REVERSE_PRIOR_SCALE_FLOOR
+DIRECTIONAL_PRIOR_THRESHOLD = 0.20
 TWO_PI = 2.0 * math.pi
+INPLACE_YAW_SLIDE_BIAS = 0.573
+INPLACE_YAW_SLIDE_AMP = 0.410
+INPLACE_YAW_SLIDE_FREQ = 1.188
+INPLACE_YAW_SLIDE_WAVE_N = 1.259
+INPLACE_YAW_YAW_AMP = 0.612
+INPLACE_YAW_YAW_FREQ = 0.352
+INPLACE_YAW_YAW_WAVE_N = -0.091
+INPLACE_YAW_YAW_PHASE_RAD = 0.623
+INPLACE_YAW_PRIOR_PARAM_NAMES = (
+    "slide_bias",
+    "slide_amp",
+    "slide_freq",
+    "slide_wave_n",
+    "yaw_amp",
+    "yaw_freq",
+    "yaw_wave_n",
+    "yaw_phase_rad",
+)
+INPLACE_YAW_PRIOR_PARAMS = (
+    INPLACE_YAW_SLIDE_BIAS,
+    INPLACE_YAW_SLIDE_AMP,
+    INPLACE_YAW_SLIDE_FREQ,
+    INPLACE_YAW_SLIDE_WAVE_N,
+    INPLACE_YAW_YAW_AMP,
+    INPLACE_YAW_YAW_FREQ,
+    INPLACE_YAW_YAW_WAVE_N,
+    INPLACE_YAW_YAW_PHASE_RAD,
+)
 
 CMAES_PARAM_NAMES = (
     "slide_amp",
@@ -132,8 +185,161 @@ def action_adapter_contract(
         "deployed_action_dim": NUM_ACTUATORS,
         "gait_prior_scale": float(gait_prior_scale),
         "policy_residual_scale": float(policy_residual_scale),
+        "command_conditioned_prior_scale": {
+            "enabled": True,
+            "source": "deployable normalized command obs[0:3]",
+            "forward_only_scale": 1.0,
+            "reverse_floor": REVERSE_PRIOR_SCALE_FLOOR,
+            "lateral_floor": LATERAL_PRIOR_SCALE_FLOOR,
+            "yaw_only_floor": YAW_ONLY_PRIOR_SCALE_FLOOR,
+            "reason": (
+                "The CMA-ES anchors are strong forward priors. Reverse, "
+                "lateral, and pure yaw commands reduce the prior so the "
+                "residual policy does not first need to cancel forward drift."),
+        },
+        "command_activity_scale": {
+            "enabled": True,
+            "source": "deployable normalized command obs[0:3]",
+            "formula": (
+                "s_c = 0 if max(|cmd|)=0; "
+                "s_c = 1 for pure yaw commands; otherwise "
+                "clip(0.20 + 0.80 * max(|cmd|), 0, 1)"),
+            "applied_to": "composed prior-plus-residual action",
+            "reason": (
+                "Discrete direction gates can move in six primitive "
+                "directions, but continuous velocity tracking also needs "
+                "zero and low-speed commands to reduce motor amplitude. This "
+                "keeps the action ABI fixed while making stop and slow "
+                "commands deployable. Pure yaw commands keep full activity "
+                "because the in-place yaw prior is not linearly "
+                "speed-proportional at small turn rates."),
+        },
+        "command_directional_prior_transform": {
+            "enabled": True,
+            "source": "deployable normalized command obs[0:3]",
+            "threshold": DIRECTIONAL_PRIOR_THRESHOLD,
+            "continuous_vector_prior_blend": {
+                "enabled": USE_CONTINUOUS_VECTOR_PRIOR_BLEND,
+                "status": "experimental_disabled",
+                "reason": (
+                    "A V14 short run blended signed primitive priors for "
+                    "mixed vx/vy/yaw commands, but the 35-command scan "
+                    "worsened planar RMSE and planar sign rate. Keep V13 as "
+                    "the default accepted adapter until a longer curriculum "
+                    "or model-selection change proves the blend helps."),
+            },
+            "reverse": "dominant negative vx reverses phase",
+            "lateral": (
+                "dominant vy uses a shared +pi/2 slide phase offset; "
+                "right-lateral motion mirrors the yaw-anchor sign"),
+            "yaw": (
+                "pure yaw commands use an independent in-place yaw prior; "
+                "mixed yaw commands keep the signed yaw-anchor transform"),
+            "inplace_yaw_prior": {
+                "enabled": True,
+                "source": "open-loop MuJoCo search constrained to deployable phase clock",
+                "param_names": list(INPLACE_YAW_PRIOR_PARAM_NAMES),
+                "params": [float(v) for v in INPLACE_YAW_PRIOR_PARAMS],
+                "left_right_rule": (
+                    "cmd_yaw sign multiplies only the yaw joints; slide "
+                    "compression wave is shared for both turn directions"),
+            },
+            "lateral_right_yaw_flip": (
+                "negative vy flips only the yaw-anchor sign; the slide phase "
+                "offset is not mirrored because the current robot body/anchor "
+                "coupling loses right-lateral thrust with a -pi/2 offset"),
+            "yaw_only_slide_scale": YAW_ONLY_SLIDE_PRIOR_SCALE,
+            "yaw_only_yaw_scale": YAW_ONLY_YAW_PRIOR_SCALE,
+            "yaw_right_only_yaw_scale": YAW_RIGHT_ONLY_YAW_PRIOR_SCALE,
+            "zero_yaw_forward_phase_offset_rad": (
+                ZERO_YAW_FORWARD_PHASE_OFFSET_RAD),
+            "zero_yaw_reverse_phase_offset_rad": (
+                ZERO_YAW_REVERSE_PHASE_OFFSET_RAD),
+            "zero_yaw_forward_yaw_scale": ZERO_YAW_FORWARD_YAW_PRIOR_SCALE,
+            "zero_yaw_reverse_yaw_scale": ZERO_YAW_REVERSE_YAW_PRIOR_SCALE,
+            "zero_yaw_lateral_yaw_scale": ZERO_YAW_LATERAL_YAW_PRIOR_SCALE,
+            "zero_yaw_lateral_yaw_trim": ZERO_YAW_LATERAL_YAW_TRIM,
+            "v10_reason": (
+                "Flat fixed-command diagnostics showed lateral floor 0.80 and "
+                "extra pure-right-yaw authority reach all six 6 s threshold "
+                "directions without changing the deployable observation or "
+                "policy-action ABI. PPO still has to learn yaw-drift "
+                "suppression for the formal direction gate."),
+            "v11_reason": (
+                "Heading-hold training showed the V10 prior still injects too "
+                "much yaw during zero-yaw translation. V11 keeps the direction "
+                "transform but attenuates yaw-prior authority for zero-yaw "
+                "forward/reverse/lateral commands so translation and turning "
+                "are easier to decouple."),
+            "v12_reason": (
+                "Flat V11 diagnostics showed zero-yaw lateral translation "
+                "needs yaw authority for thrust but also a small heading trim; "
+                "reverse translation needs an axial phase offset rather than a "
+                "weak yaw prior. V12 adds command-conditioned trims without "
+                "changing the 80D observation or 12D policy-action ABI."),
+            "v13_reason": (
+                "Continuous command scans showed primitive signs are solved "
+                "but zero and low-speed commands still over-actuate. V13 adds "
+                "a command-magnitude activity scale to the composed action so "
+                "the same 12D policy can represent stop and slow commands."),
+            "v14_reason": (
+                "Continuous command scans showed mixed vx/vy/yaw commands "
+                "were still routed through one dominant primitive. V14 keeps "
+                "the primitive transforms unchanged for pure commands but "
+                "linearly blends the six signed primitive priors according to "
+                "the normalized command vector for arbitrary velocity "
+                "commands."),
+            "v16_reason": (
+                "The first V15 run under the stronger tracking scan kept yaw "
+                "signs separated but under-produced yaw magnitude. V16 keeps "
+                "the deployable 80D/12D ABI fixed and raises only the "
+                "yaw-only prior authority, with symmetric left/right yaw "
+                "scales, so PPO starts from a usable turn-rate primitive "
+                "instead of spending early training on basic yaw amplitude."),
+            "v18_reason": (
+                "V17 showed yaw signs were learned but pure yaw still "
+                "translated forward and under-produced turn rate because the "
+                "yaw-only primitive was a transformed forward CMA-ES anchor. "
+                "V18 replaces pure yaw commands with an independently "
+                "searched in-place yaw prior while preserving the 80D "
+                "observation and 12D policy-action ABI."),
+        },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
+        "gait_gate_mapping": {
+            "raw_action_index": NUM_ACTUATORS,
+            "formula": (
+                "learned_gate = clip(0.5 + 0.5 * "
+                f"{GAIT_GATE_ACTION_GAIN:.1f} * raw_gate, 0, 1); "
+                "gait_blend = clip(command_center + "
+                f"{2.0 * COMMAND_GATE_CENTER_RESIDUAL_RANGE:.2f} * "
+                "(learned_gate - 0.5), 0, 1)"),
+            "command_centers": {
+                "axial_translation": COMMAND_GATE_WORM_CENTER,
+                "axial_translation_slow": COMMAND_GATE_WORM_CENTER_SLOW,
+                "axial_translation_fast": COMMAND_GATE_WORM_CENTER_FAST,
+                "axial_fast_threshold_norm": (
+                    COMMAND_GATE_WORM_FAST_THRESHOLD),
+                "mixed_or_stop": COMMAND_GATE_MIXED_CENTER,
+                "lateral_translation": COMMAND_GATE_LATERAL_CENTER,
+                "yaw": COMMAND_GATE_YAW_CENTER,
+            },
+            "reason": (
+                "V20/V21 showed the pure latent gate stayed near 0.5 because "
+                "the low-noise residual PPO policy barely explored the gate "
+                "dimension. V19 made the gate more sensitive. V20 adds a "
+                "deployable command-conditioned gate center with a learned "
+                "residual so axial commands visibly recover worm-like "
+                "peristalsis while lateral/yaw commands keep snake-like "
+                "authority. Earlier centered-gate runs restored visual mode "
+                "separation but reduced forward speed and flipped lateral "
+                "signs. V22 keeps yaw snake-like but moves lateral back to "
+                "the mixed anchor and axial closer to the high-speed "
+                "combined anchor. V23 makes the axial "
+                "center speed-dependent: slow axial commands stay visibly "
+                "peristaltic, while full-speed axial commands use the mixed "
+                "center so tracking is not capped by the slower worm anchor."),
+        },
         "phase_projection": (
             "phase_cycle_s = (phase mod 2*pi) / (2*pi); "
             "CMA-ES frequencies are evaluated on this deployable 1 s clock"),
@@ -202,8 +408,291 @@ def gait_prior_from_phase(phase, gait_blend):
     return np.clip(action, -1.0, 1.0).astype(np.float32)
 
 
+def is_yaw_only_command(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+    abs_vx = abs(float(cmd_vx_norm))
+    abs_vy = abs(float(cmd_vy_norm))
+    abs_yaw = abs(float(cmd_yaw_norm))
+    return (
+        abs_yaw >= DIRECTIONAL_PRIOR_THRESHOLD
+        and max(abs_vx, abs_vy) < DIRECTIONAL_PRIOR_THRESHOLD)
+
+
+def inplace_yaw_prior_from_phase(phase, cmd_yaw_norm):
+    """Normalized open-loop primitive for near-stationary yaw commands."""
+    yaw_sign = 1.0 if float(cmd_yaw_norm) >= 0.0 else -1.0
+    t = _phase_cycle_seconds(phase)
+    action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+
+    for j in range(NUM_SLIDES):
+        joint_phase = (
+            TWO_PI
+            * (INPLACE_YAW_SLIDE_FREQ * t
+               - INPLACE_YAW_SLIDE_WAVE_N * j / NUM_SLIDES)
+        )
+        action[j] = -(
+            INPLACE_YAW_SLIDE_BIAS
+            + INPLACE_YAW_SLIDE_AMP
+            * (0.5 + 0.5 * math.sin(joint_phase))
+        )
+
+    for j in range(NUM_YAWS):
+        joint_phase = (
+            TWO_PI
+            * (INPLACE_YAW_YAW_FREQ * t
+               + INPLACE_YAW_YAW_WAVE_N * j / NUM_YAWS)
+            + INPLACE_YAW_YAW_PHASE_RAD
+        )
+        action[NUM_SLIDES + j] = (
+            yaw_sign * INPLACE_YAW_YAW_AMP * math.sin(joint_phase))
+
+    return np.clip(action, -1.0, 1.0).astype(np.float32)
+
+
+def command_directional_prior_transform(
+        cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+    cmd_vx_norm = float(cmd_vx_norm)
+    cmd_vy_norm = float(cmd_vy_norm)
+    cmd_yaw_norm = float(cmd_yaw_norm)
+    abs_vx = abs(cmd_vx_norm)
+    abs_vy = abs(cmd_vy_norm)
+    abs_yaw = abs(cmd_yaw_norm)
+    threshold = DIRECTIONAL_PRIOR_THRESHOLD
+
+    phase_sign = 1.0
+    phase_offset = 0.0
+    yaw_sign = 1.0
+    slide_scale = 1.0
+    yaw_scale = 1.0
+    yaw_trim = 0.0
+    uses_inplace_yaw_prior = False
+
+    reverse = max(-cmd_vx_norm, 0.0)
+    if (reverse >= threshold
+            and reverse >= abs_vy
+            and reverse >= abs_yaw):
+        phase_sign = -1.0
+
+    lateral_dominant = (
+        abs_vy >= threshold
+        and abs_vy > abs_vx
+        and abs_vy >= abs_yaw)
+    if lateral_dominant:
+        phase_offset = 0.5 * math.pi
+
+    yaw_only_command = is_yaw_only_command(
+        cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm)
+    if yaw_only_command:
+        uses_inplace_yaw_prior = True
+        yaw_sign = 1.0 if cmd_yaw_norm >= 0.0 else -1.0
+    elif cmd_yaw_norm >= threshold:
+        yaw_sign = -1.0
+    if lateral_dominant and cmd_vy_norm < 0.0:
+        yaw_sign = -1.0
+    if yaw_only_command:
+        slide_scale = YAW_ONLY_SLIDE_PRIOR_SCALE
+        yaw_scale = 1.0
+    elif (abs_yaw < threshold
+          and max(abs_vx, abs_vy) >= threshold):
+        if lateral_dominant:
+            yaw_scale = ZERO_YAW_LATERAL_YAW_PRIOR_SCALE
+            yaw_trim = ZERO_YAW_LATERAL_YAW_TRIM * np.sign(cmd_vy_norm)
+        elif cmd_vx_norm < -threshold:
+            phase_offset = ZERO_YAW_REVERSE_PHASE_OFFSET_RAD
+            yaw_scale = ZERO_YAW_REVERSE_YAW_PRIOR_SCALE
+        elif cmd_vx_norm > threshold:
+            phase_offset = ZERO_YAW_FORWARD_PHASE_OFFSET_RAD
+            yaw_scale = ZERO_YAW_FORWARD_YAW_PRIOR_SCALE
+        else:
+            yaw_scale = 1.0
+
+    return {
+        "phase_sign": phase_sign,
+        "phase_offset_rad": phase_offset,
+        "yaw_sign": yaw_sign,
+        "slide_scale": slide_scale,
+        "yaw_scale": yaw_scale,
+        "yaw_trim": yaw_trim,
+        "uses_inplace_yaw_prior": uses_inplace_yaw_prior,
+    }
+
+
+def _dominant_directional_gait_prior_from_phase(phase, gait_blend, command):
+    if command is None:
+        return gait_prior_from_phase(phase, gait_blend)
+    transform = command_directional_prior_transform(*command)
+    if transform["uses_inplace_yaw_prior"]:
+        return inplace_yaw_prior_from_phase(phase, command[2])
+    prior = gait_prior_from_phase(
+        transform["phase_sign"] * float(phase)
+        + transform["phase_offset_rad"],
+        gait_blend,
+    )
+    prior = prior.copy()
+    prior[:NUM_SLIDES] *= transform["slide_scale"]
+    prior[NUM_SLIDES:] *= transform["yaw_sign"] * transform["yaw_scale"]
+    prior[NUM_SLIDES:] += transform["yaw_trim"]
+    return np.clip(prior, -1.0, 1.0).astype(np.float32)
+
+
+def directional_gait_prior_from_phase(phase, gait_blend, command=None):
+    if command is None:
+        return gait_prior_from_phase(phase, gait_blend)
+    if not USE_CONTINUOUS_VECTOR_PRIOR_BLEND:
+        return _dominant_directional_gait_prior_from_phase(
+            phase, gait_blend, command)
+
+    cmd_vx, cmd_vy, cmd_yaw = [float(v) for v in command]
+    weights = (
+        max(cmd_vx, 0.0),
+        max(-cmd_vx, 0.0),
+        max(cmd_vy, 0.0),
+        max(-cmd_vy, 0.0),
+        max(cmd_yaw, 0.0),
+        max(-cmd_yaw, 0.0),
+    )
+    total_weight = float(sum(weights))
+    if total_weight <= 1e-9:
+        return gait_prior_from_phase(phase, gait_blend)
+
+    primitive_commands = (
+        (1.0, 0.0, 0.0),
+        (-1.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0),
+        (0.0, -1.0, 0.0),
+        (0.0, 0.0, 1.0),
+        (0.0, 0.0, -1.0),
+    )
+    prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    for weight, primitive_command in zip(weights, primitive_commands):
+        if weight <= 0.0:
+            continue
+        prior += float(weight) * _dominant_directional_gait_prior_from_phase(
+            phase,
+            gait_blend,
+            primitive_command,
+        )
+    prior /= total_weight
+    return np.clip(prior, -1.0, 1.0).astype(np.float32)
+
+
+def command_prior_scale_floor(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+    cmd_vx_norm = float(cmd_vx_norm)
+    cmd_vy_norm = float(cmd_vy_norm)
+    cmd_yaw_norm = float(cmd_yaw_norm)
+    abs_vx = abs(cmd_vx_norm)
+    abs_vy = abs(cmd_vy_norm)
+    abs_yaw = abs(cmd_yaw_norm)
+    reverse = max(-cmd_vx_norm, 0.0)
+    threshold = DIRECTIONAL_PRIOR_THRESHOLD
+    if (abs_yaw >= threshold
+            and max(abs_vx, abs_vy) < threshold):
+        return YAW_ONLY_PRIOR_SCALE_FLOOR
+    if (abs_vy >= threshold
+            and abs_vy > abs_vx
+            and abs_vy >= abs_yaw):
+        return LATERAL_PRIOR_SCALE_FLOOR
+    if reverse >= threshold:
+        return REVERSE_PRIOR_SCALE_FLOOR
+    return REVERSE_PRIOR_SCALE_FLOOR
+
+
+def command_conditioned_prior_scale(
+        cmd_vx_norm,
+        cmd_vy_norm,
+        cmd_yaw_norm,
+        non_forward_floor=None):
+    forward = max(float(cmd_vx_norm), 0.0)
+    non_forward = max(
+        max(-float(cmd_vx_norm), 0.0),
+        abs(float(cmd_vy_norm)),
+        abs(float(cmd_yaw_norm)),
+    )
+    if non_forward <= 1e-9:
+        return 1.0
+    forward_share = forward / max(forward + non_forward, 1e-9)
+    if non_forward_floor is None:
+        non_forward_floor = command_prior_scale_floor(
+            cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm)
+    floor = float(np.clip(non_forward_floor, 0.0, 1.0))
+    return float(floor + (1.0 - floor) * forward_share)
+
+
+def command_activity_scale(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+    command_mag = max(
+        abs(float(cmd_vx_norm)),
+        abs(float(cmd_vy_norm)),
+        abs(float(cmd_yaw_norm)),
+    )
+    if command_mag <= 1e-9:
+        return 0.0
+    if is_yaw_only_command(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+        return 1.0
+    return float(np.clip(
+        COMMAND_ACTIVITY_MIN_ACTIVE_SCALE
+        + (1.0 - COMMAND_ACTIVITY_MIN_ACTIVE_SCALE) * command_mag,
+        0.0,
+        1.0,
+    ))
+
+
 def phase_from_clock(phase_sin, phase_cos):
     return math.atan2(float(phase_sin), float(phase_cos))
+
+
+def gait_blend_from_policy_gate(policy_gate_action):
+    return float(np.clip(
+        0.5 + 0.5 * GAIT_GATE_ACTION_GAIN * float(policy_gate_action),
+        0.0,
+        1.0,
+    ))
+
+
+def axial_gate_center_from_speed(cmd_vx_norm):
+    axial_mag = abs(float(cmd_vx_norm))
+    denom = max(
+        COMMAND_GATE_WORM_FAST_THRESHOLD - DIRECTIONAL_PRIOR_THRESHOLD,
+        1e-6,
+    )
+    alpha = float(np.clip(
+        (axial_mag - DIRECTIONAL_PRIOR_THRESHOLD) / denom,
+        0.0,
+        1.0,
+    ))
+    return float(
+        COMMAND_GATE_WORM_CENTER_SLOW
+        + alpha
+        * (COMMAND_GATE_WORM_CENTER_FAST - COMMAND_GATE_WORM_CENTER_SLOW)
+    )
+
+
+def command_conditioned_gate_center(command):
+    if command is None:
+        return COMMAND_GATE_MIXED_CENTER
+    cmd_vx, cmd_vy, cmd_yaw = [abs(float(v)) for v in command]
+    cmd_mag = max(cmd_vx, cmd_vy, cmd_yaw)
+    if cmd_mag <= 1e-6:
+        return COMMAND_GATE_MIXED_CENTER
+    if cmd_yaw >= DIRECTIONAL_PRIOR_THRESHOLD and max(cmd_vx, cmd_vy) < DIRECTIONAL_PRIOR_THRESHOLD:
+        return COMMAND_GATE_YAW_CENTER
+    if (cmd_vy >= DIRECTIONAL_PRIOR_THRESHOLD
+            and cmd_vy > cmd_vx
+            and cmd_vy >= cmd_yaw):
+        return COMMAND_GATE_LATERAL_CENTER
+    if (cmd_vx >= DIRECTIONAL_PRIOR_THRESHOLD
+            and cmd_vy < DIRECTIONAL_PRIOR_THRESHOLD
+            and cmd_yaw < DIRECTIONAL_PRIOR_THRESHOLD):
+        return axial_gate_center_from_speed(cmd_vx)
+    return COMMAND_GATE_MIXED_CENTER
+
+
+def command_conditioned_gait_blend(policy_gait_blend, command):
+    center = command_conditioned_gate_center(command)
+    residual = (
+        2.0
+        * COMMAND_GATE_CENTER_RESIDUAL_RANGE
+        * (float(policy_gait_blend) - 0.5)
+    )
+    return float(np.clip(center + residual, 0.0, 1.0))
 
 
 def policy_action_to_residual_and_gait_blend(policy_action):
@@ -216,7 +705,7 @@ def policy_action_to_residual_and_gait_blend(policy_action):
         raise ValueError(
             f"policy action shape {action.shape} != {(POLICY_ACTION_DIM,)}")
     residual = action[:NUM_ACTUATORS]
-    gait_blend = float(np.clip(0.5 * (action[-1] + 1.0), 0.0, 1.0))
+    gait_blend = gait_blend_from_policy_gate(action[-1])
     return residual, gait_blend
 
 
@@ -224,6 +713,7 @@ def compose_deployable_action(
         residual_action,
         phase,
         gait_blend,
+        command=None,
         gait_prior_scale=DEFAULT_GAIT_PRIOR_SCALE,
         policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE):
     residual = np.clip(
@@ -234,8 +724,14 @@ def compose_deployable_action(
     if residual.shape != (NUM_ACTUATORS,):
         raise ValueError(
             f"residual action shape {residual.shape} != {(NUM_ACTUATORS,)}")
-    prior = gait_prior_from_phase(phase, gait_blend)
+    prior = directional_gait_prior_from_phase(phase, gait_blend, command)
+    prior_scale = float(gait_prior_scale)
+    if command is not None:
+        prior_scale *= command_conditioned_prior_scale(*command)
+    activity_scale = (
+        1.0 if command is None else command_activity_scale(*command))
     action = (
-        float(gait_prior_scale) * prior
+        prior_scale * prior
         + float(policy_residual_scale) * residual)
+    action *= activity_scale
     return np.clip(action, -1.0, 1.0).astype(np.float32)

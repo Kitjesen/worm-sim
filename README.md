@@ -86,6 +86,18 @@ The peristaltic actuation period is fixed at **1.0 s**. Control runs at 50 Hz.
 
 These are deployability guards, not a final vendor motor model. Real hardware identification still needs speed limits, current/voltage limits, backlash, deadband, thermal derating, and controller PID details.
 
+The real slide drive is asymmetric: the servo pulls a rope to contract, while
+the spring-steel strips passively return the segment during release. A reduced
+unilateral force model is now captured in
+`src/v6/unilateral_slide_actuator_v6.py` and tested by:
+
+```powershell
+python src\v6\test_unilateral_slide_actuator_v6.py
+```
+
+This model is the intended bridge from the current MuJoCo position-servo
+abstraction to the Isaac Lab explicit actuator implementation.
+
 ## Spring-Steel Strip Calibration
 
 The full V6 training model still uses a fast equivalent slide-joint spring.
@@ -151,7 +163,63 @@ Collection details are in
 The detailed GitHub TODO plan is
 [real robot experiment TODO](docs/real_robot_experiment_todo_v6.md).
 
+## Isaac Lab Migration
+
+Full migration to Isaac Lab is feasible, but it should be staged. MuJoCo stays
+as the calibration/debug baseline, and Isaac Lab becomes the GPU RL target after
+we prove articulation, observation, action, reward, and render parity.
+
+The migration plan is tracked in
+[Isaac Lab migration plan](docs/isaaclab_migration_plan_v6.md). It includes:
+
+- the unilateral servo-rope plus passive spring-steel slide model;
+- the same 80-D deployable observation contract;
+- the same 12-D policy action with learned gait gate;
+- a visual-only steel-strip rendering path for videos;
+- a later optional deformable-strip experiment for single-segment calibration.
+
 ## Current Progress
+
+### Latest Flat V29 Status
+
+The newest flat omni-training line keeps the same deployable ABI but updates
+the learning setup:
+
+- observation remains 80D;
+- policy action remains `11D residual + 1D learned latent gait gate`;
+- actor and critic are both `512-256-128`;
+- action adapter is `cmaes_tri_anchor_auto_gate_directional_v23`;
+- reward contract is `omni_directional_offaxis_yaw_v16`.
+
+The V23 gait gate is speed-adaptive for axial commands: slow forward/reverse
+commands stay closer to the worm/peristaltic center, while full-speed
+forward/reverse commands return to the faster mixed center. The current valid
+flat candidate is:
+
+```text
+runs/worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_gate/best_model.zip
+```
+
+Fixed-command results:
+
+| Command | Measured response | Threshold | Status |
+| --- | --- | --- | --- |
+| forward | `body_vx = 0.1384 m/s` | `> 0.12` | pass |
+| reverse | `body_vx = -0.0810 m/s` | `< -0.03` | pass |
+| lateral_left | `body_vy = 0.0328 m/s` | `> 0.03` | pass, but high off-axis |
+| lateral_right | `body_vy = -0.0296 m/s` | `< -0.03` | borderline fail |
+| yaw_left | `yaw_rate = 0.3768 rad/s` | `> 0.03` | pass, but translates |
+| yaw_right | `yaw_rate = -0.4206 rad/s` | `< -0.03` | pass, but translates |
+
+V29 is not a completed continuous omnidirectional tracker. The 35-command scan
+still reports `planar_rmse_m_s=0.1665`, `yaw_rmse_rad_s=0.1179`,
+`planar_sign_rate=0.84`, and yaw-only planar drift of about `0.0966 m/s`.
+Until lateral off-axis motion and yaw-only translation are solved, this should
+be described as a **six-direction primitive controller / weak omnidirectional
+prototype**, not final arbitrary velocity tracking.
+
+Detailed notes and exact artifact paths are in
+[V29 training log](docs/omni_v29_training_log.md).
 
 The latest contract correction was made after comparing PPO rollouts with the
 stronger 4K CMA-ES gait-comparison video. That video is an open-loop CMA-ES
@@ -167,10 +235,10 @@ The old PPO reward target was too conservative:
 That trained the policy to track roughly `25 mm/s`, so it was never a fair
 attempt to beat the `247.97 mm/s` CMA-ES full-combined baseline.
 
-The corrected current contract is:
+The corrected current contract line is now:
 
-- reward contract: `omni_auto_gate_v4`
-- action adapter: `cmaes_tri_anchor_auto_gate_v2`
+- reward contract: `omni_directional_offaxis_yaw_v10`
+- action adapter: `cmaes_tri_anchor_auto_gate_directional_v12`
 - residual policy scale: `0.35`
 - command range: `cmd_vx in [-0.25, 0.25] m/s`,
   `cmd_vy in [-0.15, 0.15] m/s`, `cmd_yaw in [-0.5, 0.5] rad/s`
@@ -178,13 +246,77 @@ The corrected current contract is:
   serpentine, with piecewise-linear blends between anchors
 - best-model selection evaluates auto-blend left/straight/right yaw cases
   instead of only straight-line motion
-- best-model selection now uses `directional_sign_gate_v1`: positive yaw
-  commands must produce positive yaw delta, negative yaw commands must produce
-  negative yaw delta, and straight commands must stay within a small yaw drift
-  tolerance before a checkpoint can become `best_model`
+- best-model selection now uses `omni_tracking_gate_v2`: planar and yaw command
+  signs must be correct, `planar_success_rate >= 0.85`,
+  `yaw_success_rate >= 0.70`, and zero-yaw commands may have at most one yaw
+  drift violation before a checkpoint is formally accepted.
+- v9/v10 lateral prior correction: both lateral commands use the same `+pi/2`
+  slide phase offset, and right-lateral mirrors only the yaw-anchor sign. This
+  keeps the action adapter deployable because it depends only on `obs[0:3]`
+  command and phase clock.
+- v10 also raises the lateral prior floor to `0.80` and adds extra pure
+  right-yaw authority. This improves the fixed 6 s demonstration without
+  changing the deployable ABI.
+- v12 adds zero-yaw heading trims to the command-conditioned prior: axial
+  forward/reverse commands get a phase offset, and lateral commands get a
+  small yaw trim. This is still deployable because it depends only on
+  `obs[0:3]` command and phase clock, and it keeps the 80D observation plus
+  12D policy-action ABI unchanged.
 
 Older PPO artifacts that do not match these contracts are treated as stale by
 the audit and should not be used for paper claims.
+
+### Latest Flat Omni Training Status
+
+Flat now has a current-contract accepted candidate under `omni_tracking_gate_v2`.
+This is a flat-only result; it is not yet a final paper result because robust
+tests, fixed-gate ablations, and sand/slope transfer are still pending.
+
+The accepted flat candidate uses:
+
+```text
+runs/worm_v6_ppo_flat_random_heading_omni_v11_from_hhbest/best_model.zip
+```
+
+Formal directional gate summary:
+
+```text
+runs/worm_v6_ppo_flat_random_heading_omni_v11_from_hhbest/v12_directional_eval_summary.json
+```
+
+| Metric | Value | Required | Status |
+| --- | ---: | ---: | --- |
+| `wrong_planar_sign_count` | `0` | `0` | pass |
+| `wrong_yaw_sign_count` | `0` | `0` | pass |
+| `planar_success_rate` | `1.00` | `>= 0.85` | pass |
+| `yaw_success_rate` | `0.875` | `>= 0.70` | pass |
+| `straight_violation_count` | `1` | `<= 1` | pass |
+
+Fixed 6 s command-threshold evidence:
+
+| Command | Measured response | Required | Status |
+| --- | --- | --- | --- |
+| forward | `body_vx = 0.1886 m/s` | `> 0.12` | pass |
+| reverse | `body_vx = -0.0767 m/s` | `< -0.03` | pass |
+| lateral_left | `body_vy = 0.0376 m/s` | `> 0.03` | pass |
+| lateral_right | `body_vy = -0.0393 m/s` | `< -0.03` | pass |
+| yaw_left | `yaw_rate = 0.0324 rad/s` | `> 0.03` | pass |
+| yaw_right | `yaw_rate = -0.0379 rad/s` | `< -0.03` | pass |
+
+Current artifacts:
+
+- `record/v6/omni_v12_heading_prior_artifacts/*.mp4`
+- `record/v6/omni_v12_heading_prior_artifacts/*_trajectory.png`
+- `record/v6/omni_v12_heading_prior_artifacts/*_trajectory.csv`
+- `record/v6/omni_v12_heading_prior_artifacts/*_eval.json`
+- `record/v6/omni_v12_heading_prior_artifacts/gait_comparison_v12_flat_6cmd.mp4`
+- `record/v6/omni_v12_heading_prior_artifacts/v12_flat_6cmd_summary.json`
+
+Remaining flat limitations: lateral commands still have large off-axis forward
+motion, yaw-only commands drift translationally, and the current improvement
+comes from a command-conditioned V12 prior plus learned residual policy rather
+than a fully retrained V12 long run. Do not make sand/slope claims until these
+artifacts are repeated with robust tests and terrain transfer.
 
 Current status files:
 
@@ -201,7 +333,7 @@ Current status:
 | Terrain | Mode | Current-contract PPO status |
 | --- | --- | --- |
 | flat | worm | old 1M low-speed run exists but is stale under the auto-gated contract |
-| flat | random | previous high-speed random residual PPO reached ~311k / 1M under `high_speed_directional_v3`; it is now stale under `omni_auto_gate_v4` |
+| flat | random | current V12 auto-gated candidate passes the flat directional gate and six fixed 6 s command thresholds; robust tests and ablations still pending |
 | flat | snake/mixed | previous videos are diagnostic only; fixed-mode ablation retraining still needed |
 | sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
@@ -243,13 +375,12 @@ result:
   baseline. The 300k v3 straight-command speeds are worm `38.32 mm/s`, mixed
   `133.48 mm/s`, and snake `62.89 mm/s`; the local 4K CMA-ES comparison still
   shows the stronger raw full-combined gait at `247.97 mm/s`.
-- Directional control remains the main failure. With mixed mode and
-  `cmd_yaw=+0.5`, the 300k v3 policy still turns negative
-  (`yaw_delta=-0.516 rad`); with `cmd_yaw=-0.5`, it turns negative
-  (`yaw_delta=-0.383 rad`). This means right-turn behavior is present, but
-  left/right command separation has not been learned.
-- The next training run must start/continue under `omni_auto_gate_v4` and must
-  pass the direction gate before saving a new best model.
+- Directional control has a flat accepted candidate under the current V12
+  deployable adapter: the gate reports planar `1.00`, yaw `0.875`, zero wrong
+  signs, and one allowed straight-drift violation.
+- The next training/evaluation work should not jump straight to paper claims:
+  rerun robust flat tests, compare learned gate against fixed worm/mixed/snake
+  gates, and then transfer the same ABI to sand and slope.
 - Hardware pipeline templates and preflight checks exist; real flat/sand/slope
   hardware logs are still pending.
 
@@ -262,6 +393,26 @@ Interim result tables and figures:
 - [paper claim analysis](record/v6/paper_results/paper_claims.md)
 
 ## Viewable Videos
+
+Current flat V29 videos with visual spring-steel strips and head speed overlay:
+
+- [flat V29 six-command comparison](record/v6/omni_v29_speed_gate_videos/gait_comparison_3x2.mp4)
+- [flat V29 forward](record/v6/omni_v29_speed_gate_videos/forward.mp4)
+- [flat V29 reverse](record/v6/omni_v29_speed_gate_videos/reverse.mp4)
+- [flat V29 lateral left](record/v6/omni_v29_speed_gate_videos/lateral_left.mp4)
+- [flat V29 lateral right](record/v6/omni_v29_speed_gate_videos/lateral_right.mp4)
+- [flat V29 yaw left](record/v6/omni_v29_speed_gate_videos/yaw_left.mp4)
+- [flat V29 yaw right](record/v6/omni_v29_speed_gate_videos/yaw_right.mp4)
+
+Current flat V12 command videos:
+
+- [flat V12 six-command comparison](record/v6/omni_v12_heading_prior_artifacts/gait_comparison_v12_flat_6cmd.mp4)
+- [flat V12 forward](record/v6/omni_v12_heading_prior_artifacts/forward.mp4)
+- [flat V12 reverse](record/v6/omni_v12_heading_prior_artifacts/reverse.mp4)
+- [flat V12 lateral left](record/v6/omni_v12_heading_prior_artifacts/lateral_left.mp4)
+- [flat V12 lateral right](record/v6/omni_v12_heading_prior_artifacts/lateral_right.mp4)
+- [flat V12 yaw left](record/v6/omni_v12_heading_prior_artifacts/yaw_left.mp4)
+- [flat V12 yaw right](record/v6/omni_v12_heading_prior_artifacts/yaw_right.mp4)
 
 Representative committed videos:
 
@@ -431,8 +582,11 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Restart flat random residual PPO under `omni_auto_gate_v4` toward the 1M formal target.
-- Improve yaw/directional command learning; current mixed-mode left command still turns with the wrong sign.
+- Freeze and robustly verify the flat V12 accepted candidate under
+  `omni_directional_offaxis_yaw_v10` +
+  `cmaes_tri_anchor_auto_gate_directional_v12`.
+- Improve trajectory quality: lateral commands still have large off-axis
+  forward motion, and yaw-only commands still translate while turning.
 - Retrain flat worm/snake plus all sand and slope policies under the current reward/action contracts.
 - Regenerate all eval, robust eval, fixed-gate ablation scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.
