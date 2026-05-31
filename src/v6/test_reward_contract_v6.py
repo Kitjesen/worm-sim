@@ -78,13 +78,26 @@ class DummyData:
 
 def reward_for(body_vx, body_vy=0.0, yaw_rate=0.0,
                cmd_vx=None, cmd_vy=0.0, cmd_yaw=0.0, action=None,
-               residual_action=None):
+               residual_action=None, prior_component=None,
+               residual_component=None, pre_clip_action=None):
     env = object.__new__(WormEnvV6)
     env._cmd_vx = CMD_VX_RANGE[1] if cmd_vx is None else cmd_vx
     env._cmd_vy = cmd_vy
     env._cmd_yaw = cmd_yaw
     env._last_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
     env._last_residual_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._last_prior_component = (
+        np.zeros(NUM_ACTUATORS, dtype=np.float32)
+        if prior_component is None
+        else np.asarray(prior_component, dtype=np.float32))
+    env._last_residual_component = (
+        np.zeros(NUM_ACTUATORS, dtype=np.float32)
+        if residual_component is None
+        else np.asarray(residual_component, dtype=np.float32))
+    env._last_pre_clip_action = (
+        env._last_prior_component + env._last_residual_component
+        if pre_clip_action is None
+        else np.asarray(pre_clip_action, dtype=np.float32))
     env._act_qvel_idx = []
     env.model = DummyModel()
     env.data = DummyData()
@@ -215,6 +228,22 @@ def main():
         CMD_VX_RANGE[1],
         action=prior_action,
         residual_action=np.ones(NUM_ACTUATORS, dtype=np.float32))
+    axial_prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    axial_prior[:6] = 0.8
+    residual_aligned = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    residual_aligned[:6] = 0.1
+    residual_cancel = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    residual_cancel[:6] = -0.4
+    axial_preserved = reward_for(
+        CMD_VX_RANGE[1],
+        cmd_vx=CMD_VX_RANGE[1],
+        prior_component=axial_prior,
+        residual_component=residual_aligned)
+    axial_cancelled = reward_for(
+        CMD_VX_RANGE[1],
+        cmd_vx=CMD_VX_RANGE[1],
+        prior_component=axial_prior,
+        residual_component=residual_cancel)
     displacement_reward = reward_for_displacement(
         CMD_VX_RANGE[1] * 0.02)
 
@@ -246,11 +275,13 @@ def main():
     assert yaw_only_stationary > yaw_only_with_planar_drift + 6.0, (
         yaw_only_stationary, yaw_only_with_planar_drift)
     assert residual_smooth > residual_jump, (residual_smooth, residual_jump)
+    assert axial_preserved > axial_cancelled, (
+        axial_preserved, axial_cancelled)
     assert displacement_reward > stalled + 4.0, (
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v23"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v24"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -277,7 +308,11 @@ def main():
     assert contract["weights"]["lateral_only_speed_deficit"] > 0.0
     assert contract["weights"]["planar_component_deficit"] > 0.0
     assert contract["weights"]["gait_gate_target"] > 0.0
+    assert contract["weights"]["axial_prior_preserve"] > 0.0
     assert contract["normalization"]["signed_planar_component_deficit_penalty"]
+    assert contract["normalization"]["pure_axial_residual_cancellation_penalty"]
+    assert contract["normalization"][
+        "pure_axial_slide_wave_preservation_penalty"]
     selection_contract = best_selection_contract()
     assert selection_contract["version"] == "omni_tracking_scan_v3"
     assert selection_contract["requires_continuous_tracking_metrics"]

@@ -180,15 +180,15 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V41-V44 Status
+### Latest Flat V41-V46 Status
 
-The newest flat line is V41-V44. It keeps the deployable ABI fixed:
+The newest flat line is V41-V46. It keeps the deployable ABI fixed:
 
 - observation remains 80D;
 - policy action remains `11D residual + 1D learned latent gait gate`;
 - actor and critic are both `512-256-128`;
 - action adapter is `cmaes_tri_anchor_auto_gate_directional_v26`;
-- reward contract is `omni_directional_offaxis_yaw_v23`.
+- latest reward contract is `omni_directional_offaxis_yaw_v24`.
 
 V26 adds searched left/right lateral primitives on the same 1 s deployable phase
 clock. This fixes the previous fixed-lateral gate failure without changing the
@@ -209,17 +209,21 @@ record/current/flat_omni_v41_v26_scan_after40k/scan_35_commands_best.json
 | `yaw_sign_rate` | `1.00` |
 | `fixed_lateral_strict_gate_passed` | `true` |
 
-V44 tested two next-step ideas. A continuous-vector blend of primitive priors
-was rejected because it degraded the 35-command scan to
+V44-V46 tested several next-step ideas. A continuous-vector blend of primitive
+priors was rejected because it degraded the 35-command scan to
 `planar_rmse_m_s=0.1872` and `planar_sign_rate=0.76`. A 40k
 `mixed_planar_repair` continuation preserved correct signs and lateral gates
-but did not beat V41 best (`planar_rmse_m_s=0.1540` for V44 final).
+but did not beat V41 best (`planar_rmse_m_s=0.1540` for V44 final). V45
+axis-separation repair also failed to beat V41. V46 added a pure-axial
+prior-preservation reward to stop the PPO residual from erasing the visible
+peristaltic slide wave, but its best scan was still worse than V41
+(`planar_rmse_m_s=0.1547`, `planar_sign_rate=0.96`).
 
 Current interpretation: lateral primitive support has improved, but continuous
 `vx/vy/yaw` tracking is **not solved yet**. Forward/reverse speed is still low,
 yaw-only commands still translate, and mixed vector commands under-track their
 lateral/yaw components. The detailed movement table is in
-[V41-V44 movement summary](docs/omni_v41_v43_lateral_primitives_and_motion_summary.md).
+[V41-V46 movement summary](docs/omni_v41_v46_motion_summary.md).
 
 ### Latest Flat V29 Status
 

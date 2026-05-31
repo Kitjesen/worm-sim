@@ -164,6 +164,7 @@ W_LATERAL_ONLY_FORWARD_DRIFT = 5.0
 W_LATERAL_ONLY_SPEED_DEFICIT = 4.0
 W_PLANAR_COMPONENT_DEFICIT = 1.5
 W_GAIT_GATE_TARGET = 3.0
+W_AXIAL_PRIOR_PRESERVE = 2.0
 YAW_DRIFT_TOLERANCE_RAD = 0.20
 YAW_STATIONARY_TOLERANCE_M_S = 0.02
 LATERAL_ONLY_FORWARD_TOLERANCE_M_S = 0.04
@@ -175,7 +176,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v23"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v24"
 
 
 def reward_contract():
@@ -199,6 +200,7 @@ def reward_contract():
             "lateral_only_speed_deficit": W_LATERAL_ONLY_SPEED_DEFICIT,
             "planar_component_deficit": W_PLANAR_COMPONENT_DEFICIT,
             "gait_gate_target": W_GAIT_GATE_TARGET,
+            "axial_prior_preserve": W_AXIAL_PRIOR_PRESERVE,
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
         },
@@ -232,22 +234,24 @@ def reward_contract():
             "axis_separation_curriculum": True,
             "yaw_only_prior_scaling_applied": True,
             "gait_blend_is_policy_gate": True,
-                "command_conditioned_gait_gate_regularizer": {
-                    "enabled": True,
-                    "worm_target_for_axial_translation": GAIT_GATE_WORM_TARGET,
-                    "worm_target_for_slow_axial_translation": (
-                        GAIT_GATE_WORM_TARGET_SLOW),
-                    "mixed_target_for_fast_axial_translation": (
-                        GAIT_GATE_WORM_TARGET_FAST),
-                    "fast_axial_threshold_norm": (
-                        GAIT_GATE_WORM_FAST_THRESHOLD),
-                    "mixed_target_for_mixed_commands": GAIT_GATE_MIXED_TARGET,
-                    "lateral_target_for_translation": (
-                        GAIT_GATE_LATERAL_TARGET),
-                    "snake_target_for_yaw": GAIT_GATE_YAW_TARGET,
-                    "reason": (
-                        "A deployable-command-conditioned regularizer keeps "
-                        "the learned latent gate from collapsing to the combined "
+            "pure_axial_residual_cancellation_penalty": True,
+            "pure_axial_slide_wave_preservation_penalty": True,
+            "command_conditioned_gait_gate_regularizer": {
+                "enabled": True,
+                "worm_target_for_axial_translation": GAIT_GATE_WORM_TARGET,
+                "worm_target_for_slow_axial_translation": (
+                    GAIT_GATE_WORM_TARGET_SLOW),
+                "mixed_target_for_fast_axial_translation": (
+                    GAIT_GATE_WORM_TARGET_FAST),
+                "fast_axial_threshold_norm": (
+                    GAIT_GATE_WORM_FAST_THRESHOLD),
+                "mixed_target_for_mixed_commands": GAIT_GATE_MIXED_TARGET,
+                "lateral_target_for_translation": (
+                    GAIT_GATE_LATERAL_TARGET),
+                "snake_target_for_yaw": GAIT_GATE_YAW_TARGET,
+                "reason": (
+                    "A deployable-command-conditioned regularizer keeps "
+                    "the learned latent gate from collapsing to the combined "
                     "anchor while still allowing the policy to override it "
                     "when tracking reward requires another gait. V16 makes "
                     "the axial target speed-dependent: low-speed axial "
@@ -258,7 +262,9 @@ def reward_contract():
                     "separate lateral speed-deficit reward so the policy "
                     "cannot pass the repair curriculum by barely moving. V21 "
                     "binds that deficit to signed body-frame lateral velocity "
-                    "instead of off-axis speed."),
+                    "instead of off-axis speed. V24 adds pure-axial prior "
+                    "preservation so the learned residual does not erase the "
+                    "deployable peristaltic slide wave."),
             },
             "command_curriculum_supported": list(COMMAND_CURRICULA),
         },
@@ -1273,6 +1279,50 @@ class WormEnvV6(gym.Env):
         gait_gate_error = abs(
             float(getattr(self, "_gait_blend", GAIT_GATE_MIXED_TARGET))
             - desired_gait_blend)
+        pure_axial_gate = (
+            1.0
+            if (abs(cmd_vx) > 1e-6
+                and abs(cmd_vy) <= 1e-6
+                and abs(cmd_yaw) <= 1e-6)
+            else 0.0)
+        prior_component = np.asarray(
+            getattr(self, "_last_prior_component",
+                    np.zeros(NUM_ACTUATORS, dtype=np.float32)),
+            dtype=np.float64,
+        )
+        residual_component = np.asarray(
+            getattr(self, "_last_residual_component",
+                    np.zeros(NUM_ACTUATORS, dtype=np.float32)),
+            dtype=np.float64,
+        )
+        pre_clip_action = np.asarray(
+            getattr(self, "_last_pre_clip_action",
+                    prior_component + residual_component),
+            dtype=np.float64,
+        )
+        prior_slides = prior_component[:NUM_SLIDES]
+        residual_slides = residual_component[:NUM_SLIDES]
+        pre_clip_slides = pre_clip_action[:NUM_SLIDES]
+        prior_slide_norm = float(np.linalg.norm(prior_slides))
+        residual_cancellation = 0.0
+        slide_activity_deficit = 0.0
+        if pure_axial_gate > 0.0 and prior_slide_norm > 1e-6:
+            residual_cancellation = float(np.clip(
+                max(0.0, -float(np.dot(prior_slides, residual_slides)))
+                / (prior_slide_norm ** 2 + 1e-6),
+                0.0,
+                3.0,
+            ))
+            activity_ratio = float(
+                np.linalg.norm(pre_clip_slides) / (prior_slide_norm + 1e-6))
+            slide_activity_deficit = float(np.clip(
+                max(0.0, 0.75 - activity_ratio),
+                0.0,
+                1.0,
+            ))
+        axial_prior_preserve_penalty = (
+            pure_axial_gate
+            * (residual_cancellation + slide_activity_deficit))
         r_vel_track = math.exp(-(vel_err ** 2) / (SIGMA_VEL ** 2))
         if cmd_speed > 1e-6 and along_cmd <= 0.0:
             r_vel_track *= 0.25
@@ -1376,6 +1426,12 @@ class WormEnvV6(gym.Env):
                 planar_component_deficit),
             "desired_gait_blend": float(desired_gait_blend),
             "gait_gate_error": float(gate_target_active * gait_gate_error),
+            "reward_axial_prior_preserve_penalty": float(
+                axial_prior_preserve_penalty),
+            "axial_prior_residual_cancellation": float(
+                pure_axial_gate * residual_cancellation),
+            "axial_slide_activity_deficit": float(
+                pure_axial_gate * slide_activity_deficit),
         }
 
         reward = (
@@ -1397,6 +1453,7 @@ class WormEnvV6(gym.Env):
                 lateral_only_speed_deficit)
             - W_PLANAR_COMPONENT_DEFICIT * planar_component_deficit
             - W_GAIT_GATE_TARGET * gate_target_active * gait_gate_error
+            - W_AXIAL_PRIOR_PRESERVE * axial_prior_preserve_penalty
             - W_ENERGY    * energy
             - W_SMOOTH    * action_rate
         )

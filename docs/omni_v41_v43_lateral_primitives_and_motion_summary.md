@@ -1,5 +1,9 @@
 # V41-V44 lateral primitive repair and current motion summary
 
+Superseded note: the latest flat motion summary is now
+`docs/omni_v41_v46_motion_summary.md`. This file is retained for the original
+V41-V44 lateral-primitive diagnosis.
+
 Date: 2026-05-31
 
 ## Summary

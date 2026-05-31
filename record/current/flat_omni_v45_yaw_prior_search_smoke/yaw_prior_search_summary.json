@@ -1,0 +1,112 @@
+{
+  "format_version": 1,
+  "created_unix_time": 1780215078.4601047,
+  "elapsed_wall_s": 5.501170635223389,
+  "terrain": "flat",
+  "method": "random",
+  "seconds_per_eval": 2.0,
+  "parameter_names": [
+    "slide_bias",
+    "slide_amp",
+    "slide_freq",
+    "slide_wave_n",
+    "yaw_amp",
+    "yaw_freq",
+    "yaw_wave_n",
+    "yaw_phase_rad"
+  ],
+  "parameter_bounds": {
+    "slide_bias": [
+      0.05,
+      0.95
+    ],
+    "slide_amp": [
+      0.0,
+      0.9
+    ],
+    "slide_freq": [
+      0.1,
+      1.5
+    ],
+    "slide_wave_n": [
+      -3.0,
+      3.0
+    ],
+    "yaw_amp": [
+      0.1,
+      1.0
+    ],
+    "yaw_freq": [
+      0.05,
+      1.5
+    ],
+    "yaw_wave_n": [
+      -3.0,
+      3.0
+    ],
+    "yaw_phase_rad": [
+      -3.141592653589793,
+      3.141592653589793
+    ]
+  },
+  "objective": "score = mean_signed_yaw/0.5 - 0.90*max_planar/0.05 - 1.20*max(0,0.30-min_signed_yaw)/0.30 - 0.02*action_energy - termination",
+  "yaw_acceptance": {
+    "min_signed_yaw_rate_rad_s_min": 0.3,
+    "max_planar_speed_m_s_max": 0.05,
+    "validation_seconds": 3.0
+  },
+  "best": {
+    "trial": 7,
+    "score": -0.08802147460150939,
+    "mean_signed_yaw_rate_rad_s": 0.3398563436450883,
+    "min_signed_yaw_rate_rad_s": 0.33509448406513553,
+    "mean_planar_speed_m_s": 0.03398309605713762,
+    "max_planar_speed_m_s": 0.04252801023303067,
+    "action_energy": 0.1114988848567009,
+    "left_body_vx_m_s": 0.0011007470615627408,
+    "left_body_vy_m_s": 0.025414355260949283,
+    "left_planar_speed_m_s": 0.025438181881244568,
+    "left_yaw_rate_rad_s": 0.33509448406513553,
+    "right_body_vx_m_s": 0.0027695594831925636,
+    "right_body_vy_m_s": -0.042437733146927385,
+    "right_planar_speed_m_s": 0.04252801023303067,
+    "right_yaw_rate_rad_s": -0.3446182032250411,
+    "slide_bias": 0.08254764154610614,
+    "slide_amp": 0.11310003818452288,
+    "slide_freq": 1.1960376399060266,
+    "slide_wave_n": 2.9530657684438903,
+    "yaw_amp": 0.6682397023286282,
+    "yaw_freq": 0.444230658776983,
+    "yaw_wave_n": -1.2395091308058568,
+    "yaw_phase_rad": -0.8488946167775553
+  },
+  "validation": {
+    "score": -0.7424306806015816,
+    "mean_signed_yaw_rate_rad_s": 0.2307274214134259,
+    "min_signed_yaw_rate_rad_s": 0.20543597517924686,
+    "mean_planar_speed_m_s": 0.03500227111436025,
+    "max_planar_speed_m_s": 0.045744413691571485,
+    "action_energy": 0.1114988848567009,
+    "left": {
+      "side": "left",
+      "body_vx_m_s": -0.017031503166213786,
+      "body_vy_m_s": 0.04245561545761506,
+      "planar_speed_m_s": 0.045744413691571485,
+      "yaw_rate_rad_s": 0.25601886764760495,
+      "signed_yaw_rate_rad_s": 0.25601886764760495,
+      "elapsed_s": 3.0,
+      "terminated": false
+    },
+    "right": {
+      "side": "right",
+      "body_vx_m_s": -0.019452815773978484,
+      "body_vy_m_s": -0.014496268316454614,
+      "planar_speed_m_s": 0.024260128537149015,
+      "yaw_rate_rad_s": -0.20543597517924686,
+      "signed_yaw_rate_rad_s": 0.20543597517924686,
+      "elapsed_s": 3.0,
+      "terminated": false
+    },
+    "accepted": false
+  }
+}

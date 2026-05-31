@@ -242,12 +242,27 @@
   `0.0602 m/s`. A continuous-vector-prior probe was worse
   (`planar_rmse_m_s=0.1872`, `planar_sign_rate=0.76`), and residual-scale
   sweeps did not beat V41 best.
+- V45/V46 were run as the next optimization attempts. V45 axis-separation
+  repair from V41 best did not beat V41: V45 best has
+  `planar_rmse_m_s=0.1552`, `yaw_rmse_rad_s=0.1165`, and
+  `planar_sign_rate=0.96`; V45 final recovered signs but lost fixed-lateral
+  strict acceptance. The V45 reverse axial primitive search also failed
+  acceptance (`signed_axial_m_s=0.0621`, target `>=0.10`), and the V45 yaw
+  primitive search failed turn-rate acceptance (`mean_signed_yaw=0.2186 rad/s`,
+  target `>=0.30`).
+- V46 added reward contract `omni_directional_offaxis_yaw_v24`, which penalizes
+  residual cancellation of the pure-axial peristaltic slide prior. It is a
+  useful diagnostic for the observed loss of visible worm-like actuation, but
+  it did not replace V41. V46 best reports `planar_rmse_m_s=0.1547`,
+  `yaw_rmse_rad_s=0.1141`, and `planar_sign_rate=0.96`; V46 final reports
+  `planar_rmse_m_s=0.1569`, `yaw_rmse_rad_s=0.1152`, and
+  `planar_sign_rate=1.00`.
 - Latest detailed movement table and artifact list:
-  `docs/omni_v41_v43_lateral_primitives_and_motion_summary.md`.
+  `docs/omni_v41_v46_motion_summary.md`.
 
 ## Not Done
 
-- The current V41-V44 line is not an accepted continuous tracker yet. It is a
+- The current V41-V46 line is not an accepted continuous tracker yet. It is a
   weak omnidirectional prototype with correct signs and fixed-lateral gate
   repair.
 - Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
@@ -297,7 +312,7 @@
 - V39/V40 are not accepted. V39 fixes the lateral reward contract but does not
   produce enough lateral speed; V40's final and best scans still fail fixed
   lateral speed, especially right lateral motion.
-- V41/V42/V44 improve the lateral gate, but flat continuous velocity tracking
+- V41/V42/V44/V46 improve or preserve the lateral gate, but flat continuous velocity tracking
   is still not accepted. The limiting metrics remain planar RMSE above `0.10`,
   yaw-only planar drift above `0.05 m/s`, weak reverse speed, and weak mixed
   vector tracking.
@@ -316,9 +331,9 @@
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V41-V44 line keeps the deployable ABI fixed, restores fixed left/right
-lateral authority through searched lateral primitives, and preserves correct
-signs in the 35-command scan. The project is not yet at "any velocity command
-can be tracked": planar RMSE remains around `0.15 m/s`, yaw-only planar drift
-is still above target, reverse is weak, and mixed planar commands do not track
-both components reliably.
+flat V41-V46 line keeps the deployable ABI fixed, restores fixed left/right
+lateral authority through searched lateral primitives, and tests an axial
+prior-preservation reward for visible worm-like actuation. The project is not
+yet at "any velocity command can be tracked": planar RMSE remains around
+`0.15 m/s`, yaw-only planar drift is still above target, reverse is weak, and
+mixed planar commands do not track both components reliably.
