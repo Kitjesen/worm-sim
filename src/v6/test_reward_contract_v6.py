@@ -55,6 +55,9 @@ from worm_env_v6 import (  # noqa: E402
     CMD_VX_RANGE,
     CMD_VY_RANGE,
     COMMAND_CURRICULA,
+    FEASIBLE_MIXED_VX_ABS_RANGE,
+    FEASIBLE_MIXED_VY_ABS_RANGE,
+    FEASIBLE_MIXED_YAW_ABS_RANGE,
     LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE,
     LOW_YAW_ENVELOPE_YAW_ABS_RANGE,
     NUM_ACTUATORS,
@@ -499,6 +502,14 @@ def main():
         "continuous_omni_mixed_yaw_repair_sampling"]
     assert contract["normalization"]["mixed_planar_repair_sampling"]
     assert contract["normalization"]["mixed_planar_yaw_preserve_repair_sampling"]
+    assert contract["normalization"]["feasible_mixed_low_speed_sampling"][
+        "vx_abs_range_m_s"] == FEASIBLE_MIXED_VX_ABS_RANGE
+    assert contract["normalization"]["feasible_mixed_low_speed_sampling"][
+        "vy_abs_range_m_s"] == FEASIBLE_MIXED_VY_ABS_RANGE
+    assert contract["normalization"]["feasible_mixed_low_speed_sampling"][
+        "yaw_abs_range_rad_s"] == FEASIBLE_MIXED_YAW_ABS_RANGE
+    assert contract["normalization"][
+        "feasible_forward_diagonal_repair_sampling"]
     assert "mixed_composition_repair" in COMMAND_CURRICULA
     mixed_counts = sampled_command_classes("mixed_composition_repair")
     assert mixed_counts["mixed_vx_vy"] >= 80, mixed_counts
@@ -794,6 +805,8 @@ def main():
     assert "mixed_planar_hardcase_repair" in COMMAND_CURRICULA
     assert "mixed_planar_yaw_preserve_repair" in COMMAND_CURRICULA
     assert "low_yaw_envelope" in COMMAND_CURRICULA
+    assert "feasible_mixed_low_speed" in COMMAND_CURRICULA
+    assert "feasible_forward_diagonal_repair" in COMMAND_CURRICULA
     assert "axis_separation" in COMMAND_CURRICULA
 
     env.command_curriculum = "low_yaw_envelope"
@@ -834,6 +847,84 @@ def main():
     assert np.all(
         np.abs(slow_axial_samples[:, 0])
         <= LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE[1])
+
+    env.command_curriculum = "feasible_mixed_low_speed"
+    samples = np.array([env._sample_command() for _ in range(640)])
+    nonzero_dims = np.count_nonzero(np.abs(samples) > 1e-9, axis=1)
+    stop_samples = samples[nonzero_dims == 0]
+    pure_axial_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    pure_lateral_samples = samples[
+        (np.abs(samples[:, 0]) <= 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    pure_yaw_samples = samples[
+        (np.abs(samples[:, 0]) <= 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    diagonal_planar_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    axial_yaw_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    assert len(stop_samples) >= 40
+    assert len(pure_axial_samples) >= 40
+    assert len(pure_lateral_samples) >= 40
+    assert len(pure_yaw_samples) >= 40
+    assert len(diagonal_planar_samples) >= 80
+    assert len(axial_yaw_samples) >= 80
+    assert np.all(np.abs(samples[:, 0]) <= FEASIBLE_MIXED_VX_ABS_RANGE[1])
+    assert np.all(np.abs(samples[:, 1]) <= FEASIBLE_MIXED_VY_ABS_RANGE[1])
+    assert np.all(np.abs(samples[:, 2]) <= FEASIBLE_MIXED_YAW_ABS_RANGE[1])
+    assert np.all(
+        np.abs(pure_axial_samples[:, 0])
+        >= FEASIBLE_MIXED_VX_ABS_RANGE[0])
+    assert np.all(
+        np.abs(pure_lateral_samples[:, 1])
+        >= FEASIBLE_MIXED_VY_ABS_RANGE[0])
+    assert np.all(
+        np.abs(pure_yaw_samples[:, 2])
+        >= FEASIBLE_MIXED_YAW_ABS_RANGE[0])
+
+    env.command_curriculum = "feasible_forward_diagonal_repair"
+    samples = np.array([env._sample_command() for _ in range(640)])
+    forward_diagonal_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    forward_left_samples = forward_diagonal_samples[
+        forward_diagonal_samples[:, 1] > 1e-9]
+    forward_right_samples = forward_diagonal_samples[
+        forward_diagonal_samples[:, 1] < -1e-9]
+    forward_yaw_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    reverse_diagonal_samples = samples[
+        (samples[:, 0] < -1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    assert len(forward_diagonal_samples) >= 180
+    assert len(forward_left_samples) >= 70
+    assert len(forward_right_samples) >= 70
+    assert len(forward_yaw_samples) >= 40
+    assert len(reverse_diagonal_samples) >= 40
+    assert np.all(np.abs(samples[:, 0]) <= FEASIBLE_MIXED_VX_ABS_RANGE[1])
+    assert np.all(np.abs(samples[:, 1]) <= FEASIBLE_MIXED_VY_ABS_RANGE[1])
+    assert np.all(np.abs(samples[:, 2]) <= FEASIBLE_MIXED_YAW_ABS_RANGE[1])
 
     env.command_curriculum = "continuous_omni"
     samples = np.array([env._sample_command() for _ in range(240)])

@@ -87,6 +87,9 @@ CMD_VEL_RANGE   = (0.0, CMD_VX_RANGE[1])  # legacy forward-speed alias
 CMD_RESAMPLE_P  = 0.005          # probability of resampling command each step
 LOW_YAW_ENVELOPE_YAW_ABS_RANGE = (0.08, 0.12)
 LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE = (0.05, 0.10)
+FEASIBLE_MIXED_VX_ABS_RANGE = (0.04, 0.10)
+FEASIBLE_MIXED_VY_ABS_RANGE = (0.03, 0.075)
+FEASIBLE_MIXED_YAW_ABS_RANGE = (0.08, 0.125)
 
 GAIT_BLENDS = {
     "worm": 0.0,
@@ -113,6 +116,8 @@ COMMAND_CURRICULA = (
     "mixed_planar_hardcase_repair",
     "mixed_planar_yaw_preserve_repair",
     "low_yaw_envelope",
+    "feasible_mixed_low_speed",
+    "feasible_forward_diagonal_repair",
     "mixed_composition_repair",
     "axis_separation",
 )
@@ -264,6 +269,12 @@ def reward_contract():
             "mixed_planar_hardcase_repair_sampling": True,
             "mixed_planar_yaw_preserve_repair_sampling": True,
             "mixed_composition_repair_sampling": True,
+            "feasible_mixed_low_speed_sampling": {
+                "vx_abs_range_m_s": FEASIBLE_MIXED_VX_ABS_RANGE,
+                "vy_abs_range_m_s": FEASIBLE_MIXED_VY_ABS_RANGE,
+                "yaw_abs_range_rad_s": FEASIBLE_MIXED_YAW_ABS_RANGE,
+            },
+            "feasible_forward_diagonal_repair_sampling": True,
             "axis_separation_curriculum": True,
             "yaw_only_prior_scaling_applied": True,
             "gait_blend_is_policy_gate": True,
@@ -1434,6 +1445,74 @@ class WormEnvV6(gym.Env):
                 vy = 0.0
                 yaw = self._sample_signed_abs_command(
                     LOW_YAW_ENVELOPE_YAW_ABS_RANGE)
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "feasible_mixed_low_speed":
+            primitive = int(self.np_random.integers(0, 16))
+            if primitive in (0, 1):
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (2, 3):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (4, 5):
+                vx = 0.0
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+                yaw = 0.0
+            elif primitive in (6, 7):
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            elif primitive in (8, 9, 10, 11):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+                yaw = 0.0
+            else:
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE)
+                vy = 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "feasible_forward_diagonal_repair":
+            primitive = int(self.np_random.integers(0, 16))
+            if primitive == 0:
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (1, 2):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (3, 4, 5, 6, 7, 8):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy_sign = 1.0 if primitive in (3, 5, 7) else -1.0
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=vy_sign)
+                yaw = 0.0
+            elif primitive in (9, 10):
+                vx, yaw = 0.0, 0.0
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+            elif primitive == 11:
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            elif primitive in (12, 13):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            else:
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+                yaw = 0.0
             return self._with_fixed_command_overrides(vx, vy, yaw)
 
         if self.command_curriculum == "mixed_composition_repair":
