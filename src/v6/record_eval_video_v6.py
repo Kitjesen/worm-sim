@@ -42,7 +42,8 @@ SEGMENT_LABELS = ["head"] + [f"seg{i}" for i in range(1, 7)]
 DISPLAY_VELOCITY_WINDOW_S = 1.50
 
 
-def command_for_time(schedule, time_s, duration_s, cmd_vx, cmd_vy, cmd_yaw):
+def command_for_time(schedule, time_s, duration_s, cmd_vx, cmd_vy, cmd_yaw,
+                     dynamic_yaw_scale=1.0):
     """Return the body-frame command for fixed or dynamic video rollouts."""
     if schedule in (None, "fixed"):
         return (
@@ -62,7 +63,8 @@ def command_for_time(schedule, time_s, duration_s, cmd_vx, cmd_vy, cmd_yaw):
     scale = envelope * speed_mod
     vx = 0.22 * scale * np.cos(phase)
     vy = 0.13 * scale * np.sin(phase)
-    yaw = 0.22 * scale * np.sin(2.0 * phase)
+    yaw_scale = float(np.clip(dynamic_yaw_scale, 0.0, 1.0))
+    yaw = 0.22 * yaw_scale * scale * np.sin(2.0 * phase)
     return (
         float(np.clip(vx, *CMD_VX_RANGE)),
         float(np.clip(vy, *CMD_VY_RANGE)),
@@ -210,6 +212,10 @@ def main():
                     help=(
                         "Use fixed command or a smooth continuously changing "
                         "vx/vy/yaw schedule for one video."))
+    ap.add_argument("--dynamic-yaw-scale", type=float, default=1.0,
+                    help=(
+                        "Scale only the yaw component of the dynamic command "
+                        "schedule; useful for yaw authority diagnostics."))
     ap.add_argument("--encoder-pos-noise", type=float, default=0.0)
     ap.add_argument("--encoder-vel-noise", type=float, default=0.0)
     ap.add_argument("--imu-gravity-noise", type=float, default=0.0)
@@ -236,7 +242,7 @@ def main():
     cmd_yaw = float(np.clip(args.cmd_yaw, *CMD_YAW_RANGE))
     initial_cmd = command_for_time(
         args.dynamic_command_schedule, 0.0, args.time,
-        cmd_vx, cmd_vy, cmd_yaw)
+        cmd_vx, cmd_vy, cmd_yaw, args.dynamic_yaw_scale)
 
     raw_env = DummyVecEnv([make_env(
         terrain=args.terrain,
@@ -332,6 +338,7 @@ def main():
             cmd_vx,
             cmd_vy,
             cmd_yaw,
+            args.dynamic_yaw_scale,
         )
         if args.dynamic_command_schedule != "fixed":
             sim_env.set_command(
@@ -456,6 +463,7 @@ def main():
             "cmd_vy_m_s": cmd_vy,
             "cmd_yaw_rad_s": cmd_yaw,
             "dynamic_command_schedule": args.dynamic_command_schedule,
+            "dynamic_yaw_scale": args.dynamic_yaw_scale,
             "command_resample_prob": 0.0,
         },
         "action_adapter": action_adapter_contract(),

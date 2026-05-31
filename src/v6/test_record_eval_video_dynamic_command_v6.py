@@ -24,6 +24,12 @@ def main():
         command_for_time("continuous_sweep", t, 20.0, 0.0, 0.0, 0.0)
         for t in times
     ], dtype=np.float64)
+    low_yaw_cmds = np.asarray([
+        command_for_time(
+            "continuous_sweep", t, 20.0, 0.0, 0.0, 0.0,
+            dynamic_yaw_scale=0.25)
+        for t in times
+    ], dtype=np.float64)
     assert np.all(cmds[:, 0] <= CMD_VX_RANGE[1] + 1e-9)
     assert np.all(cmds[:, 0] >= CMD_VX_RANGE[0] - 1e-9)
     assert np.all(cmds[:, 1] <= CMD_VY_RANGE[1] + 1e-9)
@@ -37,6 +43,9 @@ def main():
     assert np.any(cmds[:, 2] > 0.03)
     assert np.any(cmds[:, 2] < -0.03)
     assert np.max(np.abs(np.diff(cmds, axis=0))) < 0.04
+    assert np.allclose(low_yaw_cmds[:, :2], cmds[:, :2])
+    assert np.max(np.abs(low_yaw_cmds[:, 2])) < (
+        0.30 * np.max(np.abs(cmds[:, 2])))
 
     print("dynamic record command schedule passed")
 

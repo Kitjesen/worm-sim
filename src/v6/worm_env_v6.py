@@ -174,10 +174,14 @@ W_COMPONENT_TRACKING = 1.5
 W_MIXED_PLANAR_COMPONENT_TRACKING = 2.5
 W_MIXED_PLANAR_SIGN = 3.0
 W_MIXED_PLANAR_FULLSCALE_DEFICIT = 4.0
+W_YAW_BODY_COMPACTNESS = 10.0
 MIXED_PLANAR_FULLSCALE_THRESHOLD = 0.75
 YAW_DRIFT_TOLERANCE_RAD = 0.20
 YAW_STATIONARY_TOLERANCE_M_S = 0.02
 YAW_STATIONARY_PENALTY_CLIP = 6.0
+YAW_BODY_MIN_EXTENT_RATIO = 0.55
+YAW_BODY_MIN_HEAD_TAIL_RATIO = 0.30
+YAW_BODY_MIN_ARC_RATIO = 0.70
 LATERAL_ONLY_FORWARD_TOLERANCE_M_S = 0.04
 LATERAL_ONLY_PROGRESS_TARGET_M_S = 0.06
 GAIT_GATE_WORM_TARGET_SLOW = COMMAND_GATE_WORM_CENTER_SLOW
@@ -187,7 +191,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v28"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v29"
 
 
 def reward_contract():
@@ -218,6 +222,7 @@ def reward_contract():
             "mixed_planar_sign": W_MIXED_PLANAR_SIGN,
             "mixed_planar_fullscale_deficit": (
                 W_MIXED_PLANAR_FULLSCALE_DEFICIT),
+            "yaw_body_compactness": W_YAW_BODY_COMPACTNESS,
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
         },
@@ -239,6 +244,10 @@ def reward_contract():
             "yaw_only_stationary_speed_penalty": True,
             "yaw_stationary_tolerance_m_s": YAW_STATIONARY_TOLERANCE_M_S,
             "yaw_stationary_penalty_clip": YAW_STATIONARY_PENALTY_CLIP,
+            "yaw_only_body_compactness_penalty": True,
+            "yaw_body_min_extent_ratio": YAW_BODY_MIN_EXTENT_RATIO,
+            "yaw_body_min_head_tail_ratio": YAW_BODY_MIN_HEAD_TAIL_RATIO,
+            "yaw_body_min_arc_ratio": YAW_BODY_MIN_ARC_RATIO,
             "pure_lateral_forward_drift_penalty": True,
             "pure_lateral_forward_tolerance_m_s": (
                 LATERAL_ONLY_FORWARD_TOLERANCE_M_S),
@@ -505,6 +514,9 @@ class WormEnvV6(gym.Env):
         start_xmat = self.data.xmat[self._root_body_id].reshape(3, 3)
         self._start_forward_axis = -start_xmat[:2, 0].copy()
         self._start_lateral_axis = start_xmat[:2, 1].copy()
+        start_shape = self._body_shape_terms()
+        self._start_body_extent_m = start_shape["body_extent_m"]
+        self._start_body_arc_m = start_shape["body_arc_m"]
         self._step_count = 0
         return self._get_obs(), {}
 
@@ -666,6 +678,74 @@ class WormEnvV6(gym.Env):
     def _root_yaw_rad(self):
         mat = self.data.xmat[self._root_body_id].reshape(3, 3)
         return math.atan2(mat[1, 0], mat[0, 0])
+
+    def _body_shape_terms(self):
+        """Reward-only body compactness metrics from simulator segment poses."""
+        if not hasattr(self, "_seg_ids") or len(self._seg_ids) < 2:
+            return {
+                "body_extent_m": 0.0,
+                "body_arc_m": 0.0,
+                "body_head_tail_m": 0.0,
+                "body_extent_ratio": 1.0,
+                "body_arc_ratio": 1.0,
+                "body_head_tail_ratio": 1.0,
+                "yaw_body_compactness_penalty": 0.0,
+            }
+
+        positions = np.asarray(
+            [self.data.xpos[sid] for sid in self._seg_ids],
+            dtype=np.float64,
+        )[:, :2]
+        link_lengths = np.linalg.norm(np.diff(positions, axis=0), axis=1)
+        body_arc = float(np.sum(link_lengths))
+        body_head_tail = float(np.linalg.norm(positions[-1] - positions[0]))
+        xy_min = np.min(positions, axis=0)
+        xy_max = np.max(positions, axis=0)
+        body_extent = float(np.linalg.norm(xy_max - xy_min))
+
+        start_extent = max(
+            float(getattr(self, "_start_body_extent_m", body_extent)),
+            1e-6,
+        )
+        start_arc = max(
+            float(getattr(self, "_start_body_arc_m", body_arc)),
+            1e-6,
+        )
+        body_extent_ratio = body_extent / start_extent
+        body_arc_ratio = body_arc / start_arc
+        body_head_tail_ratio = (
+            body_head_tail / max(body_arc, 1e-6)
+            if body_arc > 1e-6 else 1.0)
+
+        extent_deficit = max(
+            0.0,
+            (YAW_BODY_MIN_EXTENT_RATIO - body_extent_ratio)
+            / max(YAW_BODY_MIN_EXTENT_RATIO, 1e-6),
+        )
+        head_tail_deficit = max(
+            0.0,
+            (YAW_BODY_MIN_HEAD_TAIL_RATIO - body_head_tail_ratio)
+            / max(YAW_BODY_MIN_HEAD_TAIL_RATIO, 1e-6),
+        )
+        arc_deficit = max(
+            0.0,
+            (YAW_BODY_MIN_ARC_RATIO - body_arc_ratio)
+            / max(YAW_BODY_MIN_ARC_RATIO, 1e-6),
+        )
+        compactness_penalty = float(np.clip(
+            max(extent_deficit, head_tail_deficit, arc_deficit),
+            0.0,
+            3.0,
+        ))
+        return {
+            "body_extent_m": body_extent,
+            "body_arc_m": body_arc,
+            "body_head_tail_m": body_head_tail,
+            "body_extent_ratio": float(body_extent_ratio),
+            "body_arc_ratio": float(body_arc_ratio),
+            "body_head_tail_ratio": float(body_head_tail_ratio),
+            "yaw_body_compactness_penalty": compactness_penalty,
+        }
 
     def _add_noise(self, values, std):
         if std <= 0.0:
@@ -1745,6 +1825,10 @@ class WormEnvV6(gym.Env):
             / max(YAW_STATIONARY_TOLERANCE_M_S, 1e-6),
             YAW_STATIONARY_PENALTY_CLIP,
         )
+        body_shape_terms = self._body_shape_terms()
+        yaw_body_compactness = float(
+            yaw_only_gate
+            * body_shape_terms["yaw_body_compactness_penalty"])
         lateral_only_forward_norm = min(
             abs(forward_speed)
             / max(LATERAL_ONLY_FORWARD_TOLERANCE_M_S, 1e-6),
@@ -1799,6 +1883,15 @@ class WormEnvV6(gym.Env):
             "reward_yaw_drift_penalty": float(yaw_hold_gate * yaw_drift_norm),
             "reward_yaw_stationary_penalty": float(
                 yaw_only_gate * yaw_stationary_speed_norm),
+            "reward_yaw_body_compactness_penalty": float(
+                yaw_body_compactness),
+            "body_extent_m": float(body_shape_terms["body_extent_m"]),
+            "body_arc_m": float(body_shape_terms["body_arc_m"]),
+            "body_head_tail_m": float(body_shape_terms["body_head_tail_m"]),
+            "body_extent_ratio": float(body_shape_terms["body_extent_ratio"]),
+            "body_arc_ratio": float(body_shape_terms["body_arc_ratio"]),
+            "body_head_tail_ratio": float(
+                body_shape_terms["body_head_tail_ratio"]),
             "reward_lateral_only_forward_penalty": float(
                 lateral_only_gate * lateral_only_forward_norm),
             "reward_lateral_only_speed_deficit_penalty": float(
@@ -1836,6 +1929,7 @@ class WormEnvV6(gym.Env):
             - W_YAW_ERROR * yaw_error_norm
             - W_YAW_DRIFT * yaw_hold_gate * yaw_drift_norm
             - W_YAW_STATIONARY * yaw_only_gate * yaw_stationary_speed_norm
+            - W_YAW_BODY_COMPACTNESS * yaw_body_compactness
             - W_LATERAL_ONLY_FORWARD_DRIFT * lateral_only_gate * (
                 lateral_only_forward_norm)
             - W_LATERAL_ONLY_SPEED_DEFICIT * lateral_only_gate * (

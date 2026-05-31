@@ -84,11 +84,14 @@ class DummyModel:
 
 
 class DummyData:
-    def __init__(self):
+    def __init__(self, num_bodies=1):
         self.qvel = np.zeros(6, dtype=np.float64)
         self.ctrl = np.zeros(0, dtype=np.float64)
-        self.xpos = np.zeros((1, 3), dtype=np.float64)
-        self.xmat = np.eye(3, dtype=np.float64).reshape(1, 9)
+        self.xpos = np.zeros((num_bodies, 3), dtype=np.float64)
+        self.xmat = np.tile(
+            np.eye(3, dtype=np.float64).reshape(1, 9),
+            (num_bodies, 1),
+        )
 
 
 def reward_for(body_vx, body_vy=0.0, yaw_rate=0.0,
@@ -139,6 +142,50 @@ def reward_terms_for(body_vx, body_vy=0.0, yaw_rate=0.0,
     env.data.qvel[0] = -body_vx
     env.data.qvel[1] = body_vy
     env.data.qvel[5] = yaw_rate
+    reward = WormEnvV6._compute_reward(
+        env, np.zeros(NUM_ACTUATORS, dtype=np.float32))
+    return reward, dict(env._last_reward_terms)
+
+
+def body_shape_reference(segment_xy):
+    positions = np.asarray(segment_xy, dtype=np.float64)
+    link_lengths = np.linalg.norm(np.diff(positions, axis=0), axis=1)
+    xy_min = np.min(positions, axis=0)
+    xy_max = np.max(positions, axis=0)
+    return {
+        "arc_m": float(np.sum(link_lengths)),
+        "extent_m": float(np.linalg.norm(xy_max - xy_min)),
+    }
+
+
+def reward_terms_for_body_shape(segment_xy, cmd_yaw=CMD_YAW_RANGE[1],
+                                cmd_vx=0.0, cmd_vy=0.0):
+    segment_xy = np.asarray(segment_xy, dtype=np.float64)
+    straight_xy = np.column_stack((
+        -0.18 * np.arange(len(segment_xy), dtype=np.float64),
+        np.zeros(len(segment_xy), dtype=np.float64),
+    ))
+    reference = body_shape_reference(straight_xy)
+
+    env = object.__new__(WormEnvV6)
+    env._cmd_vx = cmd_vx
+    env._cmd_vy = cmd_vy
+    env._cmd_yaw = cmd_yaw
+    env._last_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._last_residual_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._last_prior_component = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._last_residual_component = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._last_pre_clip_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._act_qvel_idx = []
+    env._root_body_id = 0
+    env._seg_ids = list(range(len(segment_xy)))
+    env._last_root_pos = np.zeros(3, dtype=np.float64)
+    env._start_body_extent_m = reference["extent_m"]
+    env._start_body_arc_m = reference["arc_m"]
+    env.model = DummyModel()
+    env.data = DummyData(num_bodies=len(segment_xy))
+    env.data.xpos[:, :2] = segment_xy
+    env.data.qvel[5] = cmd_yaw
     reward = WormEnvV6._compute_reward(
         env, np.zeros(NUM_ACTUATORS, dtype=np.float32))
     return reward, dict(env._last_reward_terms)
@@ -296,6 +343,29 @@ def main():
     _, yaw_only_high_drift_terms = reward_terms_for(
         0.10, body_vy=0.0, yaw_rate=0.10,
         cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=CMD_YAW_RANGE[1])
+    straight_shape_xy = np.column_stack((
+        -0.18 * np.arange(7, dtype=np.float64),
+        np.zeros(7, dtype=np.float64),
+    ))
+    compact_shape_xy = np.array([
+        [0.00, 0.00],
+        [0.05, 0.02],
+        [0.02, 0.05],
+        [-0.03, 0.04],
+        [-0.05, 0.00],
+        [-0.02, -0.04],
+        [0.03, -0.03],
+    ], dtype=np.float64)
+    yaw_straight_shape_reward, yaw_straight_shape_terms = (
+        reward_terms_for_body_shape(straight_shape_xy))
+    yaw_compact_shape_reward, yaw_compact_shape_terms = (
+        reward_terms_for_body_shape(compact_shape_xy))
+    forward_compact_shape_reward, forward_compact_shape_terms = (
+        reward_terms_for_body_shape(
+            compact_shape_xy,
+            cmd_yaw=0.0,
+            cmd_vx=CMD_VX_RANGE[1],
+        ))
     prior_action = np.ones(NUM_ACTUATORS, dtype=np.float32)
     residual_smooth = reward_for(
         CMD_VX_RANGE[1],
@@ -378,6 +448,17 @@ def main():
     assert yaw_only_high_drift_terms[
         "reward_yaw_stationary_penalty"] > yaw_only_medium_drift_terms[
             "reward_yaw_stationary_penalty"]
+    assert yaw_straight_shape_terms[
+        "reward_yaw_body_compactness_penalty"] == 0.0
+    assert yaw_compact_shape_terms[
+        "reward_yaw_body_compactness_penalty"] > 0.5
+    assert yaw_straight_shape_reward > yaw_compact_shape_reward + 5.0, (
+        yaw_straight_shape_reward, yaw_compact_shape_reward)
+    assert forward_compact_shape_terms[
+        "reward_yaw_body_compactness_penalty"] == 0.0
+    assert np.isclose(
+        forward_compact_shape_terms["body_extent_ratio"],
+        yaw_compact_shape_terms["body_extent_ratio"])
     assert residual_smooth > residual_jump, (residual_smooth, residual_jump)
     assert axial_preserved > axial_cancelled, (
         axial_preserved, axial_cancelled)
@@ -394,7 +475,7 @@ def main():
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v28"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v29"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -404,6 +485,10 @@ def main():
     assert contract["normalization"]["zero_yaw_heading_hold_weight_boost"]
     assert contract["normalization"]["yaw_only_stationary_speed_penalty"]
     assert contract["normalization"]["yaw_stationary_penalty_clip"] == 6.0
+    assert contract["normalization"]["yaw_only_body_compactness_penalty"]
+    assert contract["normalization"]["yaw_body_min_extent_ratio"] > 0.0
+    assert contract["normalization"]["yaw_body_min_head_tail_ratio"] > 0.0
+    assert contract["normalization"]["yaw_body_min_arc_ratio"] > 0.0
     assert contract["normalization"]["pure_lateral_forward_drift_penalty"]
     assert contract["normalization"]["pure_lateral_speed_deficit_penalty"]
     assert contract["normalization"]["pure_lateral_progress_target_m_s"] > 0.0
@@ -429,6 +514,7 @@ def main():
         "command_conditioned_gait_gate_regularizer"]["enabled"]
     assert contract["weights"]["yaw_drift"] >= 6.0
     assert contract["weights"]["yaw_stationary"] >= 3.0
+    assert contract["weights"]["yaw_body_compactness"] > 0.0
     assert contract["weights"]["lateral_only_forward_drift"] > 0.0
     assert contract["weights"]["lateral_only_speed_deficit"] > 0.0
     assert contract["weights"]["planar_component_deficit"] > 0.0
