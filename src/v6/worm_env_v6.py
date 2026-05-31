@@ -60,6 +60,7 @@ from action_adapter_v6 import (
     command_conditioned_gait_blend,
     command_activity_scale,
     command_conditioned_prior_scale,
+    command_conditioned_residual_scale,
     compose_deployable_action,
     directional_gait_prior_from_phase,
     gait_blend_from_policy_gate,
@@ -167,6 +168,8 @@ W_PLANAR_COMPONENT_DEFICIT = 1.5
 W_GAIT_GATE_TARGET = 3.0
 W_AXIAL_PRIOR_PRESERVE = 2.0
 W_COMPONENT_TRACKING = 1.5
+W_MIXED_PLANAR_COMPONENT_TRACKING = 2.5
+W_MIXED_PLANAR_SIGN = 3.0
 YAW_DRIFT_TOLERANCE_RAD = 0.20
 YAW_STATIONARY_TOLERANCE_M_S = 0.02
 LATERAL_ONLY_FORWARD_TOLERANCE_M_S = 0.04
@@ -178,7 +181,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v25"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v26"
 
 
 def reward_contract():
@@ -204,6 +207,9 @@ def reward_contract():
             "gait_gate_target": W_GAIT_GATE_TARGET,
             "axial_prior_preserve": W_AXIAL_PRIOR_PRESERVE,
             "component_tracking": W_COMPONENT_TRACKING,
+            "mixed_planar_component_tracking": (
+                W_MIXED_PLANAR_COMPONENT_TRACKING),
+            "mixed_planar_sign": W_MIXED_PLANAR_SIGN,
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
         },
@@ -241,6 +247,8 @@ def reward_contract():
             "pure_axial_residual_cancellation_penalty": True,
             "pure_axial_slide_wave_preservation_penalty": True,
             "componentwise_vx_vy_yaw_tracking_cost": True,
+            "mixed_planar_component_tracking_cost": True,
+            "mixed_planar_sign_penalty": True,
             "component_tracking_cost_scale": {
                 "vx": CMD_VX_RANGE[1],
                 "vy": CMD_VY_RANGE[1],
@@ -521,11 +529,14 @@ class WormEnvV6(gym.Env):
         prior_scale = self.gait_prior_scale * command_conditioned_prior_scale(
             *command_norm)
         activity_scale = command_activity_scale(*command_norm)
+        residual_scale = (
+            self.policy_residual_scale
+            * command_conditioned_residual_scale(*command_norm))
         self._last_prior_component = (
             activity_scale * prior_scale * prior).astype(np.float32)
         self._last_residual_component = (
             activity_scale
-            * self.policy_residual_scale
+            * residual_scale
             * residual_action).astype(np.float32)
         self._last_pre_clip_action = (
             self._last_prior_component
@@ -1405,6 +1416,12 @@ class WormEnvV6(gym.Env):
                 and abs(cmd_vy) <= 1e-6
                 and abs(cmd_yaw) <= 1e-6)
             else 0.0)
+        mixed_planar_gate = (
+            1.0
+            if (abs(cmd_vx) > 1e-6
+                and abs(cmd_vy) > 1e-6
+                and abs(cmd_yaw) <= 1e-6)
+            else 0.0)
         prior_component = np.asarray(
             getattr(self, "_last_prior_component",
                     np.zeros(NUM_ACTUATORS, dtype=np.float32)),
@@ -1484,6 +1501,17 @@ class WormEnvV6(gym.Env):
                 max(0.0, abs(cmd_vy) - vy_progress)
                 / max(CMD_VY_RANGE[1], 1e-6))
         planar_component_deficit = min(planar_component_deficit, 3.0)
+        mixed_planar_component_cost = float(mixed_planar_gate * np.clip(
+            vx_error_norm ** 2 + vy_error_norm ** 2,
+            0.0,
+            9.0,
+        ))
+        mixed_planar_sign_violation = 0.0
+        if mixed_planar_gate > 0.0:
+            if cmd_vx * forward_speed <= 0.0:
+                mixed_planar_sign_violation += 1.0
+            if cmd_vy * lateral_speed <= 0.0:
+                mixed_planar_sign_violation += 1.0
         backward_speed = max(0.0, -along_cmd) / speed_scale
         off_axis_speed_norm = off_axis_speed / speed_scale
         yaw_stationary_speed_norm = min(
@@ -1551,6 +1579,10 @@ class WormEnvV6(gym.Env):
                 lateral_only_gate * lateral_only_speed_deficit),
             "reward_planar_component_deficit_penalty": float(
                 planar_component_deficit),
+            "reward_mixed_planar_component_tracking_penalty": float(
+                mixed_planar_component_cost),
+            "reward_mixed_planar_sign_penalty": float(
+                mixed_planar_sign_violation),
             "desired_gait_blend": float(desired_gait_blend),
             "gait_gate_error": float(gate_target_active * gait_gate_error),
             "reward_axial_prior_preserve_penalty": float(
@@ -1579,6 +1611,9 @@ class WormEnvV6(gym.Env):
             - W_LATERAL_ONLY_SPEED_DEFICIT * lateral_only_gate * (
                 lateral_only_speed_deficit)
             - W_PLANAR_COMPONENT_DEFICIT * planar_component_deficit
+            - W_MIXED_PLANAR_COMPONENT_TRACKING * (
+                mixed_planar_component_cost)
+            - W_MIXED_PLANAR_SIGN * mixed_planar_sign_violation
             - W_GAIT_GATE_TARGET * gate_target_active * gait_gate_error
             - W_AXIAL_PRIOR_PRESERVE * axial_prior_preserve_penalty
             - W_COMPONENT_TRACKING * component_tracking_cost

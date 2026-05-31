@@ -180,15 +180,15 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V41-V50 Status
+### Latest Flat V41-V52 Status
 
-The newest flat line is V41-V50. It keeps the deployable ABI fixed:
+The newest flat line is V41-V52. It keeps the deployable ABI fixed:
 
 - observation remains 80D;
 - policy action remains `11D residual + 1D learned latent gait gate`;
 - actor and critic are both `512-256-128`;
-- action adapter is `cmaes_tri_anchor_auto_gate_directional_v28`;
-- latest reward contract is `omni_directional_offaxis_yaw_v25`.
+- action adapter is `cmaes_tri_anchor_auto_gate_directional_v29`;
+- latest reward contract is `omni_directional_offaxis_yaw_v26`.
 
 V26 added searched left/right lateral primitives on the same 1 s deployable
 phase clock. V27 keeps the same hardware-facing interface and fixes the
@@ -209,14 +209,15 @@ record/current/flat_omni_v41_v26_scan_after40k/scan_35_commands_best.json
 | `yaw_sign_rate` | `1.00` |
 | `fixed_lateral_strict_gate_passed` | `true` |
 
-V47-V50 added stricter command-class proof, componentwise tracking cost,
+V47-V52 added stricter command-class proof, componentwise tracking cost,
 mixed-composition repair sampling, scan telemetry, and a mixed-yaw sign adapter
 fix. V50 also tested componentwise mixed-prior composition, but that path is
 default-off because the smoke result regressed mixed-planar sign reliability.
-They did not yet pass continuous tracking. The latest default-guard result is:
+V51/V52 then tested residual-authority and mixed-planar reward repairs. They
+did not yet pass continuous tracking. The latest strict result is:
 
 ```text
-record/current/flat_omni_v50_default_guard_scan/strict_scan_analysis.md
+record/current/flat_omni_v52_mixed_planar_reward_train_final_scan/strict_scan_analysis.md
 ```
 
 | Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Status |
@@ -224,6 +225,8 @@ record/current/flat_omni_v50_default_guard_scan/strict_scan_analysis.md
 | V49 adapter scan | `0.1515` | `0.1196` | `0` | `0` | partial improvement, still rejected |
 | V50 componentwise-prior final smoke | `0.1801` | `0.2075` | `4` | `0` | rejected |
 | V50 default guard scan | `0.1498` | `0.2003` | `0` | `0` | baseline protected, still rejected |
+| V51 residual-authority final | `0.1553` | `0.1907` | `0` | `0` | rejected |
+| V52 mixed-planar reward final | `0.1534` | `0.1978` | `0` | `0` | rejected |
 
 Detailed proof note:
 
@@ -240,11 +243,13 @@ shows the dominant failure is still mixed command composition:
   authority;
 - V50's stronger componentwise prior is an ablation result, not the accepted
   default; enable it only with `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1`;
+- V51/V52 keep the safer prior path and improve yaw RMSE/sign preservation,
+  but mixed `vx/vy` planar RMSE remains too high;
 - V41/V49 remain the conservative baseline until a candidate passes the strict
   scan gate.
 
 The detailed movement table is in
-[V41-V50 movement summary](docs/omni_v41_v46_motion_summary.md).
+[V41-V52 movement summary](docs/omni_v41_v46_motion_summary.md).
 
 ### Latest Flat V29 Status
 
@@ -311,7 +316,7 @@ not beat V29:
 
 The retained post-V29 code changes are the targeted mixed-yaw sampling contract
 (`omni_directional_offaxis_yaw_v18`) and configurable PPO learning rate. V29 is
-now superseded as the active development line by V41-V50 diagnostics, although
+now superseded as the active development line by V41-V52 diagnostics, although
 V41 is still only a weak omnidirectional prototype rather than accepted
 continuous velocity tracking. See
 [V30-V33 repair log](docs/omni_v30_v33_repair_log.md).
@@ -447,7 +452,7 @@ cross-terrain paper claims should wait until all modes are retrained plus
 
 ## Current Effect Summary
 
-The strongest current evidence is structural plus the latest flat V41-V50
+The strongest current evidence is structural plus the latest flat V41-V52
 repair line:
 
 - Deployable observation contract passes audit.
@@ -482,7 +487,7 @@ repair line:
   `133.48 mm/s`, and snake `62.89 mm/s`; the local 4K CMA-ES comparison still
   shows the stronger raw full-combined gait at `247.97 mm/s`.
 - Historical directional control has a flat V12 six-direction gate pass, but
-  the current V41-V50 line should still be described as weak omnidirectional
+  the current V41-V52 line should still be described as weak omnidirectional
   control until the 35-command continuous tracking gate passes.
 - The next training/evaluation work should not jump straight to paper claims:
   rerun robust flat tests, compare learned gate against fixed worm/mixed/snake

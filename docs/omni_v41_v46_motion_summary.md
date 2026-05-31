@@ -399,3 +399,48 @@ This means V50 is useful as an ablation result, not as the next accepted
 controller. The next repair should keep the V49/V41 baseline protected and
 target mixed `vx/vy` composition through reward, curriculum, or residual
 authority instead of injecting a stronger hand-composed prior by default.
+
+## V51/V52 residual and reward repair
+
+V51 keeps the V49/V41 dominant-prior path and adds command-conditioned
+residual authority:
+
+```text
+ACTION_ADAPTER_VERSION = cmaes_tri_anchor_auto_gate_directional_v29
+mixed_vx_vy residual multiplier = 1.80
+mixed_vx_yaw residual multiplier = 1.60
+pure_yaw residual multiplier = 1.25
+```
+
+No-retrain V51 preserved zero wrong signs but worsened RMSE slightly, which
+shows the old policy does not automatically benefit from the new action scale.
+A 50k continuation from V48 final improved yaw RMSE but did not fix planar
+tracking.
+
+V52 then added reward contract `omni_directional_offaxis_yaw_v26`, with extra
+mixed-planar component tracking and sign penalties, and continued 50k from V51
+final.
+
+| Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Status |
+| --- | ---: | ---: | ---: | ---: | --- |
+| V51 no-retrain | `0.1575` | `0.2102` | `0` | `0` | rejected |
+| V51 train final | `0.1553` | `0.1907` | `0` | `0` | rejected |
+| V52 train best | `0.1546` | `0.1945` | `0` | `0` | rejected |
+| V52 train final | `0.1534` | `0.1978` | `0` | `0` | rejected |
+
+V52 is the best of this local branch on yaw/sign gates, but it is not an
+accepted continuous tracker because planar RMSE remains above `0.10` and
+yaw-only planar drift remains above `0.08 m/s`:
+
+```text
+record/current/flat_omni_v52_mixed_planar_reward_train_final_scan
+planar_rmse_m_s = 0.1534
+yaw_rmse_rad_s = 0.1978
+yaw_only_mean_planar_speed_m_s = 0.0967
+dominant_failure_group = mixed_vx_vy
+```
+
+The next repair should probably target the gait/prior structure for mixed
+`vx/vy` rather than only increasing training pressure: the learned residual
+L2 rose, but the measured mixed-planar velocities still under-produce one
+component.

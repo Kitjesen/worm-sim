@@ -2,13 +2,11 @@
 
 ## Current Target (2026-05-31)
 
-V50 mixed-command composition repair has now been implemented and tested on
-flat terrain. The result is **rejected as the default control path**: it did
-not pass the strict 35-command scan and made mixed-planar sign reliability
-worse during the smoke experiment. The next target is therefore a V51 repair
-that keeps the V49/V41 baseline protected while improving mixed-command
-tracking through curriculum/reward/residual authority instead of stronger
-hand-composed priors.
+V50 mixed-command composition repair has been implemented and rejected as the
+default control path. V51/V52 then tested the safer follow-up: keep the
+V49/V41 prior path, increase mixed-command residual authority, and add a
+mixed-planar component/sign reward. This produced a small improvement but still
+does **not** solve continuous tracking on flat terrain.
 
 The continuing goal is to keep the deployable interface fixed while repairing
 the failure modes exposed by the strict 35-command scan:
@@ -32,9 +30,10 @@ The still-open flat acceptance targets are:
 
 V49 fixed part of the mixed-yaw sign issue, reducing `mixed_vx_yaw` yaw RMSE
 from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and
-`mixed_vx_vy` remained the dominant failure class. V50 then tested a
-componentwise mixed-prior composition and confirmed that simply injecting
-stronger composed priors is not sufficient.
+`mixed_vx_vy` remained the dominant failure class. V50 confirmed that simply
+injecting stronger composed priors is not sufficient. V51/V52 show that
+residual authority plus mixed-planar reward can preserve zero wrong signs and
+bring yaw RMSE under the gate, but planar RMSE is still too high.
 
 ## Done
 
@@ -318,12 +317,24 @@ stronger composed priors is not sufficient.
   `yaw_rmse_rad_s=0.2003`, `wrong_planar_sign_count=0`, and
   `wrong_yaw_sign_count=0`. It still fails continuous tracking, with
   `mixed_vx_vy` remaining the dominant failure group.
+- V51 added command-conditioned residual authority without changing the 80D/12D
+  deployable ABI: mixed `vx/vy` residual multiplier `1.80`, mixed yaw
+  multiplier `1.60`, and pure-yaw multiplier `1.25`. A 50k continuation from
+  V48 final preserved yaw signs and improved yaw RMSE in the final scan to
+  `0.1907`, but planar RMSE remained `0.1553`; the candidate is still rejected.
+- V52 added reward contract `omni_directional_offaxis_yaw_v26` with mixed
+  planar component tracking and sign penalties, then continued 50k from V51
+  final. The final scan reports `planar_rmse_m_s=0.1534`,
+  `yaw_rmse_rad_s=0.1978`, `wrong_planar_sign_count=0`, and
+  `wrong_yaw_sign_count=0`. This is a small improvement over V51 final but
+  still fails the flat continuous-tracking gate; `mixed_vx_vy` remains the
+  dominant failure group.
 - Latest detailed movement table and artifact list:
   `docs/omni_v41_v46_motion_summary.md`.
 
 ## Not Done
 
-- The current V41-V50 line is not an accepted continuous tracker yet. It is a
+- The current V41-V52 line is not an accepted continuous tracker yet. It is a
   weak omnidirectional prototype with correct signs and fixed-lateral gate
   repair.
 - Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
@@ -393,11 +404,12 @@ stronger composed priors is not sufficient.
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V41-V50 line keeps the deployable ABI fixed, restores fixed left/right
+flat V41-V52 line keeps the deployable ABI fixed, restores fixed left/right
 lateral authority through searched lateral primitives, tests axial
 prior-preservation for visible worm-like actuation, partially fixes the
-mixed-yaw sign path, and rejects the V50 componentwise-prior hypothesis. The
-project is not yet at "any velocity command can be tracked": planar RMSE
-remains around `0.15 m/s`, reverse is weak, and mixed planar commands do not
-track both components reliably. The next accepted advance must pass the strict
-35-command scan rather than a visually plausible video.
+mixed-yaw sign path, rejects the V50 componentwise-prior hypothesis, and tests
+V51/V52 residual/reward repairs. The project is not yet at "any velocity
+command can be tracked": planar RMSE remains around `0.15 m/s`, reverse is
+weak, and mixed planar commands do not track both components reliably. The next
+accepted advance must pass the strict 35-command scan rather than a visually
+plausible video.

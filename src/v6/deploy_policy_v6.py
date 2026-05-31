@@ -31,6 +31,7 @@ from motor_contract_v6 import (  # noqa: E402
 from action_adapter_v6 import (  # noqa: E402
     CMAES_ANCHORS,
     COMMAND_ACTIVITY_MIN_ACTIVE_SCALE,
+    COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED,
     DEFAULT_GAIT_PRIOR_SCALE,
     DEFAULT_POLICY_RESIDUAL_SCALE,
     DIRECTIONAL_PRIOR_THRESHOLD,
@@ -59,7 +60,9 @@ from action_adapter_v6 import (  # noqa: E402
     MIXED_COMMAND_COMPOSITION_ENABLED,
     MIXED_LATERAL_SLIDE_GAIN,
     MIXED_LATERAL_YAW_GAIN,
+    MIXED_PLANAR_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_PRIOR_SCALE_FLOOR,
+    MIXED_YAW_RESIDUAL_SCALE_MULT,
     MIXED_YAW_PRIOR_SCALE_FLOOR,
     MIXED_YAW_SLIDE_GAIN,
     MIXED_YAW_YAW_GAIN,
@@ -67,6 +70,7 @@ from action_adapter_v6 import (  # noqa: E402
     REVERSE_PRIOR_SCALE_FLOOR,
     USE_CONTINUOUS_VECTOR_PRIOR_BLEND,
     YAW_ONLY_PRIOR_SCALE_FLOOR,
+    YAW_ONLY_RESIDUAL_SCALE_MULT,
     YAW_ONLY_SLIDE_PRIOR_SCALE,
     YAW_ONLY_YAW_PRIOR_SCALE,
     YAW_RIGHT_ONLY_YAW_PRIOR_SCALE,
@@ -601,6 +605,23 @@ class DeployablePPOActor(torch.nn.Module):
             torch.ones_like(forward_share),
             floor + (1.0 - floor) * forward_share,
         )
+        residual_multiplier = torch.ones_like(cmd_vx)
+        if bool(COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED):
+            residual_multiplier = torch.where(
+                yaw_only_mask,
+                ones * float(YAW_ONLY_RESIDUAL_SCALE_MULT),
+                residual_multiplier,
+            )
+            residual_multiplier = torch.where(
+                mixed_planar_mask,
+                ones * float(MIXED_PLANAR_RESIDUAL_SCALE_MULT),
+                residual_multiplier,
+            )
+            residual_multiplier = torch.where(
+                mixed_yaw_mask,
+                ones * float(MIXED_YAW_RESIDUAL_SCALE_MULT),
+                residual_multiplier,
+            )
         command_mag = torch.maximum(
             torch.maximum(torch.abs(cmd_vx), torch.abs(cmd_vy)),
             torch.abs(cmd_yaw),
@@ -623,7 +644,7 @@ class DeployablePPOActor(torch.nn.Module):
         )
         actions = (
             self.gait_prior_scale * conditioned_prior_scale * prior
-            + self.policy_residual_scale * residual)
+            + self.policy_residual_scale * residual_multiplier * residual)
         actions = command_activity_scale * actions
         return torch.clamp(actions, -1.0, 1.0)
 

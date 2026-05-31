@@ -25,7 +25,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v28"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v29"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 
 
@@ -51,6 +51,10 @@ COMMAND_GATE_LATERAL_CENTER = 0.00
 COMMAND_GATE_YAW_CENTER = 0.85
 DEFAULT_GAIT_PRIOR_SCALE = 1.0
 DEFAULT_POLICY_RESIDUAL_SCALE = 0.35
+COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED = True
+MIXED_PLANAR_RESIDUAL_SCALE_MULT = 1.80
+MIXED_YAW_RESIDUAL_SCALE_MULT = 1.60
+YAW_ONLY_RESIDUAL_SCALE_MULT = 1.25
 REVERSE_PRIOR_SCALE_FLOOR = 0.40
 LATERAL_PRIOR_SCALE_FLOOR = 1.00
 YAW_ONLY_PRIOR_SCALE_FLOOR = 1.00
@@ -270,6 +274,23 @@ def action_adapter_contract(
         "deployed_action_dim": NUM_ACTUATORS,
         "gait_prior_scale": float(gait_prior_scale),
         "policy_residual_scale": float(policy_residual_scale),
+        "command_conditioned_residual_authority": {
+            "enabled": COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED,
+            "source": "deployable normalized command obs[0:3]",
+            "formula": (
+                "residual_scale = policy_residual_scale * m(cmd); "
+                "m=1 for pure vx/vy, "
+                f"m={YAW_ONLY_RESIDUAL_SCALE_MULT:.2f} for pure yaw, "
+                f"m={MIXED_PLANAR_RESIDUAL_SCALE_MULT:.2f} for mixed vx/vy, "
+                f"m={MIXED_YAW_RESIDUAL_SCALE_MULT:.2f} for mixed yaw"),
+            "reason": (
+                "V50 strict scans showed hand-composed mixed priors degraded "
+                "sign reliability, while telemetry showed mixed-command "
+                "residual authority was tiny compared with the prior. V29 "
+                "keeps the safe V49/V41 prior path and gives the learned "
+                "residual more command-conditioned authority only where "
+                "continuous tracking needs correction."),
+        },
         "command_conditioned_prior_scale": {
             "enabled": True,
             "source": "deployable normalized command obs[0:3]",
@@ -473,6 +494,13 @@ def action_adapter_contract(
                 "lateral yaw structure, while mixed yaw commands inherit "
                 "stronger in-place yaw authority without removing axial "
                 "slides or doubling total motor authority."),
+            "v29_reason": (
+                "V50 rejected the stronger componentwise mixed-prior path. "
+                "V29 leaves that path behind an explicit experiment switch "
+                "and instead increases residual authority for mixed planar, "
+                "mixed yaw, and pure yaw commands so PPO can learn corrective "
+                "components without changing the deployable 80D observation "
+                "or 12D action ABI."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -929,6 +957,38 @@ def command_conditioned_prior_scale(
     return float(floor + (1.0 - floor) * forward_share)
 
 
+def command_conditioned_residual_scale(
+        cmd_vx_norm,
+        cmd_vy_norm,
+        cmd_yaw_norm):
+    if not COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED:
+        return 1.0
+    cmd_vx_norm = float(cmd_vx_norm)
+    cmd_vy_norm = float(cmd_vy_norm)
+    cmd_yaw_norm = float(cmd_yaw_norm)
+    abs_vx = abs(cmd_vx_norm)
+    abs_vy = abs(cmd_vy_norm)
+    abs_yaw = abs(cmd_yaw_norm)
+    threshold = DIRECTIONAL_PRIOR_THRESHOLD
+    yaw_only = (
+        abs_yaw >= threshold
+        and max(abs_vx, abs_vy) < threshold)
+    mixed_planar = (
+        abs_vx >= threshold
+        and abs_vy >= threshold
+        and abs_yaw < threshold)
+    mixed_yaw = (
+        abs_yaw >= threshold
+        and max(abs_vx, abs_vy) >= threshold)
+    if mixed_planar:
+        return MIXED_PLANAR_RESIDUAL_SCALE_MULT
+    if mixed_yaw:
+        return MIXED_YAW_RESIDUAL_SCALE_MULT
+    if yaw_only:
+        return YAW_ONLY_RESIDUAL_SCALE_MULT
+    return 1.0
+
+
 def command_activity_scale(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
     command_mag = max(
         abs(float(cmd_vx_norm)),
@@ -1038,12 +1098,14 @@ def compose_deployable_action(
             f"residual action shape {residual.shape} != {(NUM_ACTUATORS,)}")
     prior = directional_gait_prior_from_phase(phase, gait_blend, command)
     prior_scale = float(gait_prior_scale)
+    residual_scale = float(policy_residual_scale)
     if command is not None:
         prior_scale *= command_conditioned_prior_scale(*command)
+        residual_scale *= command_conditioned_residual_scale(*command)
     activity_scale = (
         1.0 if command is None else command_activity_scale(*command))
     action = (
         prior_scale * prior
-        + float(policy_residual_scale) * residual)
+        + residual_scale * residual)
     action *= activity_scale
     return np.clip(action, -1.0, 1.0).astype(np.float32)
