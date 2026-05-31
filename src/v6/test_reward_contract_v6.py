@@ -15,6 +15,7 @@ import numpy as np
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
+import action_adapter_v6 as action_adapter  # noqa: E402
 from train_v6 import (  # noqa: E402
     best_eval_schedule,
     best_eval_schedule_fingerprint,
@@ -59,6 +60,8 @@ from worm_env_v6 import (  # noqa: E402
 from action_adapter_v6 import (  # noqa: E402
     LATERAL_PHASE_OFFSET_RAD,
     LATERAL_PRIOR_SCALE_FLOOR,
+    MIXED_PLANAR_PRIOR_SCALE_FLOOR,
+    MIXED_YAW_PRIOR_SCALE_FLOOR,
     YAW_ONLY_SLIDE_PRIOR_SCALE,
     YAW_ONLY_YAW_PRIOR_SCALE,
 )
@@ -375,7 +378,7 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v27")
+    assert adapter_contract["version"].endswith("_v28")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     centers = adapter_contract["gait_gate_mapping"]["command_centers"]
@@ -397,6 +400,13 @@ def main():
         "inplace_yaw_prior"]["enabled"]
     assert adapter_contract["command_directional_prior_transform"][
         "lateral_primitives"]["enabled"]
+    mixed_composition_contract = adapter_contract[
+        "command_directional_prior_transform"][
+        "mixed_command_component_composition"]
+    assert mixed_composition_contract["available"]
+    assert not mixed_composition_contract["enabled"]
+    assert mixed_composition_contract["enable_env"] == (
+        "WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1")
     residual = np.zeros(NUM_ACTUATORS, dtype=np.float32)
     action = compose_deployable_action(residual, 0.0, gait_blend=0.0)
     assert np.allclose(action, prior)
@@ -471,6 +481,37 @@ def main():
     assert np.allclose(yaw_left_prior, scaled_yaw_open_loop)
     assert np.allclose(yaw_left_prior[:6], yaw_right_prior[:6])
     assert np.allclose(yaw_left_prior[6:], -yaw_right_prior[6:])
+    old_mixed_composition_enabled = (
+        action_adapter.MIXED_COMMAND_COMPOSITION_ENABLED)
+    action_adapter.MIXED_COMMAND_COMPOSITION_ENABLED = True
+    try:
+        mixed_planar_prior = action_adapter.directional_gait_prior_from_phase(
+            0.3, gait_blend=0.5, command=(0.5, 0.5, 0.0))
+        forward_prior = directional_gait_prior_from_phase(
+            0.3, gait_blend=0.5, command=(1.0, 0.0, 0.0))
+        lateral_left_prior = directional_gait_prior_from_phase(
+            0.3, gait_blend=0.5, command=(0.0, 1.0, 0.0))
+        assert not np.allclose(mixed_planar_prior, forward_prior)
+        assert not np.allclose(mixed_planar_prior, lateral_left_prior)
+        assert np.linalg.norm(mixed_planar_prior[:6]) >= (
+            0.75 * np.linalg.norm(forward_prior[:6]))
+        assert np.linalg.norm(mixed_planar_prior[6:]) >= (
+            0.60 * np.linalg.norm(lateral_left_prior[6:]))
+        mixed_yaw_prior = action_adapter.directional_gait_prior_from_phase(
+            0.3, gait_blend=0.5, command=(0.5, 0.0, 1.0))
+        assert np.linalg.norm(mixed_yaw_prior[:6]) >= (
+            0.40 * np.linalg.norm(forward_prior[:6]))
+        assert np.linalg.norm(mixed_yaw_prior[6:]) >= (
+            0.70 * np.linalg.norm(yaw_left_prior[6:]))
+        assert np.isclose(
+            command_prior_scale_floor(0.5, 0.5, 0.0),
+            MIXED_PLANAR_PRIOR_SCALE_FLOOR)
+        assert np.isclose(
+            command_prior_scale_floor(0.5, 0.0, 1.0),
+            MIXED_YAW_PRIOR_SCALE_FLOOR)
+    finally:
+        action_adapter.MIXED_COMMAND_COMPOSITION_ENABLED = (
+            old_mixed_composition_enabled)
     assert command_conditioned_prior_scale(1.0, 0.0, 0.0) == 1.0
     assert command_activity_scale(0.0, 0.0, 0.0) == 0.0
     assert np.isclose(command_activity_scale(0.5, 0.0, 0.0), 0.6)
@@ -480,6 +521,8 @@ def main():
         command_prior_scale_floor(0.0, 1.0, 0.0),
         LATERAL_PRIOR_SCALE_FLOOR)
     assert np.isclose(command_prior_scale_floor(0.0, 0.0, 1.0), 1.0)
+    assert np.isclose(command_prior_scale_floor(0.5, 0.5, 0.0), 0.4)
+    assert np.isclose(command_prior_scale_floor(0.5, 0.0, 1.0), 0.4)
     assert np.isclose(
         command_conditioned_prior_scale(-1.0, 0.0, 0.0), 0.4)
     assert np.isclose(
@@ -495,7 +538,7 @@ def main():
     )
     assert np.allclose(zero_command_action, 0.0)
     mixed_prior_scale = command_conditioned_prior_scale(0.6, 0.0, 1.0)
-    assert 0.55 < mixed_prior_scale < 0.8
+    assert 0.4 < mixed_prior_scale < 1.0
 
     env = object.__new__(WormEnvV6)
     env.np_random = np.random.default_rng(0)

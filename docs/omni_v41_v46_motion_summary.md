@@ -347,6 +347,55 @@ No-retrain scan with the V48 final model:
 | V49 adapter scan | `0.1515` | `0.1196` | `0.2145` | `4/6` | partial improvement, still rejected |
 
 Conclusion: the mixed-yaw sign issue was real and the fix helped, but the
-policy is still not a continuous tracker. The next target is V50 mixed-prior
+policy is still not a continuous tracker. The next target is mixed-prior
 authority/composition plus planar `vx/vy` composition, not simply more V48
 training.
+
+## V50 componentwise mixed-prior experiment
+
+V50 tested the direct hypothesis that mixed commands need explicit
+componentwise prior composition:
+
+```text
+ACTION_ADAPTER_VERSION = cmaes_tri_anchor_auto_gate_directional_v28
+WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1
+record/current/flat_omni_v50_mixed_component_norm_scan
+record/current/flat_omni_v50_mixed_component_train_final_scan
+```
+
+The adapter adds an experimental path that combines axial, lateral, and yaw
+primitive priors for commands with two or more active axes. It also fixes the
+deployment-side lateral/yaw prior transform to match the Python adapter. The
+80D observation and 12D residual-plus-gait-gate action ABI remain unchanged.
+
+Result: the hypothesis is rejected as a default path. No-retrain scans were
+worse than V49, and a short continuation from V48 final did not recover:
+
+| Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Status |
+| --- | ---: | ---: | ---: | ---: | --- |
+| V50 component norm no-retrain | `0.1842` | `0.2003` | `5` | `0` | rejected |
+| V50 train best | `0.1812` | `0.2137` | `5` | `0` | rejected |
+| V50 train final | `0.1801` | `0.2075` | `4` | `0` | rejected |
+
+The experimental componentwise-prior path is therefore default-off behind:
+
+```text
+WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1
+```
+
+The default-guard scan with the experiment disabled preserves correct signs
+but still does not pass continuous tracking:
+
+```text
+record/current/flat_omni_v50_default_guard_scan
+planar_rmse_m_s = 0.1498
+yaw_rmse_rad_s = 0.2003
+wrong_planar_sign_count = 0
+wrong_yaw_sign_count = 0
+dominant_failure_group = mixed_vx_vy
+```
+
+This means V50 is useful as an ablation result, not as the next accepted
+controller. The next repair should keep the V49/V41 baseline protected and
+target mixed `vx/vy` composition through reward, curriculum, or residual
+authority instead of injecting a stronger hand-composed prior by default.

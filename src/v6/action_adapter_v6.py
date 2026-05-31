@@ -12,6 +12,7 @@ of real controller state instead of hidden simulator time.
 """
 
 import math
+import os
 
 import numpy as np
 
@@ -24,8 +25,20 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v27"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v28"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
+
+
+def _env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return bool(default)
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+MIXED_COMMAND_COMPOSITION_EXPERIMENTAL_AVAILABLE = True
+MIXED_COMMAND_COMPOSITION_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION", default=False)
 POLICY_ACTION_DIM = NUM_ACTUATORS + 1
 GAIT_GATE_ACTION_GAIN = 3.0
 COMMAND_GATE_CENTER_RESIDUAL_RANGE = 0.35
@@ -44,6 +57,15 @@ YAW_ONLY_PRIOR_SCALE_FLOOR = 1.00
 YAW_ONLY_SLIDE_PRIOR_SCALE = 0.80
 YAW_ONLY_YAW_PRIOR_SCALE = 5.00
 YAW_RIGHT_ONLY_YAW_PRIOR_SCALE = 5.00
+MIXED_PLANAR_PRIOR_SCALE_FLOOR = 1.00
+MIXED_YAW_PRIOR_SCALE_FLOOR = 0.85
+MIXED_AXIAL_SLIDE_GAIN = 1.00
+MIXED_LATERAL_SLIDE_GAIN = 0.60
+MIXED_YAW_SLIDE_GAIN = 0.00
+MIXED_AXIAL_YAW_GAIN = 0.45
+MIXED_LATERAL_YAW_GAIN = 1.50
+MIXED_YAW_YAW_GAIN = 1.00
+MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM = True
 LATERAL_PHASE_OFFSET_RAD = -0.5 * math.pi
 ZERO_YAW_FORWARD_PHASE_OFFSET_RAD = math.pi
 ZERO_YAW_REVERSE_PHASE_OFFSET_RAD = math.pi
@@ -293,6 +315,47 @@ def action_adapter_contract(
                     "the default accepted adapter until a longer curriculum "
                     "or model-selection change proves the blend helps."),
             },
+            "mixed_command_component_composition": {
+                "available": MIXED_COMMAND_COMPOSITION_EXPERIMENTAL_AVAILABLE,
+                "enabled": MIXED_COMMAND_COMPOSITION_ENABLED,
+                "version": "v28",
+                "enable_env": "WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1",
+                "status": (
+                    "experimental_default_off_after_v50_smoke_rejected"
+                    if not MIXED_COMMAND_COMPOSITION_ENABLED
+                    else "experimental_enabled"),
+                "reason": (
+                    "V48/V49 strict scans showed that dominant-direction "
+                    "selection preserves signs but cannot compose mixed "
+                    "vx/vy or vx/yaw commands. V28 keeps pure-command "
+                    "priors unchanged and combines active axis primitives "
+                    "componentwise for mixed commands: axial commands "
+                    "primarily own slides, lateral commands own lateral "
+                    "yaw structure, and yaw commands inject the stronger "
+                    "in-place yaw primitive. V50 no-retrain and short "
+                    "continuation scans did not pass the strict gate, so "
+                    "the componentwise path is kept behind an explicit "
+                    "experiment switch instead of becoming the default."),
+                "gains": {
+                    "axial_slide": MIXED_AXIAL_SLIDE_GAIN,
+                    "lateral_slide": MIXED_LATERAL_SLIDE_GAIN,
+                    "yaw_slide": MIXED_YAW_SLIDE_GAIN,
+                    "axial_yaw": MIXED_AXIAL_YAW_GAIN,
+                    "lateral_yaw": MIXED_LATERAL_YAW_GAIN,
+                    "yaw_yaw": MIXED_YAW_YAW_GAIN,
+                },
+                "prior_scale_floors": {
+                    "mixed_planar": MIXED_PLANAR_PRIOR_SCALE_FLOOR,
+                    "mixed_yaw": MIXED_YAW_PRIOR_SCALE_FLOOR,
+                },
+                "normalization": {
+                    "axis_norm": MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM,
+                    "reason": (
+                        "Mixed commands should preserve multiple primitive "
+                        "components without doubling motor amplitude when two "
+                        "full-strength axes are active."),
+                },
+            },
             "reverse": "dominant negative vx reverses phase",
             "lateral": (
                 "dominant vy uses dedicated left/right open-loop lateral "
@@ -402,6 +465,14 @@ def action_adapter_contract(
                 "the yaw component. V27 keeps the same ABI and prior family "
                 "but makes mixed-yaw anchor yaw_sign follow the commanded yaw "
                 "sign instead of the legacy inverted transform."),
+            "v28_reason": (
+                "V49 improved mixed-yaw sign but left the dominant mixed_vx_vy "
+                "failure unchanged. V28 adds a componentwise mixed-command "
+                "prior with axis-norm normalization so mixed planar "
+                "commands can retain both axial slide authority and "
+                "lateral yaw structure, while mixed yaw commands inherit "
+                "stronger in-place yaw authority without removing axial "
+                "slides or doubling total motor authority."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -696,9 +767,77 @@ def _dominant_directional_gait_prior_from_phase(phase, gait_blend, command):
     return np.clip(prior, -1.0, 1.0).astype(np.float32)
 
 
+def _active_axis_gain(value, max_axis):
+    value = abs(float(value))
+    if value < DIRECTIONAL_PRIOR_THRESHOLD:
+        return 0.0
+    return float(np.clip(value / max(max_axis, 1e-9), 0.0, 1.0))
+
+
+def is_mixed_command(command):
+    if command is None:
+        return False
+    active_axes = sum(
+        1
+        for value in command
+        if abs(float(value)) >= DIRECTIONAL_PRIOR_THRESHOLD
+    )
+    return active_axes >= 2
+
+
+def _componentwise_mixed_gait_prior_from_phase(phase, gait_blend, command):
+    cmd_vx, cmd_vy, cmd_yaw = [float(v) for v in command]
+    abs_vx = abs(cmd_vx)
+    abs_vy = abs(cmd_vy)
+    abs_yaw = abs(cmd_yaw)
+    max_axis = max(abs_vx, abs_vy, abs_yaw)
+    if max_axis < DIRECTIONAL_PRIOR_THRESHOLD:
+        return gait_prior_from_phase(phase, gait_blend)
+
+    vx_gain = _active_axis_gain(cmd_vx, max_axis)
+    vy_gain = _active_axis_gain(cmd_vy, max_axis)
+    yaw_gain = _active_axis_gain(cmd_yaw, max_axis)
+    if (vx_gain > 0.0) + (vy_gain > 0.0) + (yaw_gain > 0.0) < 2:
+        return _dominant_directional_gait_prior_from_phase(
+            phase, gait_blend, command)
+
+    axial_prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    lateral_prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    yaw_prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+
+    if vx_gain > 0.0:
+        axial_prior = _dominant_directional_gait_prior_from_phase(
+            phase, gait_blend, (np.sign(cmd_vx), 0.0, 0.0))
+    if vy_gain > 0.0:
+        lateral_prior = _dominant_directional_gait_prior_from_phase(
+            phase, gait_blend, (0.0, np.sign(cmd_vy), 0.0))
+    if yaw_gain > 0.0:
+        yaw_prior = _dominant_directional_gait_prior_from_phase(
+            phase, gait_blend, (0.0, 0.0, np.sign(cmd_yaw)))
+
+    prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    prior[:NUM_SLIDES] = (
+        MIXED_AXIAL_SLIDE_GAIN * vx_gain * axial_prior[:NUM_SLIDES]
+        + MIXED_LATERAL_SLIDE_GAIN * vy_gain * lateral_prior[:NUM_SLIDES]
+        + MIXED_YAW_SLIDE_GAIN * yaw_gain * yaw_prior[:NUM_SLIDES]
+    )
+    prior[NUM_SLIDES:] = (
+        MIXED_AXIAL_YAW_GAIN * vx_gain * axial_prior[NUM_SLIDES:]
+        + MIXED_LATERAL_YAW_GAIN * vy_gain * lateral_prior[NUM_SLIDES:]
+        + MIXED_YAW_YAW_GAIN * yaw_gain * yaw_prior[NUM_SLIDES:]
+    )
+    if MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM:
+        axis_norm = math.sqrt(vx_gain ** 2 + vy_gain ** 2 + yaw_gain ** 2)
+        prior /= max(1.0, axis_norm)
+    return np.clip(prior, -1.0, 1.0).astype(np.float32)
+
+
 def directional_gait_prior_from_phase(phase, gait_blend, command=None):
     if command is None:
         return gait_prior_from_phase(phase, gait_blend)
+    if MIXED_COMMAND_COMPOSITION_ENABLED and is_mixed_command(command):
+        return _componentwise_mixed_gait_prior_from_phase(
+            phase, gait_blend, command)
     if not USE_CONTINUOUS_VECTOR_PRIOR_BLEND:
         return _dominant_directional_gait_prior_from_phase(
             phase, gait_blend, command)
@@ -746,9 +885,20 @@ def command_prior_scale_floor(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
     abs_yaw = abs(cmd_yaw_norm)
     reverse = max(-cmd_vx_norm, 0.0)
     threshold = DIRECTIONAL_PRIOR_THRESHOLD
+    mixed_planar = (
+        abs_vx >= threshold
+        and abs_vy >= threshold
+        and abs_yaw < threshold)
+    mixed_yaw = (
+        abs_yaw >= threshold
+        and max(abs_vx, abs_vy) >= threshold)
     if (abs_yaw >= threshold
             and max(abs_vx, abs_vy) < threshold):
         return YAW_ONLY_PRIOR_SCALE_FLOOR
+    if MIXED_COMMAND_COMPOSITION_ENABLED and mixed_yaw:
+        return MIXED_YAW_PRIOR_SCALE_FLOOR
+    if MIXED_COMMAND_COMPOSITION_ENABLED and mixed_planar:
+        return MIXED_PLANAR_PRIOR_SCALE_FLOOR
     if (abs_vy >= threshold
             and abs_vy > abs_vx
             and abs_vy >= abs_yaw):
