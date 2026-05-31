@@ -39,6 +39,35 @@ from action_adapter_v6 import action_adapter_contract  # noqa: E402
 
 
 SEGMENT_LABELS = ["head"] + [f"seg{i}" for i in range(1, 7)]
+DISPLAY_VELOCITY_WINDOW_S = 1.50
+
+
+def command_for_time(schedule, time_s, duration_s, cmd_vx, cmd_vy, cmd_yaw):
+    """Return the body-frame command for fixed or dynamic video rollouts."""
+    if schedule in (None, "fixed"):
+        return (
+            float(np.clip(cmd_vx, *CMD_VX_RANGE)),
+            float(np.clip(cmd_vy, *CMD_VY_RANGE)),
+            float(np.clip(cmd_yaw, *CMD_YAW_RANGE)),
+        )
+    if schedule != "continuous_sweep":
+        raise ValueError(f"unknown dynamic command schedule: {schedule}")
+
+    duration = max(float(duration_s), CTRL_DT)
+    tau = float(np.clip(time_s / duration, 0.0, 1.0))
+    # Smoothly start/finish near zero while sweeping direction and turn rate.
+    envelope = np.sin(np.pi * tau) ** 0.7
+    phase = 2.0 * np.pi * 1.25 * tau
+    speed_mod = 0.55 + 0.45 * (0.5 + 0.5 * np.sin(4.0 * np.pi * tau - np.pi / 2.0))
+    scale = envelope * speed_mod
+    vx = 0.22 * scale * np.cos(phase)
+    vy = 0.13 * scale * np.sin(phase)
+    yaw = 0.22 * scale * np.sin(2.0 * phase)
+    return (
+        float(np.clip(vx, *CMD_VX_RANGE)),
+        float(np.clip(vy, *CMD_VY_RANGE)),
+        float(np.clip(yaw, *CMD_YAW_RANGE)),
+    )
 
 
 def infer_norm_path(model_path):
@@ -125,7 +154,7 @@ def draw_head_speed_overlay(rgb, sim_env, scene_camera, info, cmd_vx, cmd_vy,
     body_vy = float(info.get("body_vy_m_s", 0.0))
     yaw_rate = float(info.get("body_yaw_rate_rad_s", 0.0))
     speed = float(np.linalg.norm([body_vx, body_vy]))
-    line1 = f"v_avg=({body_vx:+.3f},{body_vy:+.3f}) | |v|={speed:.3f}"
+    line1 = f"v_body=({body_vx:+.3f},{body_vy:+.3f}) | |v|={speed:.3f}"
     line2 = f"yaw={yaw_rate:+.3f} | cmd=({cmd_vx:+.2f},{cmd_vy:+.2f},{cmd_yaw:+.2f})"
 
     font = cv2.FONT_HERSHEY_SIMPLEX
@@ -176,6 +205,11 @@ def main():
     ap.add_argument("--cmd-vx", type=float, default=None)
     ap.add_argument("--cmd-vy", type=float, default=0.0)
     ap.add_argument("--cmd-yaw", type=float, default=0.0)
+    ap.add_argument("--dynamic-command-schedule", default="fixed",
+                    choices=["fixed", "continuous_sweep"],
+                    help=(
+                        "Use fixed command or a smooth continuously changing "
+                        "vx/vy/yaw schedule for one video."))
     ap.add_argument("--encoder-pos-noise", type=float, default=0.0)
     ap.add_argument("--encoder-vel-noise", type=float, default=0.0)
     ap.add_argument("--imu-gravity-noise", type=float, default=0.0)
@@ -200,15 +234,18 @@ def main():
     cmd_vx = float(np.clip(cmd_vx, *CMD_VX_RANGE))
     cmd_vy = float(np.clip(args.cmd_vy, *CMD_VY_RANGE))
     cmd_yaw = float(np.clip(args.cmd_yaw, *CMD_YAW_RANGE))
+    initial_cmd = command_for_time(
+        args.dynamic_command_schedule, 0.0, args.time,
+        cmd_vx, cmd_vy, cmd_yaw)
 
     raw_env = DummyVecEnv([make_env(
         terrain=args.terrain,
         gait_mode=args.gait_mode,
         gait_blend=args.gait_blend,
         seed=args.seed,
-        fixed_cmd_vx=cmd_vx,
-        fixed_cmd_vy=cmd_vy,
-        fixed_cmd_yaw=cmd_yaw,
+        fixed_cmd_vx=initial_cmd[0],
+        fixed_cmd_vy=initial_cmd[1],
+        fixed_cmd_yaw=initial_cmd[2],
         command_resample_prob=0.0,
         encoder_pos_noise_std=args.encoder_pos_noise,
         encoder_vel_noise_std=args.encoder_vel_noise,
@@ -284,8 +321,28 @@ def main():
     trajectory_times = []
     trajectory_positions = []
     telemetry_rows = []
+    root_history = []
 
     for step in range(steps):
+        step_time = step * CTRL_DT
+        current_cmd_vx, current_cmd_vy, current_cmd_yaw = command_for_time(
+            args.dynamic_command_schedule,
+            step_time,
+            args.time,
+            cmd_vx,
+            cmd_vy,
+            cmd_yaw,
+        )
+        if args.dynamic_command_schedule != "fixed":
+            sim_env.set_command(
+                vx=current_cmd_vx,
+                vy=current_cmd_vy,
+                yaw_rate=current_cmd_yaw,
+                gait_blend=args.gait_blend,
+            )
+            raw_obs = sim_env._get_obs().reshape(1, -1)
+            obs = raw_obs if args.prior_only else env.normalize_obs(raw_obs)
+
         if args.prior_only:
             action = np.zeros((1, sim_env.action_space.shape[0]), dtype=np.float32)
         else:
@@ -298,8 +355,25 @@ def main():
         current_yaw = root_yaw_rad(sim_env.data, sim_env._root_body_id)
         cumulative_yaw += wrap_pi(current_yaw - previous_yaw)
         previous_yaw = current_yaw
+        current_time = (step + 1) * CTRL_DT
+        current_root_pos = sim_env.data.xpos[sim_env._root_body_id].copy()
+        root_history.append((current_time, current_root_pos, cumulative_yaw))
+        while (len(root_history) > 2
+               and current_time - root_history[0][0]
+               > DISPLAY_VELOCITY_WINDOW_S):
+            root_history.pop(0)
+        hist_t0, hist_pos0, hist_yaw0 = root_history[0]
+        hist_dt = max(current_time - hist_t0, CTRL_DT)
+        hist_delta = current_root_pos - hist_pos0
+        window_info = dict(info)
+        window_info["body_vx_m_s"] = float(
+            np.dot(hist_delta[:2], start_forward_axis) / hist_dt)
+        window_info["body_vy_m_s"] = float(
+            np.dot(hist_delta[:2], start_lateral_axis) / hist_dt)
+        window_info["body_yaw_rate_rad_s"] = float(
+            (cumulative_yaw - hist_yaw0) / hist_dt)
         reward_sum += float(reward)
-        trajectory_times.append((step + 1) * CTRL_DT)
+        trajectory_times.append(current_time)
         trajectory_positions.append(np.stack(
             [sim_env.data.xpos[sid].copy() for sid in sim_env._seg_ids],
             axis=0,
@@ -310,7 +384,14 @@ def main():
             action_rate_l2.append(float(np.linalg.norm(action_vec - last_action)))
         last_action = action_vec.copy()
         telemetry_rows.append(build_telemetry_row(
-            (step + 1) * CTRL_DT, action_vec, info, sim_env))
+            current_time,
+            action_vec,
+            window_info,
+            sim_env,
+            current_cmd_vx,
+            current_cmd_vy,
+            current_cmd_yaw,
+        ))
 
         if step % frame_stride == 0:
             mid = np.mean(
@@ -328,24 +409,14 @@ def main():
             if args.no_head_speed_overlay:
                 frame = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
             else:
-                elapsed_now = max((step + 1) * CTRL_DT, 1e-9)
-                head_delta_now = (
-                    sim_env.data.xpos[sim_env._root_body_id] - start_pos)
-                overlay_info = dict(info)
-                overlay_info["body_vx_m_s"] = float(np.dot(
-                    head_delta_now[:2], start_forward_axis) / elapsed_now)
-                overlay_info["body_vy_m_s"] = float(np.dot(
-                    head_delta_now[:2], start_lateral_axis) / elapsed_now)
-                overlay_info["body_yaw_rate_rad_s"] = (
-                    cumulative_yaw / elapsed_now)
                 frame = draw_head_speed_overlay(
                     rgb,
                     sim_env,
                     renderer.scene.camera[0],
-                    overlay_info,
-                    cmd_vx,
-                    cmd_vy,
-                    cmd_yaw,
+                    window_info,
+                    current_cmd_vx,
+                    current_cmd_vy,
+                    current_cmd_yaw,
                 )
             writer.write(frame)
             frames += 1
@@ -384,6 +455,7 @@ def main():
             "cmd_vx_m_s": cmd_vx,
             "cmd_vy_m_s": cmd_vy,
             "cmd_yaw_rad_s": cmd_yaw,
+            "dynamic_command_schedule": args.dynamic_command_schedule,
             "command_resample_prob": 0.0,
         },
         "action_adapter": action_adapter_contract(),
@@ -448,6 +520,7 @@ def main():
             cmd_vx,
             cmd_vy,
             cmd_yaw,
+            command_label=args.dynamic_command_schedule,
         )
         metrics["trajectory_plot"] = args.trajectory_plot_out
     if telemetry_rows and args.telemetry_csv_out:
@@ -463,9 +536,17 @@ def main():
     print(json.dumps(metrics, indent=2))
 
 
-def build_telemetry_row(time_s, policy_action, info, sim_env):
+def build_telemetry_row(time_s, policy_action, info, sim_env,
+                        cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.0):
     row = {
         "time_s": float(time_s),
+        "cmd_vx_m_s": float(cmd_vx),
+        "cmd_vy_m_s": float(cmd_vy),
+        "cmd_yaw_rad_s": float(cmd_yaw),
+        "body_vx_m_s": float(info.get("body_vx_m_s", np.nan)),
+        "body_vy_m_s": float(info.get("body_vy_m_s", np.nan)),
+        "body_yaw_rate_rad_s": float(
+            info.get("body_yaw_rate_rad_s", np.nan)),
         "raw_gait_gate_action": float(policy_action[-1]),
         "learned_gait_blend": float(info.get("learned_gait_blend", np.nan)),
         "gait_blend": float(info.get("gait_blend", np.nan)),
@@ -573,7 +654,7 @@ def write_trajectory_csv(path, times, positions, start_segment_pos,
 
 def plot_trajectory(path, times, positions, start_segment_pos,
                     forward_axis, lateral_axis, terrain,
-                    cmd_vx, cmd_vy, cmd_yaw):
+                    cmd_vx, cmd_vy, cmd_yaw, command_label="fixed"):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -588,11 +669,13 @@ def plot_trajectory(path, times, positions, start_segment_pos,
     colors = plt.cm.viridis(np.linspace(0.05, 0.95, positions.shape[1]))
 
     fig, axes = plt.subplots(2, 2, figsize=(13, 8.5))
+    if command_label and command_label != "fixed":
+        title_cmd = f"cmd schedule={command_label}"
+    else:
+        title_cmd = f"cmd=({cmd_vx:.2f}, {cmd_vy:.2f}, {cmd_yaw:.2f})"
     fig.suptitle(
-        "Worm V6 policy segment trajectories on "
-        f"{terrain} | cmd=({cmd_vx:.2f}, {cmd_vy:.2f}, {cmd_yaw:.2f})",
-        fontsize=14,
-    )
+        f"Worm V6 policy segment trajectories on {terrain} | {title_cmd}",
+        fontsize=14)
 
     ax = axes[0, 0]
     for si, label in enumerate(SEGMENT_LABELS):
@@ -676,8 +759,23 @@ def plot_telemetry(path, rows):
         for r in rows
     ], dtype=np.float64).T
 
-    fig, axes = plt.subplots(4, 1, figsize=(13, 11), sharex=True)
+    fig, axes = plt.subplots(5, 1, figsize=(13, 13), sharex=True)
     ax = axes[0]
+    for cmd_key, meas_key, label in [
+            ("cmd_vx_m_s", "body_vx_m_s", "vx"),
+            ("cmd_vy_m_s", "body_vy_m_s", "vy"),
+            ("cmd_yaw_rad_s", "body_yaw_rate_rad_s", "yaw")]:
+        cmd_vals = np.asarray([r[cmd_key] for r in rows], dtype=np.float64)
+        meas_vals = np.asarray([r[meas_key] for r in rows], dtype=np.float64)
+        ax.plot(times, cmd_vals, linewidth=1.4, label=f"cmd {label}")
+        ax.plot(times, meas_vals, linewidth=1.1, linestyle="--",
+                label=f"body {label}")
+    ax.set_ylabel("m/s or rad/s")
+    ax.set_title("Commanded vs measured body-frame velocity")
+    ax.grid(True, alpha=0.25)
+    ax.legend(fontsize=8, ncol=3)
+
+    ax = axes[1]
     for key in keys:
         vals = np.asarray([r[key] for r in rows], dtype=np.float64)
         ax.plot(times, vals, linewidth=1.3, label=key)
@@ -688,9 +786,9 @@ def plot_telemetry(path, rows):
     ax.legend(fontsize=8, ncol=2)
 
     for ax, data, title in [
-            (axes[1], prior, "prior component"),
-            (axes[2], residual, "residual component"),
-            (axes[3], applied, "applied action")]:
+            (axes[2], prior, "prior component"),
+            (axes[3], residual, "residual component"),
+            (axes[4], applied, "applied action")]:
         image = ax.imshow(
             data,
             aspect="auto",
