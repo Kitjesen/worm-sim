@@ -228,8 +228,16 @@ lateral/yaw components. The detailed movement table is in
 The next flat branch is paper-guided V47: keep V41 as the resume point, keep
 the 80D observation and 12D action ABI fixed, and reframe training/evaluation
 as a command-tracking cost over `[vx, vy, yaw_rate]` plus control effort and
-prior-cancellation diagnostics. The paper notes are in
+prior-cancellation diagnostics. The V47 reward contract is
+`omni_directional_offaxis_yaw_v25`. The paper notes are in
 [actor-critic snake tracking notes](docs/paper_actor_critic_tracking_snake_robot_notes.md).
+
+First V47 smoke result: a local no-eval continuation reached `652,256` policy
+steps. It slightly reduced planar exceedance count versus the same-script V41
+scan, but still did not meet the continuous tracking target
+(`planar_rmse_m_s=0.1516`, target `<=0.10`). V41 remains the conservative
+baseline; V47 is currently a diagnostic tracking-cost branch, not an accepted
+controller.
 
 ### Latest Flat V29 Status
 

@@ -165,6 +165,7 @@ W_LATERAL_ONLY_SPEED_DEFICIT = 4.0
 W_PLANAR_COMPONENT_DEFICIT = 1.5
 W_GAIT_GATE_TARGET = 3.0
 W_AXIAL_PRIOR_PRESERVE = 2.0
+W_COMPONENT_TRACKING = 1.5
 YAW_DRIFT_TOLERANCE_RAD = 0.20
 YAW_STATIONARY_TOLERANCE_M_S = 0.02
 LATERAL_ONLY_FORWARD_TOLERANCE_M_S = 0.04
@@ -176,7 +177,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v24"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v25"
 
 
 def reward_contract():
@@ -201,6 +202,7 @@ def reward_contract():
             "planar_component_deficit": W_PLANAR_COMPONENT_DEFICIT,
             "gait_gate_target": W_GAIT_GATE_TARGET,
             "axial_prior_preserve": W_AXIAL_PRIOR_PRESERVE,
+            "component_tracking": W_COMPONENT_TRACKING,
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
         },
@@ -236,6 +238,12 @@ def reward_contract():
             "gait_blend_is_policy_gate": True,
             "pure_axial_residual_cancellation_penalty": True,
             "pure_axial_slide_wave_preservation_penalty": True,
+            "componentwise_vx_vy_yaw_tracking_cost": True,
+            "component_tracking_cost_scale": {
+                "vx": CMD_VX_RANGE[1],
+                "vy": CMD_VY_RANGE[1],
+                "yaw": CMD_YAW_RANGE[1],
+            },
             "command_conditioned_gait_gate_regularizer": {
                 "enabled": True,
                 "worm_target_for_axial_translation": GAIT_GATE_WORM_TARGET,
@@ -1244,6 +1252,33 @@ class WormEnvV6(gym.Env):
             progress_ratio = 1.0
         vel_err = float(np.linalg.norm(vel_vec - cmd_vec))
         yaw_err = yaw_rate - cmd_yaw
+        vx_error_norm = float(
+            np.clip(
+                (forward_speed - cmd_vx)
+                / max(abs(CMD_VX_RANGE[1]), 1e-6),
+                -3.0,
+                3.0,
+            ))
+        vy_error_norm = float(
+            np.clip(
+                (lateral_speed - cmd_vy)
+                / max(abs(CMD_VY_RANGE[1]), 1e-6),
+                -3.0,
+                3.0,
+            ))
+        yaw_rate_error_norm_signed = float(
+            np.clip(
+                yaw_err / max(abs(CMD_YAW_RANGE[1]), 1e-6),
+                -3.0,
+                3.0,
+            ))
+        component_tracking_cost = float(np.clip(
+            vx_error_norm ** 2
+            + vy_error_norm ** 2
+            + yaw_rate_error_norm_signed ** 2,
+            0.0,
+            9.0,
+        ))
         yaw_error_norm = min(
             abs(yaw_err) / max(abs(CMD_YAW_RANGE[1]), 1e-6),
             2.0,
@@ -1405,8 +1440,15 @@ class WormEnvV6(gym.Env):
             "body_vx_m_s": float(forward_speed),
             "body_vy_m_s": float(vel_vec[1]),
             "body_yaw_rate_rad_s": float(yaw_rate),
+            "vx_error_m_s": float(forward_speed - cmd_vx),
+            "vy_error_m_s": float(lateral_speed - cmd_vy),
             "planar_velocity_error_m_s": float(vel_err),
             "yaw_rate_error_rad_s": float(yaw_err),
+            "reward_component_tracking_cost": float(
+                component_tracking_cost),
+            "vx_error_norm": float(vx_error_norm),
+            "vy_error_norm": float(vy_error_norm),
+            "yaw_rate_error_norm": float(yaw_rate_error_norm_signed),
             "yaw_drift_rad": float(yaw_drift),
             "command_aligned_speed_m_s": float(along_cmd),
             "off_axis_speed_m_s": float(off_axis_speed),
@@ -1454,6 +1496,7 @@ class WormEnvV6(gym.Env):
             - W_PLANAR_COMPONENT_DEFICIT * planar_component_deficit
             - W_GAIT_GATE_TARGET * gate_target_active * gait_gate_error
             - W_AXIAL_PRIOR_PRESERVE * axial_prior_preserve_penalty
+            - W_COMPONENT_TRACKING * component_tracking_cost
             - W_ENERGY    * energy
             - W_SMOOTH    * action_rate
         )

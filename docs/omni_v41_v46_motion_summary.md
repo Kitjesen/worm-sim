@@ -191,8 +191,54 @@ The target is to reduce component tracking errors and threshold-exceedance
 counts, while preserving the learned snake-worm gait gate and preventing the
 residual action from erasing necessary worm-style slide activity.
 
+Implementation note: V47 uses reward contract
+`omni_directional_offaxis_yaw_v25`, which adds a componentwise tracking cost
+over `vx`, `vy`, and `yaw_rate` without changing the policy observation or
+action ABI.
+
 Detailed paper notes are in:
 
 ```text
 docs/paper_actor_critic_tracking_snake_robot_notes.md
 ```
+
+## V47 smoke result
+
+Run:
+
+```text
+runs/worm_v6_ppo_flat_random_v47_tracking_cost_from_v41best_noeval
+record/current/flat_omni_v47_tracking_cost_scan
+```
+
+The first V47 smoke line resumed V41 best and trained under
+`omni_directional_offaxis_yaw_v25` with local no-eval chunks. Training moved
+from `504,800` policy steps to `652,256` policy steps. The 17-case in-training
+directional evaluator could not be used on this machine because allocating all
+MuJoCo eval environments at once ran out of memory, so the run was evaluated
+after training with the single-environment 35-command scan.
+
+Same-script V41 baseline scan with the new V47 metrics:
+
+```text
+record/current/flat_omni_v41_v26_scan_with_v47_metrics/scan_35_commands_best.json
+```
+
+| Candidate | Planar RMSE | Yaw RMSE | vx exceed | vy exceed | planar exceed | off-axis exceed | Status |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V41 best rescanned | `0.1517` | `0.1105` | `18` | `5` | `18` | `2` | current baseline |
+| V47 final smoke | `0.1516` | `0.1183` | `17` | `5` | `15` | `2` | diagnostic only, not accepted |
+
+V47 preserved correct signs and fixed lateral strict gates:
+
+```text
+wrong_planar_sign_count = 0
+wrong_yaw_sign_count = 0
+fixed_lateral_strict_gate_passed = true
+```
+
+It made the exceedance counts slightly better, but did not solve continuous
+tracking. The main remaining failure is still mixed-command composition:
+reverse plus lateral, forward plus lateral, and forward plus yaw do not
+superpose reliably. The componentwise tracking cost is therefore useful as a
+diagnostic contract, but this first smoke line is not a replacement for V41.

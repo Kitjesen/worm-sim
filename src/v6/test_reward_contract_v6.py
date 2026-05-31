@@ -281,7 +281,7 @@ def main():
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v24"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v25"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -309,10 +309,17 @@ def main():
     assert contract["weights"]["planar_component_deficit"] > 0.0
     assert contract["weights"]["gait_gate_target"] > 0.0
     assert contract["weights"]["axial_prior_preserve"] > 0.0
+    assert contract["weights"]["component_tracking"] > 0.0
     assert contract["normalization"]["signed_planar_component_deficit_penalty"]
     assert contract["normalization"]["pure_axial_residual_cancellation_penalty"]
     assert contract["normalization"][
         "pure_axial_slide_wave_preservation_penalty"]
+    assert contract["normalization"]["componentwise_vx_vy_yaw_tracking_cost"]
+    assert contract["normalization"]["component_tracking_cost_scale"] == {
+        "vx": CMD_VX_RANGE[1],
+        "vy": CMD_VY_RANGE[1],
+        "yaw": CMD_YAW_RANGE[1],
+    }
     selection_contract = best_selection_contract()
     assert selection_contract["version"] == "omni_tracking_scan_v3"
     assert selection_contract["requires_continuous_tracking_metrics"]
