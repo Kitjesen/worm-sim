@@ -34,7 +34,7 @@ from worm_env_v6 import (  # noqa: E402
     OBS_DIM,
     reward_contract,
 )
-from worm_v6 import inject_strips  # noqa: E402
+from worm_v6 import NUM_ACTUATORS, inject_strips  # noqa: E402
 from action_adapter_v6 import action_adapter_contract  # noqa: E402
 
 
@@ -193,6 +193,8 @@ def main():
     ap.add_argument("--json-out", required=True)
     ap.add_argument("--trajectory-csv-out", default=None)
     ap.add_argument("--trajectory-plot-out", default=None)
+    ap.add_argument("--telemetry-csv-out", default=None)
+    ap.add_argument("--telemetry-plot-out", default=None)
     args = ap.parse_args()
     cmd_vx = args.cmd_vx if args.cmd_vx is not None else args.cmd_vel
     cmd_vx = float(np.clip(cmd_vx, *CMD_VX_RANGE))
@@ -281,6 +283,7 @@ def main():
     started = time.time()
     trajectory_times = []
     trajectory_positions = []
+    telemetry_rows = []
 
     for step in range(steps):
         if args.prior_only:
@@ -306,6 +309,8 @@ def main():
         if last_action is not None:
             action_rate_l2.append(float(np.linalg.norm(action_vec - last_action)))
         last_action = action_vec.copy()
+        telemetry_rows.append(build_telemetry_row(
+            (step + 1) * CTRL_DT, action_vec, info, sim_env))
 
         if step % frame_stride == 0:
             mid = np.mean(
@@ -445,8 +450,91 @@ def main():
             cmd_yaw,
         )
         metrics["trajectory_plot"] = args.trajectory_plot_out
+    if telemetry_rows and args.telemetry_csv_out:
+        write_telemetry_csv(args.telemetry_csv_out, telemetry_rows)
+        metrics["telemetry_csv"] = args.telemetry_csv_out
+    if telemetry_rows and args.telemetry_plot_out:
+        plot_telemetry(args.telemetry_plot_out, telemetry_rows)
+        metrics["telemetry_plot"] = args.telemetry_plot_out
+    if telemetry_rows:
+        metrics["gait_gate_telemetry"] = summarize_gate_telemetry(
+            telemetry_rows)
     write_json(args.json_out, metrics)
     print(json.dumps(metrics, indent=2))
+
+
+def build_telemetry_row(time_s, policy_action, info, sim_env):
+    row = {
+        "time_s": float(time_s),
+        "raw_gait_gate_action": float(policy_action[-1]),
+        "learned_gait_blend": float(info.get("learned_gait_blend", np.nan)),
+        "gait_blend": float(info.get("gait_blend", np.nan)),
+        "desired_gait_blend": float(info.get("desired_gait_blend", np.nan)),
+        "gait_gate_error": float(info.get("gait_gate_error", np.nan)),
+        "prior_component_l2": float(info.get("prior_component_l2", np.nan)),
+        "residual_component_l2": float(
+            info.get("residual_component_l2", np.nan)),
+        "applied_action_l2": float(info.get("applied_action_l2", np.nan)),
+    }
+    residual = np.asarray(
+        getattr(sim_env, "_last_residual_action", np.zeros(NUM_ACTUATORS)),
+        dtype=np.float64,
+    )
+    prior_component = np.asarray(
+        getattr(sim_env, "_last_prior_component", np.zeros(NUM_ACTUATORS)),
+        dtype=np.float64,
+    )
+    residual_component = np.asarray(
+        getattr(sim_env, "_last_residual_component", np.zeros(NUM_ACTUATORS)),
+        dtype=np.float64,
+    )
+    applied = np.asarray(
+        getattr(sim_env, "_last_action", np.zeros(NUM_ACTUATORS)),
+        dtype=np.float64,
+    )
+    for i in range(NUM_ACTUATORS):
+        row[f"policy_residual_{i}"] = float(policy_action[i])
+        row[f"ema_residual_{i}"] = float(residual[i])
+        row[f"prior_component_{i}"] = float(prior_component[i])
+        row[f"residual_component_{i}"] = float(residual_component[i])
+        row[f"applied_action_{i}"] = float(applied[i])
+    return row
+
+
+def summarize_gate_telemetry(rows):
+    def mean(key):
+        vals = np.asarray([r[key] for r in rows], dtype=np.float64)
+        vals = vals[np.isfinite(vals)]
+        return float(np.mean(vals)) if vals.size else None
+
+    def span(key):
+        vals = np.asarray([r[key] for r in rows], dtype=np.float64)
+        vals = vals[np.isfinite(vals)]
+        if not vals.size:
+            return None
+        return [float(np.min(vals)), float(np.max(vals))]
+
+    return {
+        "mean_raw_gait_gate_action": mean("raw_gait_gate_action"),
+        "raw_gait_gate_action_range": span("raw_gait_gate_action"),
+        "mean_learned_gait_blend": mean("learned_gait_blend"),
+        "learned_gait_blend_range": span("learned_gait_blend"),
+        "mean_deployed_gait_blend": mean("gait_blend"),
+        "deployed_gait_blend_range": span("gait_blend"),
+        "mean_desired_gait_blend": mean("desired_gait_blend"),
+        "mean_gait_gate_error": mean("gait_gate_error"),
+        "mean_prior_component_l2": mean("prior_component_l2"),
+        "mean_residual_component_l2": mean("residual_component_l2"),
+        "mean_applied_action_l2": mean("applied_action_l2"),
+    }
+
+
+def write_telemetry_csv(path, rows):
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def write_trajectory_csv(path, times, positions, start_segment_pos,
@@ -557,6 +645,68 @@ def plot_trajectory(path, times, positions, start_segment_pos,
     ax.grid(True, alpha=0.25)
 
     fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.savefig(path, dpi=180)
+    plt.close(fig)
+
+
+def plot_telemetry(path, rows):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    times = np.asarray([r["time_s"] for r in rows], dtype=np.float64)
+    keys = [
+        "raw_gait_gate_action",
+        "learned_gait_blend",
+        "gait_blend",
+        "desired_gait_blend",
+    ]
+    actuator_labels = [f"a{i}" for i in range(NUM_ACTUATORS)]
+    applied = np.asarray([
+        [r[f"applied_action_{i}"] for i in range(NUM_ACTUATORS)]
+        for r in rows
+    ], dtype=np.float64).T
+    prior = np.asarray([
+        [r[f"prior_component_{i}"] for i in range(NUM_ACTUATORS)]
+        for r in rows
+    ], dtype=np.float64).T
+    residual = np.asarray([
+        [r[f"residual_component_{i}"] for i in range(NUM_ACTUATORS)]
+        for r in rows
+    ], dtype=np.float64).T
+
+    fig, axes = plt.subplots(4, 1, figsize=(13, 11), sharex=True)
+    ax = axes[0]
+    for key in keys:
+        vals = np.asarray([r[key] for r in rows], dtype=np.float64)
+        ax.plot(times, vals, linewidth=1.3, label=key)
+    ax.set_ylabel("gate")
+    ax.set_title("Learned latent gait gate and deployed blend")
+    ax.set_ylim(-1.05, 1.05)
+    ax.grid(True, alpha=0.25)
+    ax.legend(fontsize=8, ncol=2)
+
+    for ax, data, title in [
+            (axes[1], prior, "prior component"),
+            (axes[2], residual, "residual component"),
+            (axes[3], applied, "applied action")]:
+        image = ax.imshow(
+            data,
+            aspect="auto",
+            interpolation="nearest",
+            cmap="coolwarm",
+            vmin=-1.0,
+            vmax=1.0,
+            extent=[times[0], times[-1], NUM_ACTUATORS - 0.5, -0.5],
+        )
+        ax.set_yticks(range(NUM_ACTUATORS))
+        ax.set_yticklabels(actuator_labels, fontsize=8)
+        ax.set_ylabel(title)
+        ax.grid(False)
+        fig.colorbar(image, ax=ax, pad=0.01, fraction=0.025)
+    axes[-1].set_xlabel("time (s)")
+    fig.tight_layout()
     fig.savefig(path, dpi=180)
     plt.close(fig)
 

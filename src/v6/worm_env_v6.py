@@ -58,7 +58,10 @@ from action_adapter_v6 import (
     action_adapter_contract,
     command_conditioned_gate_center,
     command_conditioned_gait_blend,
+    command_activity_scale,
+    command_conditioned_prior_scale,
     compose_deployable_action,
+    directional_gait_prior_from_phase,
     gait_blend_from_policy_gate,
 )
 
@@ -170,7 +173,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v20"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v21"
 
 
 def reward_contract():
@@ -248,7 +251,9 @@ def reward_contract():
                     "capping forward tracking speed. V20 keeps lateral "
                     "translation at the current adapter target and adds a "
                     "separate lateral speed-deficit reward so the policy "
-                    "cannot pass the repair curriculum by barely moving."),
+                    "cannot pass the repair curriculum by barely moving. V21 "
+                    "binds that deficit to signed body-frame lateral velocity "
+                    "instead of off-axis speed."),
             },
             "command_curriculum_supported": list(COMMAND_CURRICULA),
         },
@@ -392,6 +397,12 @@ class WormEnvV6(gym.Env):
         # ── State tracking ──
         self._last_action = neutral_normalized_action()
         self._last_residual_action = neutral_normalized_action()
+        self._last_policy_action = np.zeros(
+            NUM_POLICY_ACTIONS, dtype=np.float32)
+        self._last_prior_component = neutral_normalized_action()
+        self._last_residual_component = neutral_normalized_action()
+        self._last_pre_clip_action = neutral_normalized_action()
+        self._last_raw_gait_gate_action = 0.0
         self._action_delay_buffer = [
             neutral_normalized_action()
             for _ in range(self.action_delay_steps)
@@ -436,6 +447,12 @@ class WormEnvV6(gym.Env):
 
         self._last_action = neutral_normalized_action()
         self._last_residual_action = neutral_normalized_action()
+        self._last_policy_action = np.zeros(
+            NUM_POLICY_ACTIONS, dtype=np.float32)
+        self._last_prior_component = neutral_normalized_action()
+        self._last_residual_component = neutral_normalized_action()
+        self._last_pre_clip_action = neutral_normalized_action()
+        self._last_raw_gait_gate_action = 0.0
         self._action_delay_buffer = [
             neutral_normalized_action()
             for _ in range(self.action_delay_steps)
@@ -456,6 +473,8 @@ class WormEnvV6(gym.Env):
         action = np.clip(action, -1.0, 1.0).astype(np.float32)
         residual_command = action[:NUM_ACTUATORS]
         learned_gait_blend = gait_blend_from_policy_gate(action[-1])
+        self._last_policy_action = action.copy()
+        self._last_raw_gait_gate_action = float(action[-1])
 
         # Occasionally resample command mid-episode (curriculum diversity)
         if self.np_random.random() < self.command_resample_prob:
@@ -476,6 +495,20 @@ class WormEnvV6(gym.Env):
             ACTION_EMA * residual_command
             + (1.0 - ACTION_EMA) * self._last_residual_action)
         phase = 2.0 * math.pi * PHASE_FREQ * self._step_count * CTRL_DT
+        prior = directional_gait_prior_from_phase(
+            phase, self._gait_blend, command_norm)
+        prior_scale = self.gait_prior_scale * command_conditioned_prior_scale(
+            *command_norm)
+        activity_scale = command_activity_scale(*command_norm)
+        self._last_prior_component = (
+            activity_scale * prior_scale * prior).astype(np.float32)
+        self._last_residual_component = (
+            activity_scale
+            * self.policy_residual_scale
+            * residual_action).astype(np.float32)
+        self._last_pre_clip_action = (
+            self._last_prior_component
+            + self._last_residual_component).astype(np.float32)
         applied_action = compose_deployable_action(
             residual_action,
             phase=phase,
@@ -514,6 +547,12 @@ class WormEnvV6(gym.Env):
             "cmd_yaw_rad_s": float(self._cmd_yaw),
             "gait_blend": float(self._gait_blend),
             "learned_gait_blend": float(learned_gait_blend),
+            "raw_gait_gate_action": float(self._last_raw_gait_gate_action),
+            "prior_component_l2": float(np.linalg.norm(
+                self._last_prior_component)),
+            "residual_component_l2": float(np.linalg.norm(
+                self._last_residual_component)),
+            "applied_action_l2": float(np.linalg.norm(applied_action)),
             "gait_blend_source": (
                 "fixed" if self._fixed_gait_blend is not None
                 else "policy_action_gate"),
@@ -1183,7 +1222,7 @@ class WormEnvV6(gym.Env):
         # ── Other penalties ──
         forward_deficit = max(0.0, cmd_speed - along_cmd) / speed_scale
         backward_speed = max(0.0, -along_cmd) / speed_scale
-        lateral_speed = off_axis_speed / speed_scale
+        off_axis_speed_norm = off_axis_speed / speed_scale
         yaw_stationary_speed_norm = min(
             float(np.linalg.norm(vel_vec))
             / max(YAW_STATIONARY_TOLERANCE_M_S, 1e-6),
@@ -1199,7 +1238,7 @@ class WormEnvV6(gym.Env):
             LATERAL_ONLY_PROGRESS_TARGET_M_S,
         )
         lateral_progress = (
-            lateral_speed * float(np.sign(cmd_vy))
+            vel_vec[1] * float(np.sign(cmd_vy))
             if lateral_only_gate > 0.0 else 0.0)
         lateral_only_speed_deficit = min(
             max(0.0, lateral_progress_target - lateral_progress)
@@ -1252,7 +1291,7 @@ class WormEnvV6(gym.Env):
             - W_OVERSPEED * overspeed_sq
             - W_FORWARD_DEFICIT * forward_deficit
             - W_COMMAND_COST * float(cmd_speed > 1e-6)
-            - W_LATERAL   * lateral_speed
+            - W_LATERAL   * off_axis_speed_norm
             - W_BACKWARD  * backward_speed  # penalize going backward
             - W_YAW_ERROR * yaw_error_norm
             - W_YAW_DRIFT * yaw_hold_gate * yaw_drift_norm

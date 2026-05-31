@@ -14,6 +14,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
 from eval_v6 import command_tracking_metrics, find_vecnormalize  # noqa: E402
+from scan_command_tracking_v6 import evaluate_command, summarize  # noqa: E402
 
 
 def main():
@@ -66,6 +67,57 @@ def main():
         open(checkpoint, "wb").close()
         open(vecnorm, "wb").close()
         assert find_vecnormalize(checkpoint) == vecnorm
+
+    assert "policy_residual_scale" in evaluate_command.__code__.co_varnames
+
+    rows = [
+        {
+            "cmd_vx_m_s": 0.0,
+            "cmd_vy_m_s": 0.15,
+            "cmd_yaw_rad_s": 0.0,
+            "body_vx_m_s": 0.02,
+            "body_vy_m_s": 0.04,
+            "yaw_rate_rad_s": 0.05,
+            "planar_error_m_s": 0.11,
+            "yaw_error_rad_s": 0.05,
+            "planar_sign_ok": True,
+            "yaw_sign_ok": True,
+        },
+        {
+            "cmd_vx_m_s": 0.0,
+            "cmd_vy_m_s": -0.15,
+            "cmd_yaw_rad_s": 0.0,
+            "body_vx_m_s": 0.01,
+            "body_vy_m_s": -0.04,
+            "yaw_rate_rad_s": -0.04,
+            "planar_error_m_s": 0.11,
+            "yaw_error_rad_s": 0.04,
+            "planar_sign_ok": True,
+            "yaw_sign_ok": True,
+        },
+        {
+            "cmd_vx_m_s": 0.0,
+            "cmd_vy_m_s": 0.0,
+            "cmd_yaw_rad_s": 0.0,
+            "body_vx_m_s": 0.0,
+            "body_vy_m_s": 0.0,
+            "yaw_rate_rad_s": 0.0,
+            "planar_error_m_s": 0.0,
+            "yaw_error_rad_s": 0.0,
+            "planar_sign_ok": True,
+            "yaw_sign_ok": True,
+        },
+    ]
+    scan_summary = summarize(rows)
+    assert scan_summary["fixed_lateral_left_body_vy_m_s"] == 0.04
+    assert scan_summary["fixed_lateral_right_body_vy_m_s"] == -0.04
+    assert scan_summary["fixed_lateral_speed_gate_passed"]
+    assert scan_summary["fixed_lateral_strict_gate_passed"]
+
+    rows[1]["body_vy_m_s"] = -0.02
+    failed_summary = summarize(rows)
+    assert not failed_summary["fixed_lateral_speed_gate_passed"]
+    assert not failed_summary["fixed_lateral_strict_gate_passed"]
 
     print("omni eval metrics checks passed")
 

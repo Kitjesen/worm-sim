@@ -32,6 +32,10 @@ from worm_env_v6 import (  # noqa: E402
     reward_contract,
 )
 
+FIXED_LATERAL_SPEED_THRESHOLD_M_S = 0.03
+FIXED_LATERAL_OFF_AXIS_THRESHOLD_M_S = 0.08
+FIXED_LATERAL_YAW_THRESHOLD_RAD_S = 0.20
+
 
 def parse_values(text):
     return [float(v.strip()) for v in text.split(",") if v.strip()]
@@ -50,7 +54,8 @@ def default_model_path(run_dir):
 
 
 def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
-                     vx, vy, yaw, seconds, seed):
+                     vx, vy, yaw, seconds, seed,
+                     gait_prior_scale=1.0, policy_residual_scale=0.35):
     env = WormEnvV6(
         terrain=terrain,
         gait_mode=gait_mode,
@@ -59,6 +64,8 @@ def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
         fixed_cmd_vy=vy,
         fixed_cmd_yaw=yaw,
         command_resample_prob=0.0,
+        gait_prior_scale=gait_prior_scale,
+        policy_residual_scale=policy_residual_scale,
     )
     obs, _ = env.reset(seed=seed)
     env.set_command(vx=vx, vy=vy, yaw_rate=yaw, gait_blend=gait_blend)
@@ -176,7 +183,50 @@ def summarize(rows):
             return None
         return float(np.sqrt(np.mean([r[key] ** 2 for r in values])))
 
-    return {
+    def strongest_pure_lateral(sign):
+        candidates = [
+            r for r in rows
+            if (abs(r["cmd_vx_m_s"]) <= 1e-9
+                and abs(r["cmd_yaw_rad_s"]) <= 1e-9
+                and r["cmd_vy_m_s"] * sign > 1e-9)
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda r: abs(r["cmd_vy_m_s"]))
+
+    def lateral_fields(label, row, sign):
+        if row is None:
+            return {
+                f"fixed_lateral_{label}_cmd_vy_m_s": None,
+                f"fixed_lateral_{label}_body_vx_m_s": None,
+                f"fixed_lateral_{label}_body_vy_m_s": None,
+                f"fixed_lateral_{label}_yaw_rate_rad_s": None,
+                f"fixed_lateral_{label}_speed_passed": False,
+                f"fixed_lateral_{label}_strict_passed": False,
+            }
+        speed_passed = (
+            row["body_vy_m_s"] * sign >= FIXED_LATERAL_SPEED_THRESHOLD_M_S
+        )
+        strict_passed = (
+            speed_passed
+            and abs(row["body_vx_m_s"]) <= FIXED_LATERAL_OFF_AXIS_THRESHOLD_M_S
+            and abs(row["yaw_rate_rad_s"]) <= FIXED_LATERAL_YAW_THRESHOLD_RAD_S
+        )
+        return {
+            f"fixed_lateral_{label}_cmd_vy_m_s": float(row["cmd_vy_m_s"]),
+            f"fixed_lateral_{label}_body_vx_m_s": float(row["body_vx_m_s"]),
+            f"fixed_lateral_{label}_body_vy_m_s": float(row["body_vy_m_s"]),
+            f"fixed_lateral_{label}_yaw_rate_rad_s": float(row["yaw_rate_rad_s"]),
+            f"fixed_lateral_{label}_speed_passed": bool(speed_passed),
+            f"fixed_lateral_{label}_strict_passed": bool(strict_passed),
+        }
+
+    lateral_left = strongest_pure_lateral(sign=1.0)
+    lateral_right = strongest_pure_lateral(sign=-1.0)
+    left_fields = lateral_fields("left", lateral_left, sign=1.0)
+    right_fields = lateral_fields("right", lateral_right, sign=-1.0)
+
+    summary = {
         "num_commands": len(rows),
         "planar_rmse_m_s": rmse(planar_rows, "planar_error_m_s"),
         "yaw_rmse_rad_s": rmse(yaw_rows, "yaw_error_rad_s"),
@@ -208,7 +258,22 @@ def summarize(rows):
                 np.linalg.norm([r["body_vx_m_s"], r["body_vy_m_s"]])
                 for r in yaw_only_rows
             ])) if yaw_only_rows else None),
+        "fixed_lateral_speed_threshold_m_s": FIXED_LATERAL_SPEED_THRESHOLD_M_S,
+        "fixed_lateral_off_axis_threshold_m_s": (
+            FIXED_LATERAL_OFF_AXIS_THRESHOLD_M_S),
+        "fixed_lateral_yaw_threshold_rad_s": FIXED_LATERAL_YAW_THRESHOLD_RAD_S,
     }
+    summary.update(left_fields)
+    summary.update(right_fields)
+    summary["fixed_lateral_speed_gate_passed"] = bool(
+        summary["fixed_lateral_left_speed_passed"]
+        and summary["fixed_lateral_right_speed_passed"]
+    )
+    summary["fixed_lateral_strict_gate_passed"] = bool(
+        summary["fixed_lateral_left_strict_passed"]
+        and summary["fixed_lateral_right_strict_passed"]
+    )
+    return summary
 
 
 def write_csv(path, rows):
@@ -239,6 +304,8 @@ def main():
     ap.add_argument("--include-forward-yaw", action="store_true")
     ap.add_argument("--forward-yaw-vx-values", default="-0.125,0.125,0.25")
     ap.add_argument("--forward-yaw-values", default="-0.25,0.25")
+    ap.add_argument("--gait-prior-scale", type=float, default=1.0)
+    ap.add_argument("--policy-residual-scale", type=float, default=0.35)
     ap.add_argument("--json-out", default=None)
     ap.add_argument("--csv-out", default=None)
     args = ap.parse_args()
@@ -253,6 +320,8 @@ def main():
         terrain=args.terrain,
         gait_mode=args.gait_mode,
         gait_blend=args.gait_blend,
+        gait_prior_scale=args.gait_prior_scale,
+        policy_residual_scale=args.policy_residual_scale,
         command_resample_prob=0.0,
     )])
     norm_path = find_vecnormalize(model_path)
@@ -278,6 +347,8 @@ def main():
             yaw=yaw,
             seconds=args.time,
             seed=args.seed + idx,
+            gait_prior_scale=args.gait_prior_scale,
+            policy_residual_scale=args.policy_residual_scale,
         ))
 
     summary = {
@@ -289,7 +360,12 @@ def main():
         "time_s": args.time,
         "model_path": os.path.abspath(model_path),
         "vecnormalize": os.path.abspath(norm_path),
-        "action_adapter": action_adapter_contract(),
+        "gait_prior_scale": args.gait_prior_scale,
+        "policy_residual_scale": args.policy_residual_scale,
+        "action_adapter": action_adapter_contract(
+            gait_prior_scale=args.gait_prior_scale,
+            policy_residual_scale=args.policy_residual_scale,
+        ),
         "reward_contract": reward_contract(),
         "summary": summarize(rows),
         "commands": rows,

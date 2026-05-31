@@ -95,6 +95,25 @@ def reward_for(body_vx, body_vy=0.0, yaw_rate=0.0,
         env, action, residual_action=residual_action)
 
 
+def reward_terms_for(body_vx, body_vy=0.0, yaw_rate=0.0,
+                     cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.0):
+    env = object.__new__(WormEnvV6)
+    env._cmd_vx = cmd_vx
+    env._cmd_vy = cmd_vy
+    env._cmd_yaw = cmd_yaw
+    env._last_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._last_residual_action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    env._act_qvel_idx = []
+    env.model = DummyModel()
+    env.data = DummyData()
+    env.data.qvel[0] = -body_vx
+    env.data.qvel[1] = body_vy
+    env.data.qvel[5] = yaw_rate
+    reward = WormEnvV6._compute_reward(
+        env, np.zeros(NUM_ACTUATORS, dtype=np.float32))
+    return reward, dict(env._last_reward_terms)
+
+
 def reward_for_displacement(forward_delta_m):
     env = object.__new__(WormEnvV6)
     env._cmd_vx = CMD_VX_RANGE[1]
@@ -164,8 +183,20 @@ def main():
     lateral_clean = reward_for(
         0.0, body_vy=CMD_VY_RANGE[1],
         cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[1], cmd_yaw=0.0)
+    lateral_slow = reward_for(
+        0.0, body_vy=0.01,
+        cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[1], cmd_yaw=0.0)
     lateral_forward_drift = reward_for(
         0.08, body_vy=CMD_VY_RANGE[1],
+        cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[1], cmd_yaw=0.0)
+    lateral_left_reward, lateral_left_terms = reward_terms_for(
+        0.08, body_vy=CMD_VY_RANGE[1],
+        cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[1], cmd_yaw=0.0)
+    lateral_right_reward, lateral_right_terms = reward_terms_for(
+        0.08, body_vy=CMD_VY_RANGE[0],
+        cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[0], cmd_yaw=0.0)
+    lateral_wrong_reward, lateral_wrong_terms = reward_terms_for(
+        0.0, body_vy=-CMD_VY_RANGE[1],
         cmd_vx=0.0, cmd_vy=CMD_VY_RANGE[1], cmd_yaw=0.0)
     yaw_only_stationary = reward_for(
         0.0, body_vy=0.0, yaw_rate=0.10,
@@ -198,8 +229,18 @@ def main():
         forward_yaw_stable, forward_yaw_drift)
     assert lateral_yaw_stable > lateral_yaw_drift + 6.0, (
         lateral_yaw_stable, lateral_yaw_drift)
+    assert lateral_clean > lateral_slow + 2.0, (
+        lateral_clean, lateral_slow)
     assert lateral_clean > lateral_forward_drift + 6.0, (
         lateral_clean, lateral_forward_drift)
+    assert lateral_left_terms[
+        "reward_lateral_only_speed_deficit_penalty"] == 0.0
+    assert lateral_right_terms[
+        "reward_lateral_only_speed_deficit_penalty"] == 0.0
+    assert lateral_wrong_terms[
+        "reward_lateral_only_speed_deficit_penalty"] > 0.0
+    assert lateral_left_reward > lateral_wrong_reward
+    assert lateral_right_reward > lateral_wrong_reward
     assert yaw_only_stationary > yaw_only_with_planar_drift + 6.0, (
         yaw_only_stationary, yaw_only_with_planar_drift)
     assert residual_smooth > residual_jump, (residual_smooth, residual_jump)
@@ -207,7 +248,7 @@ def main():
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v20"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v21"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]

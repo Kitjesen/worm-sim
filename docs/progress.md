@@ -191,6 +191,30 @@
   `1920x1080`, 25 fps, 30 s single-command videos plus `3840x1440` and
   `3840x2160` 3x2 comparison videos. They include visual spring-steel strips
   and the head speed overlay.
+- V39 fixed a pure-lateral reward bug: the lateral-only speed deficit now uses
+  signed body-frame lateral velocity instead of off-axis speed. The V39
+  35-command scan still fails the new explicit lateral gate
+  (`left vy=+0.0231 m/s`, `right vy=-0.0158 m/s`, threshold `0.03 m/s`), so
+  V39 is not accepted. Residual-scale probes up to `0.70` also fail, showing
+  that evaluation-time residual authority is not enough.
+- V40 was run from the V37 final model with the V21 reward,
+  `continuous_omni` curriculum, actor/critic `512-256-128`, and 6 s directional
+  eval every 20k steps. It is still not accepted. The final held-out eval has
+  `tracking_gate_passed=false`, `direction_gate_passed=false`,
+  `planar_rmse_m_s=0.1056`, `yaw_rmse_rad_s=0.1952`; the final independent
+  35-command scan has `planar_rmse_m_s=0.1630`, `yaw_rmse_rad_s=0.1127`, and
+  fails fixed lateral speed (`left vy=+0.0260 m/s`, `right vy=-0.0097 m/s`).
+  Details are in
+  `docs/omni_v39_v40_lateral_reward_and_tracking_log.md`.
+- The recorder now supports optional gate/action telemetry CSV and plot output
+  for each video. It records raw gate action, learned/deployed gait blend,
+  desired gait blend, prior component, residual component, and applied action
+  without changing the deployable 80D observation or 12D action contract.
+- V40 final was recorded for 30 s per command under
+  `record/current/flat_omni_v40_v21_long30`: six H.264 `1920x1080`, 25 fps
+  single-command videos, trajectory plots, telemetry plots, and `3840x2160`
+  3x2 comparison video. The comparison verifies as 30.0 s and 750 frames.
+  Details are in `docs/omni_v40_long30_recording_log.md`.
 
 ## Not Done
 
@@ -241,6 +265,9 @@
 - V35/V36 are also not accepted policies. They show that the yaw-only prior
   scaling fix helps reduce pure-yaw planar drift, but lateral-only and mixed
   planar commands still dominate the remaining failure mode.
+- V39/V40 are not accepted. V39 fixes the lateral reward contract but does not
+  produce enough lateral speed; V40's final and best scans still fail fixed
+  lateral speed, especially right lateral motion.
 - No formal 1M-step PPO artifacts exist under the current V12 omni contract.
 - Fixed-mode eval, robust eval, auto-gated random-policy deploy bundles, and
   final paper summaries must be regenerated.
