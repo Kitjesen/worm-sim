@@ -489,3 +489,45 @@ global gain. Mixed planar motion needs either a better compositional gait
 family, a command-specific residual architecture/curriculum with stronger
 full-diagonal coverage, or a stricter selection schedule that promotes
 full-scale diagonal commands rather than only half-scale mixed cases.
+
+## V55/V56 split-prior and strict-diagonal selection
+
+V55 tested the first explicit mixed-planar gait-family repair after the
+dominant-prior diagnosis. The hypothesis was that mixed `vx/vy` needs axial
+contraction and lateral steering at the same time. The implementation is a
+default-off split-channel prior:
+
+```text
+ACTION_ADAPTER_VERSION = cmaes_tri_anchor_auto_gate_directional_v31
+WORM_V6_ENABLE_MIXED_PLANAR_SPLIT_PRIOR=1
+mixed vx/vy slides = signed axial primitive slides
+mixed vx/vy yaw joints = signed lateral primitive yaw joints
+```
+
+This hypothesis was rejected by evidence. The split prior made lateral motion
+more explicit but broke planar sign reliability under the already-trained
+policy and did not recover after a short continuation:
+
+| Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Yaw-only planar | Status |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| V55 split no-retrain V53 final | `0.2012` | `0.1697` | `8` | `0` | `0.0888` | rejected, default-off |
+| V55 split train best | `0.2023` | `0.1635` | `10` | `0` | `0.0889` | rejected, default-off |
+| V55 split train final | `0.2018` | `0.1761` | `7` | `0` | `0.0907` | rejected, default-off |
+
+V56 then addressed a different gap: the in-training best-model schedule only
+contained half-speed diagonal commands, while the strict scan's worst commands
+were full-speed diagonals `(±0.25, ±0.15, 0)`. V56 adds those four commands to
+`best_eval_schedule` without changing the policy ABI or reward contract.
+
+| Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Yaw-only planar | Status |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| V56 strict-diagonal best | `0.1509` | `0.1646` | `0` | `0` | `0.0873` | rejected |
+| V56 strict-diagonal final | `0.1538` | `0.1831` | `0` | `0` | `0.0980` | rejected |
+
+V56 is currently the safest local candidate on signs, yaw RMSE, and selection
+coverage, but it is not an accepted continuous tracker. The remaining hard
+problem is not command recognition: the policy now sees and is selected on the
+full diagonals, yet still under-produces mixed planar velocity magnitude. The
+next repair should target actuator-level authority for mixed diagonal
+translation or a residual architecture that can allocate separate slide and yaw
+corrections without losing sign reliability.

@@ -65,6 +65,7 @@ from action_adapter_v6 import (  # noqa: E402
     MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_PRIOR_SCALE_FLOOR,
+    MIXED_PLANAR_SPLIT_PRIOR_ENABLED,
     MIXED_YAW_RESIDUAL_SCALE_MULT,
     MIXED_YAW_PRIOR_SCALE_FLOOR,
     MIXED_YAW_SLIDE_GAIN,
@@ -459,6 +460,36 @@ class DeployablePPOActor(torch.nn.Module):
             prior = prior / torch.clamp(axis_norm, min=1.0)
         return torch.clamp(prior, -1.0, 1.0)
 
+    def _split_channel_mixed_planar_prior(
+            self, phase, gait_blend, cmd_vx, cmd_vy):
+        ones = torch.ones_like(cmd_vx)
+        zeros = torch.zeros_like(cmd_vx)
+        abs_vx = torch.abs(cmd_vx)
+        abs_vy = torch.abs(cmd_vy)
+        max_axis = torch.clamp(
+            torch.maximum(abs_vx, abs_vy),
+            min=float(DIRECTIONAL_PRIOR_THRESHOLD),
+        )
+        vx_gain = torch.clamp(abs_vx / max_axis, 0.0, 1.0)
+        vy_gain = torch.clamp(abs_vy / max_axis, 0.0, 1.0)
+        forward_prior = self._dominant_directional_prior(
+            phase, gait_blend, ones, zeros, zeros)
+        reverse_prior = self._dominant_directional_prior(
+            phase, gait_blend, -ones, zeros, zeros)
+        axial_prior = torch.where(cmd_vx >= 0.0, forward_prior, reverse_prior)
+        lateral_prior = self._lateral_prior(phase, cmd_vy)
+        return torch.clamp(
+            torch.cat(
+                [
+                    vx_gain * axial_prior[:, :NUM_SLIDES],
+                    vy_gain * lateral_prior[:, NUM_SLIDES:],
+                ],
+                dim=1,
+            ),
+            -1.0,
+            1.0,
+        )
+
     def forward(self, raw_obs):
         if raw_obs.dim() == 1:
             raw_obs = raw_obs.unsqueeze(0)
@@ -551,9 +582,27 @@ class DeployablePPOActor(torch.nn.Module):
             )
             >= 2
         )
+        mixed_planar_mask = (
+            (abs_vx >= threshold)
+            & (abs_vy >= threshold)
+            & (abs_yaw < threshold)
+        )
         ones = torch.ones_like(cmd_vx)
         phase = torch.atan2(raw_obs[:, 78:79], raw_obs[:, 79:80])
-        if bool(MIXED_COMMAND_COMPOSITION_ENABLED):
+        if bool(MIXED_PLANAR_SPLIT_PRIOR_ENABLED):
+            dominant_prior = self._dominant_directional_prior(
+                phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw)
+            if bool(MIXED_COMMAND_COMPOSITION_ENABLED):
+                mixed_prior = self._componentwise_mixed_directional_prior(
+                    phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw)
+                prior = torch.where(mixed_composition_mask, mixed_prior,
+                                    dominant_prior)
+            else:
+                prior = dominant_prior
+            split_prior = self._split_channel_mixed_planar_prior(
+                phase, gait_blend, cmd_vx, cmd_vy)
+            prior = torch.where(mixed_planar_mask, split_prior, prior)
+        elif bool(MIXED_COMMAND_COMPOSITION_ENABLED):
             dominant_prior = self._dominant_directional_prior(
                 phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw)
             mixed_prior = self._componentwise_mixed_directional_prior(
@@ -582,11 +631,6 @@ class DeployablePPOActor(torch.nn.Module):
             yaw_only_mask,
             ones * float(YAW_ONLY_PRIOR_SCALE_FLOOR),
             floor,
-        )
-        mixed_planar_mask = (
-            (abs_vx >= threshold)
-            & (abs_vy >= threshold)
-            & (abs_yaw < threshold)
         )
         mixed_yaw_mask = (
             (abs_yaw >= threshold)

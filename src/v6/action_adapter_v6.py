@@ -25,7 +25,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v30"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v31"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 
 
@@ -55,6 +55,9 @@ COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED = True
 MIXED_PLANAR_AUTHORITY_REBALANCE_EXPERIMENTAL_AVAILABLE = True
 MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED = _env_flag(
     "WORM_V6_ENABLE_MIXED_PLANAR_AUTHORITY_REBALANCE", default=False)
+MIXED_PLANAR_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE = True
+MIXED_PLANAR_SPLIT_PRIOR_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_MIXED_PLANAR_SPLIT_PRIOR", default=False)
 MIXED_PLANAR_RESIDUAL_SCALE_MULT = 1.80
 MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT = 2.50
 MIXED_YAW_RESIDUAL_SCALE_MULT = 1.60
@@ -318,6 +321,22 @@ def action_adapter_contract(
                 "continuation scans regressed planar RMSE. The ablation is "
                 "kept available for comparison and disabled by default."),
         },
+        "mixed_planar_split_prior": {
+            "available": MIXED_PLANAR_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE,
+            "enabled": MIXED_PLANAR_SPLIT_PRIOR_ENABLED,
+            "default": "disabled",
+            "enable_env": "WORM_V6_ENABLE_MIXED_PLANAR_SPLIT_PRIOR=1",
+            "formula": (
+                "for mixed vx/vy with zero yaw: slide actuators come from "
+                "the signed axial prior and yaw actuators come from the "
+                "signed lateral primitive, with per-axis command gains"),
+            "reason": (
+                "V53/V54 strict scans show the dominant-prior path alternates "
+                "between axial-only and lateral-only behavior. V55 tests a "
+                "split-channel prior so mixed planar commands can express "
+                "axial contraction and lateral steering at the same time "
+                "without changing the 80D observation or 12D action ABI."),
+        },
         "command_conditioned_prior_scale": {
             "enabled": True,
             "source": "deployable normalized command obs[0:3]",
@@ -534,6 +553,12 @@ def action_adapter_contract(
                 "gate. V30 exposes the V54 mixed-planar authority rebalance "
                 "as a default-off ablation because short scans regressed "
                 "planar RMSE and sometimes planar sign reliability."),
+            "v31_reason": (
+                "V55 adds a default-off split-channel mixed planar prior "
+                "candidate. Slides follow the axial primitive while yaw joints "
+                "follow the lateral primitive, addressing the observed "
+                "dominant-prior failure where mixed vx/vy commands express "
+                "only one planar component at a time."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -904,9 +929,38 @@ def _componentwise_mixed_gait_prior_from_phase(phase, gait_blend, command):
     return np.clip(prior, -1.0, 1.0).astype(np.float32)
 
 
+def split_channel_mixed_planar_gait_prior_from_phase(
+        phase, gait_blend, command):
+    """Compose mixed vx/vy by assigning axial slides and lateral yaw joints."""
+    cmd_vx, cmd_vy, cmd_yaw = [float(v) for v in command]
+    if not is_mixed_planar_command(cmd_vx, cmd_vy, cmd_yaw):
+        return _dominant_directional_gait_prior_from_phase(
+            phase, gait_blend, command)
+
+    abs_vx = abs(cmd_vx)
+    abs_vy = abs(cmd_vy)
+    max_axis = max(abs_vx, abs_vy, DIRECTIONAL_PRIOR_THRESHOLD)
+    vx_gain = float(np.clip(abs_vx / max_axis, 0.0, 1.0))
+    vy_gain = float(np.clip(abs_vy / max_axis, 0.0, 1.0))
+
+    axial_prior = _dominant_directional_gait_prior_from_phase(
+        phase, gait_blend, (np.sign(cmd_vx), 0.0, 0.0))
+    side = "left" if cmd_vy >= 0.0 else "right"
+    lateral_prior = lateral_primitive_action_from_phase(side, phase)
+
+    prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    prior[:NUM_SLIDES] = vx_gain * axial_prior[:NUM_SLIDES]
+    prior[NUM_SLIDES:] = vy_gain * lateral_prior[NUM_SLIDES:]
+    return np.clip(prior, -1.0, 1.0).astype(np.float32)
+
+
 def directional_gait_prior_from_phase(phase, gait_blend, command=None):
     if command is None:
         return gait_prior_from_phase(phase, gait_blend)
+    if (MIXED_PLANAR_SPLIT_PRIOR_ENABLED
+            and is_mixed_planar_command(*command)):
+        return split_channel_mixed_planar_gait_prior_from_phase(
+            phase, gait_blend, command)
     if MIXED_COMMAND_COMPOSITION_ENABLED and is_mixed_command(command):
         return _componentwise_mixed_gait_prior_from_phase(
             phase, gait_blend, command)

@@ -48,6 +48,7 @@ from action_adapter_v6 import (  # noqa: E402
     inplace_yaw_prior_from_phase,
     lateral_primitive_action_from_phase,
     policy_action_to_residual_and_gait_blend,
+    split_channel_mixed_planar_gait_prior_from_phase,
 )
 from worm_env_v6 import (  # noqa: E402
     CMD_YAW_RANGE,
@@ -55,6 +56,7 @@ from worm_env_v6 import (  # noqa: E402
     CMD_VY_RANGE,
     COMMAND_CURRICULA,
     NUM_ACTUATORS,
+    NUM_SLIDES,
     OBS_DIM,
     WormEnvV6,
     reward_contract,
@@ -67,6 +69,8 @@ from action_adapter_v6 import (  # noqa: E402
     MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_PRIOR_SCALE_FLOOR,
+    MIXED_PLANAR_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE,
+    MIXED_PLANAR_SPLIT_PRIOR_ENABLED,
     MIXED_YAW_RESIDUAL_SCALE_MULT,
     MIXED_YAW_PRIOR_SCALE_FLOOR,
     YAW_ONLY_RESIDUAL_SCALE_MULT,
@@ -170,6 +174,30 @@ def sampled_command_classes(curriculum, count=240):
         else:
             counts["other_mixed"] += 1
     return counts
+
+
+def test_split_channel_mixed_planar_prior_decouples_axes():
+    assert MIXED_PLANAR_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE
+    assert not MIXED_PLANAR_SPLIT_PRIOR_ENABLED
+
+    phase = 0.37
+    gait_blend = 0.5
+    prior = split_channel_mixed_planar_gait_prior_from_phase(
+        phase, gait_blend, (1.0, 1.0, 0.0))
+    axial = directional_gait_prior_from_phase(
+        phase, gait_blend, (1.0, 0.0, 0.0))
+    lateral = lateral_primitive_action_from_phase("left", phase)
+
+    np.testing.assert_allclose(
+        prior[:NUM_SLIDES],
+        axial[:NUM_SLIDES],
+        atol=1e-6,
+    )
+    np.testing.assert_allclose(
+        prior[NUM_SLIDES:],
+        lateral[NUM_SLIDES:],
+        atol=1e-6,
+    )
 
 
 def reward_for_displacement(forward_delta_m):
@@ -396,7 +424,7 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v30")
+    assert adapter_contract["version"].endswith("_v31")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     residual_authority = adapter_contract[
@@ -698,6 +726,10 @@ def main():
         "mixed_forward_right",
         "mixed_reverse_left",
         "mixed_reverse_right",
+        "mixed_full_forward_left",
+        "mixed_full_forward_right",
+        "mixed_full_reverse_left",
+        "mixed_full_reverse_right",
         "yaw_left",
         "yaw_right",
         "slow_yaw_left",
