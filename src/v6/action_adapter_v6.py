@@ -25,7 +25,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v31"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v34"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 
 
@@ -86,6 +86,8 @@ ZERO_YAW_REVERSE_YAW_PRIOR_SCALE = 1.25
 ZERO_YAW_LATERAL_YAW_PRIOR_SCALE = 0.65
 ZERO_YAW_LATERAL_YAW_TRIM = 0.24
 COMMAND_ACTIVITY_MIN_ACTIVE_SCALE = 0.20
+YAW_ONLY_ACTIVITY_MIN_ACTIVE_SCALE = 0.00
+YAW_ONLY_ACTIVITY_GAIN = 0.50
 NON_FORWARD_PRIOR_SCALE_FLOOR = REVERSE_PRIOR_SCALE_FLOOR
 DIRECTIONAL_PRIOR_THRESHOLD = 0.20
 TWO_PI = 2.0 * math.pi
@@ -356,7 +358,9 @@ def action_adapter_contract(
             "source": "deployable normalized command obs[0:3]",
             "formula": (
                 "s_c = 0 if max(|cmd|)=0; "
-                "s_c = 1 for pure yaw commands; otherwise "
+                f"s_c = {YAW_ONLY_ACTIVITY_GAIN:.2f} * |cmd_yaw_norm| "
+                "for pure yaw commands; "
+                "otherwise "
                 "clip(0.20 + 0.80 * max(|cmd|), 0, 1)"),
             "applied_to": "composed prior-plus-residual action",
             "reason": (
@@ -364,9 +368,10 @@ def action_adapter_contract(
                 "directions, but continuous velocity tracking also needs "
                 "zero and low-speed commands to reduce motor amplitude. This "
                 "keeps the action ABI fixed while making stop and slow "
-                "commands deployable. Pure yaw commands keep full activity "
-                "because the in-place yaw prior is not linearly "
-                "speed-proportional at small turn rates."),
+                "commands deployable. V60/V61/V62 low-yaw scans showed the "
+                "pure yaw primitive was overdriven for small commands, so "
+                "V34 uses calibrated linear pure-yaw activity to match the "
+                "feasible low-yaw envelope."),
         },
         "command_directional_prior_transform": {
             "enabled": True,
@@ -559,6 +564,27 @@ def action_adapter_contract(
                 "follow the lateral primitive, addressing the observed "
                 "dominant-prior failure where mixed vx/vy commands express "
                 "only one planar component at a time."),
+            "v32_reason": (
+                "V60 low-yaw envelope training separated yaw signs but "
+                "over-shot small pure-yaw commands by applying full in-place "
+                "yaw activity even when |cmd_yaw_norm| was small. V32 keeps "
+                "the same 80D observation and 12D residual-plus-gate action "
+                "ABI, but makes pure-yaw action activity command-magnitude "
+                "scaled so low yaw rates can be tracked without saturating "
+                "the yaw prior."),
+            "v33_reason": (
+                "V61 no-retrain and trained scans showed the nonzero yaw "
+                "activity floor still over-shot low yaw commands and did not "
+                "remove yaw-only planar drift. V33 makes pure-yaw activity "
+                "linear in |cmd_yaw_norm| with no minimum floor, preserving "
+                "full authority at max yaw while reducing small-command "
+                "overdrive."),
+            "v34_reason": (
+                "V62 gain ablations showed the in-place yaw primitive still "
+                "over-produced yaw rate with s_c=|cmd_yaw_norm|. V34 adds a "
+                "0.50 pure-yaw activity gain; a no-retrain 13-command "
+                "low-yaw scan reached yaw RMSE near 0.02 rad/s and pure-yaw "
+                "planar drift near 0.03 m/s while preserving yaw sign."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -1110,7 +1136,14 @@ def command_activity_scale(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
     if command_mag <= 1e-9:
         return 0.0
     if is_yaw_only_command(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
-        return 1.0
+        abs_yaw = abs(float(cmd_yaw_norm))
+        return float(np.clip(
+            YAW_ONLY_ACTIVITY_GAIN
+            * (YAW_ONLY_ACTIVITY_MIN_ACTIVE_SCALE
+               + (1.0 - YAW_ONLY_ACTIVITY_MIN_ACTIVE_SCALE) * abs_yaw),
+            0.0,
+            1.0,
+        ))
     return float(np.clip(
         COMMAND_ACTIVITY_MIN_ACTIVE_SCALE
         + (1.0 - COMMAND_ACTIVITY_MIN_ACTIVE_SCALE) * command_mag,

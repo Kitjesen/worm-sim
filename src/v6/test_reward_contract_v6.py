@@ -558,9 +558,11 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v31")
+    assert adapter_contract["version"].endswith("_v34")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
+    assert "|cmd_yaw_norm|" in adapter_contract[
+        "command_activity_scale"]["formula"]
     residual_authority = adapter_contract[
         "command_conditioned_residual_authority"]
     assert residual_authority["enabled"]
@@ -714,6 +716,8 @@ def main():
     assert command_activity_scale(0.0, 0.0, 0.0) == 0.0
     assert np.isclose(command_activity_scale(0.5, 0.0, 0.0), 0.6)
     assert command_activity_scale(1.0, 0.0, 0.0) == 1.0
+    assert np.isclose(command_activity_scale(0.0, 0.0, 0.5), 0.25)
+    assert np.isclose(command_activity_scale(0.0, 0.0, 1.0), 0.5)
     assert command_conditioned_residual_scale(1.0, 0.0, 0.0) == 1.0
     assert command_conditioned_residual_scale(0.0, 1.0, 0.0) == 1.0
     assert np.isclose(
