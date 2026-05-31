@@ -1,5 +1,36 @@
 # Progress
 
+## Current Target (2026-05-31)
+
+The active target is now **V50 mixed-command composition repair on flat
+terrain**, not generic longer training.
+
+The V50 goal is to keep the deployable interface fixed while repairing the
+failure modes exposed by the strict 35-command scan:
+
+- keep the 80D observation ABI unchanged: body-frame `vx`, `vy`, `yaw`
+  command, encoders, previous action, segment IMUs, and 1 s phase clock;
+- keep the 12D action ABI unchanged: 11D residual motor action plus 1D learned
+  latent gait gate;
+- keep actor and critic networks at `512-256-128`;
+- use `src/v6/analyze_command_scan_v6.py` and the strict scan report as the
+  acceptance certificate, not video appearance alone.
+
+V50 acceptance targets:
+
+- `wrong_planar_sign_count == 0`;
+- `wrong_yaw_sign_count == 0`;
+- `planar_rmse_m_s <= 0.10`;
+- `yaw_rmse_rad_s <= 0.20`;
+- `mixed_vx_vy` planar exceed below `8/16`;
+- `mixed_vx_yaw` yaw exceed below `3/6`.
+
+Current evidence says the next change must modify mixed-prior
+authority/composition, not simply continue V48. V49 fixed part of the mixed-yaw
+sign issue, reducing `mixed_vx_yaw` yaw RMSE from `0.2884` to `0.2145`, but
+overall planar RMSE stayed at `0.1515` and `mixed_vx_vy` remained the dominant
+failure class.
+
 ## Done
 
 - V6 MuJoCo model, terrain presets, and actuator contract exist.
@@ -257,12 +288,25 @@
   `yaw_rmse_rad_s=0.1141`, and `planar_sign_rate=0.96`; V46 final reports
   `planar_rmse_m_s=0.1569`, `yaw_rmse_rad_s=0.1152`, and
   `planar_sign_rate=1.00`.
+- V47 added a stricter command-tracking proof path and componentwise tracking
+  cost. It preserved correct signs but did not beat V41: V47 final smoke
+  reports `planar_rmse_m_s=0.1516`, `yaw_rmse_rad_s=0.1183`, and still fails
+  mixed-command composition.
+- V48 added `mixed_composition_repair` sampling from V47 final, oversampling
+  `mixed_vx_vy` and `mixed_vx_yaw`. The local smoke continued from `652,256`
+  to `701,408` policy steps but did not produce a real improvement:
+  `planar_rmse_m_s=0.1515`, `yaw_rmse_rad_s=0.1196`,
+  `mixed_vx_vy` planar exceed `14/16`, and `mixed_vx_yaw` yaw exceed `6/6`.
+- V49 changed the mixed `vx+yaw` yaw-anchor sign in the action adapter without
+  retraining. It improved `mixed_vx_yaw` yaw RMSE from `0.2884` to `0.2145`
+  and yaw exceed from `6/6` to `4/6`, but overall planar RMSE stayed at
+  `0.1515`; the candidate is still rejected.
 - Latest detailed movement table and artifact list:
   `docs/omni_v41_v46_motion_summary.md`.
 
 ## Not Done
 
-- The current V41-V46 line is not an accepted continuous tracker yet. It is a
+- The current V41-V49 line is not an accepted continuous tracker yet. It is a
   weak omnidirectional prototype with correct signs and fixed-lateral gate
   repair.
 - Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
@@ -312,10 +356,10 @@
 - V39/V40 are not accepted. V39 fixes the lateral reward contract but does not
   produce enough lateral speed; V40's final and best scans still fail fixed
   lateral speed, especially right lateral motion.
-- V41/V42/V44/V46 improve or preserve the lateral gate, but flat continuous velocity tracking
+- V41/V42/V44/V46/V49 improve or preserve the lateral gate or mixed-yaw sign,
+  but flat continuous velocity tracking
   is still not accepted. The limiting metrics remain planar RMSE above `0.10`,
-  yaw-only planar drift above `0.05 m/s`, weak reverse speed, and weak mixed
-  vector tracking.
+  weak reverse speed, and weak mixed vector tracking, especially `mixed_vx_vy`.
 - No formal 1M-step PPO artifacts exist under the current V26/V23 omni
   contract.
 - Fixed-mode eval, robust eval, auto-gated random-policy deploy bundles, and
@@ -331,9 +375,11 @@
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V41-V46 line keeps the deployable ABI fixed, restores fixed left/right
-lateral authority through searched lateral primitives, and tests an axial
-prior-preservation reward for visible worm-like actuation. The project is not
-yet at "any velocity command can be tracked": planar RMSE remains around
-`0.15 m/s`, yaw-only planar drift is still above target, reverse is weak, and
-mixed planar commands do not track both components reliably.
+flat V41-V49 line keeps the deployable ABI fixed, restores fixed left/right
+lateral authority through searched lateral primitives, tests axial
+prior-preservation for visible worm-like actuation, and partially fixes the
+mixed-yaw sign path. The project is not yet at "any velocity command can be
+tracked": planar RMSE remains around `0.15 m/s`, reverse is weak, and mixed
+planar commands do not track both components reliably. The next accepted
+advance must be V50 mixed-command composition repair, proven by the strict
+35-command scan rather than by a visually plausible video.
