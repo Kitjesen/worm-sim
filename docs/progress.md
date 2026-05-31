@@ -9,8 +9,10 @@ mixed-planar component/sign reward. V53 then continued with a mixed-planar
 curriculum, V54 tested a more aggressive prior/residual authority rebalance,
 V55 tested a split-channel mixed-planar prior, V56 added full-speed diagonal
 commands to the best-model selection schedule, and V57 tested an explicit
-full-diagonal speed-deficit reward. These produced useful ablations but still
-do **not** solve continuous tracking on flat terrain.
+full-diagonal speed-deficit reward. V58 then tested no-retrain residual/prior
+scale changes, searched deployable open-loop mixed-planar primitives, and ran a
+hardcase mixed-diagonal curriculum from V56 best. These produced useful
+ablations but still do **not** solve continuous tracking on flat terrain.
 
 The continuing goal is to keep the deployable interface fixed while repairing
 the failure modes exposed by the strict 35-command scan:
@@ -20,6 +22,9 @@ the failure modes exposed by the strict 35-command scan:
 - keep the 12D action ABI unchanged: 11D residual motor action plus 1D learned
   latent gait gate;
 - keep actor and critic networks at `512-256-128`;
+- current first-stage command limits are `vx=+/-0.25 m/s`,
+  `vy=+/-0.15 m/s`, and `yaw=+/-0.25 rad/s`; the yaw target was narrowed
+  while yaw-only drift and over-turning are being repaired;
 - use `src/v6/analyze_command_scan_v6.py` and the strict scan report as the
   acceptance certificate, not video appearance alone.
 
@@ -42,8 +47,10 @@ yaw RMSE further, while V54 shows that simply reducing mixed-planar prior
 authority and increasing residual authority regresses planar RMSE. V55 shows
 that a naive slide/yaw split prior reintroduces wrong planar signs, V56 shows
 that full-speed diagonal selection coverage preserves signs but does not reduce
-planar RMSE enough, and V57 shows that a stronger full-diagonal reward alone
-does not make the policy use enough residual authority.
+planar RMSE enough, V57 shows that a stronger full-diagonal reward alone does
+not make the policy use enough residual authority, and V58 shows that hardcase
+oversampling can restore sign reliability but still does not fix mixed-planar
+magnitude or yaw-only drift.
 
 ## Done
 
@@ -375,12 +382,28 @@ does not make the policy use enough residual authority.
   V57 is rejected. The telemetry still shows `mixed_vx_vy` residual L2 around
   `0.09` against prior L2 around `1.09`, so reward pressure alone did not give
   the learned residual enough authority to compose both planar components.
+- V58 first ran no-retrain scale diagnostics on V56/V57 checkpoints. Reducing
+  the residual scale to `0.70`, or combining `gait_prior_scale=0.75` with
+  `policy_residual_scale=0.70`, worsened planar/yaw tracking rather than
+  revealing a hidden correct policy. V58 also added
+  `src/v6/search_mixed_planar_prior_v6.py`; a small CMA search found one
+  deployable 1 s phase-clock `forward_right` diagonal primitive that validates
+  at `(0.2186, -0.0359) m/s`, but `forward_left` and both reverse diagonals
+  failed validation. The `mixed_planar_hardcase_repair` curriculum then
+  continued from V56 best. Its best strict scan reports
+  `planar_rmse_m_s=0.1566`, `yaw_rmse_rad_s=0.2709`,
+  `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and
+  `yaw_only_mean_planar_speed_m_s=0.0951`; the final scan reports
+  `planar_rmse_m_s=0.1588`, `yaw_rmse_rad_s=0.2720`, zero sign errors, and
+  `yaw_only_mean_planar_speed_m_s=0.0959`. V58 is rejected: hardcase sampling
+  restores signs but worsens yaw RMSE and still leaves `mixed_vx_vy` as the
+  dominant failure group.
 - Latest detailed movement table and artifact list:
   `docs/omni_v41_v46_motion_summary.md`.
 
 ## Not Done
 
-- The current V41-V57 line is not an accepted continuous tracker yet. It is a
+- The current V41-V58 line is not an accepted continuous tracker yet. It is a
   weak omnidirectional prototype with correct signs and fixed-lateral gate
   repair.
 - Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
@@ -450,13 +473,14 @@ does not make the policy use enough residual authority.
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V41-V57 line keeps the deployable ABI fixed, restores fixed left/right
+flat V41-V58 line keeps the deployable ABI fixed, restores fixed left/right
 lateral authority through searched lateral primitives, tests axial
 prior-preservation for visible worm-like actuation, partially fixes the
 mixed-yaw sign path, rejects the V50 componentwise-prior hypothesis, and tests
 V51/V52 residual/reward repairs plus V53/V54 curriculum/authority ablations,
 V55 split-prior ablation, V56 strict-diagonal selection coverage, and V57
-full-diagonal reward pressure.
+full-diagonal reward pressure, plus V58 residual/prior scale diagnostics,
+open-loop mixed-planar primitive search, and hardcase curriculum repair.
 The project is not yet at "any velocity command can be tracked": planar RMSE
 remains around `0.15 m/s`, reverse is weak, and mixed planar commands do not
 track both components reliably. The next accepted advance must pass the strict

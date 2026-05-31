@@ -82,7 +82,7 @@ SETTLE_STEPS = 250                          # 0.5s settle after reset
 # Command ranges (sampled randomly each episode)
 CMD_VX_RANGE    = (-0.25, 0.25)  # m/s body-forward target (+ forward, - reverse)
 CMD_VY_RANGE    = (-0.15, 0.15)  # m/s body-lateral target
-CMD_YAW_RANGE   = (-0.5, 0.5)    # rad/s yaw target; matched to observed authority
+CMD_YAW_RANGE   = (-0.25, 0.25)  # rad/s yaw target; narrowed for first-stage yaw tracking
 CMD_VEL_RANGE   = (0.0, CMD_VX_RANGE[1])  # legacy forward-speed alias
 CMD_RESAMPLE_P  = 0.005          # probability of resampling command each step
 
@@ -108,6 +108,7 @@ COMMAND_CURRICULA = (
     "omni",
     "continuous_omni",
     "mixed_planar_repair",
+    "mixed_planar_hardcase_repair",
     "mixed_composition_repair",
     "axis_separation",
 )
@@ -245,6 +246,7 @@ def reward_contract():
             "continuous_omni_repair_oversampling": True,
             "continuous_omni_mixed_yaw_repair_sampling": True,
             "mixed_planar_repair_sampling": True,
+            "mixed_planar_hardcase_repair_sampling": True,
             "mixed_composition_repair_sampling": True,
             "axis_separation_curriculum": True,
             "yaw_only_prior_scaling_applied": True,
@@ -1132,6 +1134,88 @@ class WormEnvV6(gym.Env):
                                               min_abs_fraction=0.20),
                     0.0,
                 )
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "mixed_planar_hardcase_repair":
+            primitive = int(self.np_random.integers(0, 24))
+            if primitive == 0:
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive == 1:
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.50)
+                vy, yaw = 0.0, 0.0
+            elif primitive == 2:
+                vx, vy, yaw = (
+                    0.0,
+                    self._sample_signed_range(
+                        (0.0, CMD_VY_RANGE[1]), min_abs_fraction=0.50),
+                    0.0,
+                )
+            elif primitive == 3:
+                vx, vy, yaw = (
+                    0.0,
+                    self._sample_signed_range(
+                        (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.50),
+                    0.0,
+                )
+            elif primitive in (4, 6):
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.75)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]), min_abs_fraction=0.75)
+                yaw = 0.0
+            elif primitive in (5, 7):
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.75)
+                vy = self._sample_signed_range(
+                    (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.75)
+                yaw = 0.0
+            elif primitive in (8, 9, 10, 11, 12):
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.75)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]), min_abs_fraction=0.75)
+                yaw = 0.0
+            elif primitive in (13, 14, 15, 16, 17):
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.75)
+                vy = self._sample_signed_range(
+                    (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.75)
+                yaw = 0.0
+            elif primitive == 18:
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.50)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]), min_abs_fraction=0.50)
+                yaw = 0.0
+            elif primitive == 19:
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.50)
+                vy = self._sample_signed_range(
+                    (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.50)
+                yaw = 0.0
+            elif primitive == 20:
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.50)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]), min_abs_fraction=0.50)
+                yaw = 0.0
+            elif primitive == 21:
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.50)
+                vy = self._sample_signed_range(
+                    (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.50)
+                yaw = 0.0
+            elif primitive == 22:
+                vx = self._sample_signed_range(CMD_VX_RANGE,
+                                               min_abs_fraction=0.20)
+                vy = self._sample_signed_range(CMD_VY_RANGE,
+                                               min_abs_fraction=0.20)
+                yaw = 0.0
+            else:
+                vx = self.np_random.uniform(*CMD_VX_RANGE)
+                vy = self.np_random.uniform(*CMD_VY_RANGE)
+                yaw = 0.0
             return self._with_fixed_command_overrides(vx, vy, yaw)
 
         if self.command_curriculum == "mixed_composition_repair":

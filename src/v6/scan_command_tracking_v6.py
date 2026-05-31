@@ -53,6 +53,8 @@ STEP_INFO_TELEMETRY_KEYS = (
     "gait_gate_error",
     "reward_component_tracking_cost",
     "reward_planar_component_deficit_penalty",
+    "mixed_planar_fullscale_gate",
+    "reward_mixed_planar_fullscale_deficit_penalty",
     "reward_axial_prior_preserve_penalty",
     "axial_prior_residual_cancellation",
     "axial_slide_activity_deficit",

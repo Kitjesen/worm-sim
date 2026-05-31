@@ -683,6 +683,7 @@ def main():
     assert "heading_omni" in COMMAND_CURRICULA
     assert "continuous_omni" in COMMAND_CURRICULA
     assert "mixed_planar_repair" in COMMAND_CURRICULA
+    assert "mixed_planar_hardcase_repair" in COMMAND_CURRICULA
     assert "axis_separation" in COMMAND_CURRICULA
 
     env.command_curriculum = "continuous_omni"
@@ -731,6 +732,32 @@ def main():
     assert np.any((mixed_planar_samples[:, 0] < 0.0)
                   & (mixed_planar_samples[:, 1] < 0.0))
 
+    env.command_curriculum = "mixed_planar_hardcase_repair"
+    samples = np.array([env._sample_command() for _ in range(240)])
+    hard_mixed_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    reverse_diagonal_samples = hard_mixed_samples[
+        hard_mixed_samples[:, 0] < 0.0
+    ]
+    fullscale_hard_samples = hard_mixed_samples[
+        (np.abs(hard_mixed_samples[:, 0]) >= 0.75 * CMD_VX_RANGE[1])
+        & (np.abs(hard_mixed_samples[:, 1]) >= 0.75 * CMD_VY_RANGE[1])
+    ]
+    assert len(hard_mixed_samples) >= 120
+    assert len(reverse_diagonal_samples) >= 70
+    assert len(fullscale_hard_samples) >= 80
+    assert np.any((hard_mixed_samples[:, 0] > 0.0)
+                  & (hard_mixed_samples[:, 1] > 0.0))
+    assert np.any((hard_mixed_samples[:, 0] > 0.0)
+                  & (hard_mixed_samples[:, 1] < 0.0))
+    assert np.any((hard_mixed_samples[:, 0] < 0.0)
+                  & (hard_mixed_samples[:, 1] > 0.0))
+    assert np.any((hard_mixed_samples[:, 0] < 0.0)
+                  & (hard_mixed_samples[:, 1] < 0.0))
+
     env.command_curriculum = "axis_separation"
     samples = np.array([env._sample_command() for _ in range(240)])
     nonzero_dims = np.count_nonzero(np.abs(samples) > 1e-9, axis=1)
@@ -773,7 +800,8 @@ def main():
     assert any(c["cmd_vx_m_s"] < 0.0 for c in random_schedule)
     assert any(c["cmd_vy_m_s"] > 0.0 for c in random_schedule)
     assert any(c["cmd_vy_m_s"] < 0.0 for c in random_schedule)
-    assert {c["cmd_yaw_rad_s"] for c in random_schedule} >= {-0.5, 0.0, 0.5}
+    expected_yaw_set = {float(CMD_YAW_RANGE[0]), 0.0, float(CMD_YAW_RANGE[1])}
+    assert {c["cmd_yaw_rad_s"] for c in random_schedule} >= expected_yaw_set
     assert len(best_eval_schedule("worm")) == len(random_schedule)
     assert best_eval_schedule_fingerprint(random_schedule)
     assert yaw_direction_status(0.5, 0.2)["status"] == "correct"

@@ -1,4 +1,4 @@
-# V41-V57 flat omni motion summary
+# V41-V58 flat omni motion summary
 
 Date: 2026-05-31
 
@@ -24,10 +24,17 @@ The deployable ABI is unchanged:
 - actor/critic: `512-256-128`;
 - action adapter: `cmaes_tri_anchor_auto_gate_directional_v31`.
 
+The current first-stage command box is `vx=+/-0.25 m/s`, `vy=+/-0.15 m/s`,
+and `yaw=+/-0.25 rad/s`. The yaw range is intentionally narrower than the
+earlier `+/-0.5 rad/s` target until yaw-only stationarity and mixed-yaw
+tracking are repaired.
+
 The latest reward code is `omni_directional_offaxis_yaw_v27`. V57 adds a
 full-diagonal mixed-planar deficit term so full-speed diagonal commands are
 penalized when either signed `vx` or signed `vy` remains far below command.
-The V57 scan did not pass; V56 remains safer on sign reliability.
+V58 keeps the same reward code and adds a hardcase mixed-diagonal curriculum.
+The V58 scan did not pass; V56 remains safer on yaw RMSE, while V58 restores
+zero sign errors at the cost of worse yaw tracking.
 
 ## Version scan comparison
 
@@ -45,6 +52,8 @@ with forward+yaw rows included.
 | V56 best | `0.1509` | `0.1646` | `1.00` | `1.00` | yes | rejected, safest signs among latest runs |
 | V57 best | `0.1527` | `0.1933` | `0.96` | `1.00` | yes | rejected, one planar sign regression |
 | V57 final | `0.1566` | `0.1760` | `0.96` | `1.00` | yes | rejected, one planar sign regression |
+| V58 hardcase best | `0.1566` | `0.2709` | `1.00` | `1.00` | yes | rejected, signs restored but yaw worsened |
+| V58 hardcase final | `0.1588` | `0.2720` | `1.00` | `1.00` | yes | rejected, signs restored but yaw worsened |
 
 ## V57 full-diagonal reward result
 
@@ -67,6 +76,58 @@ The best scan still fails `planar_rmse_m_s`, `wrong_planar_sign_count`, and
 The telemetry shows the learned residual remains small (`~0.09` L2) compared
 with the mixed-planar prior (`~1.09` L2), so reward pressure alone did not make
 the policy compose both planar components.
+
+## V58 scale diagnostics and hardcase curriculum
+
+V58 tested three questions before another long run:
+
+1. Is a correct mixed-planar policy hidden behind the current residual/prior
+   scale?
+2. Can a deployable 1 s phase-clock open-loop primitive express full-speed
+   diagonal translation?
+3. Does oversampling the worst diagonal commands repair the scan without
+   changing the 80D observation or 12D action ABI?
+
+No-retrain scale diagnostics on V56/V57 checkpoints were negative. Reducing
+`policy_residual_scale` to `0.70`, or combining `gait_prior_scale=0.75` with
+`policy_residual_scale=0.70`, made the strict scan worse instead of revealing a
+hidden correct residual policy.
+
+The new open-loop diagnostic tool is:
+
+```text
+src/v6/search_mixed_planar_prior_v6.py
+```
+
+It searches deployable 1 s phase-clock 11D primitives for the four full-speed
+diagonal commands. A small CMA run found one accepted validation case,
+`forward_right`, with measured `(vx, vy)=(0.2186, -0.0359) m/s` and planar
+error `0.1184 m/s`. `forward_left` and both reverse diagonals failed
+validation. This means mixed planar motion is not absolutely impossible in the
+model, but the hard reverse diagonals are still not solved by a small
+open-loop search.
+
+V58 then added a `mixed_planar_hardcase_repair` curriculum and continued from
+V56 best at `918,016` steps:
+
+```text
+runs/worm_v6_ppo_flat_random_v58_hardcase_curriculum_from_v56best/
+record/current/flat_omni_v58_hardcase_curriculum_best_scan/strict_scan_analysis.md
+record/current/flat_omni_v58_hardcase_curriculum_final_scan/strict_scan_analysis.md
+```
+
+| Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Yaw-only planar | Status |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| V58 hardcase best | `0.1566` | `0.2709` | `0` | `0` | `0.0951` | rejected |
+| V58 hardcase final | `0.1588` | `0.2720` | `0` | `0` | `0.0959` | rejected |
+
+V58 restores sign reliability compared with V57, but it fails
+`planar_rmse_m_s`, `yaw_rmse_rad_s`, and
+`yaw_only_mean_planar_speed_m_s`. The best scan still reports
+`mixed_vx_vy` as the dominant failure group, with mixed-planar prior L2 around
+`1.09` and residual L2 around `0.09`. The conclusion is that hardcase sampling
+alone does not make the policy allocate enough actuator-level authority to both
+planar components, and it also damages yaw tracking.
 
 ## Current V41 motion table
 
@@ -542,7 +603,7 @@ policy and did not recover after a short continuation:
 
 V56 then addressed a different gap: the in-training best-model schedule only
 contained half-speed diagonal commands, while the strict scan's worst commands
-were full-speed diagonals `(±0.25, ±0.15, 0)`. V56 adds those four commands to
+were full-speed diagonals `(+/-0.25, +/-0.15, 0)`. V56 adds those four commands to
 `best_eval_schedule` without changing the policy ABI or reward contract.
 
 | Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Yaw-only planar | Status |
@@ -550,10 +611,11 @@ were full-speed diagonals `(±0.25, ±0.15, 0)`. V56 adds those four commands to
 | V56 strict-diagonal best | `0.1509` | `0.1646` | `0` | `0` | `0.0873` | rejected |
 | V56 strict-diagonal final | `0.1538` | `0.1831` | `0` | `0` | `0.0980` | rejected |
 
-V56 is currently the safest local candidate on signs, yaw RMSE, and selection
-coverage, but it is not an accepted continuous tracker. The remaining hard
-problem is not command recognition: the policy now sees and is selected on the
-full diagonals, yet still under-produces mixed planar velocity magnitude. The
-next repair should target actuator-level authority for mixed diagonal
-translation or a residual architecture that can allocate separate slide and yaw
-corrections without losing sign reliability.
+V56 remains the safest local candidate on yaw RMSE and selection coverage, and
+V58 shows that hardcase oversampling can restore signs but does not improve the
+continuous-tracking gate. The remaining hard problem is not command recognition:
+the policy now sees and is selected on the full diagonals, yet still
+under-produces mixed planar velocity magnitude. The next repair should target
+actuator-level authority for mixed diagonal translation or a residual
+architecture that can allocate separate slide and yaw corrections without
+losing sign reliability or yaw-only stationarity.

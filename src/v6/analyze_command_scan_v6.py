@@ -42,6 +42,8 @@ SCAN_ROW_TELEMETRY_KEYS = (
     "mean_gait_gate_error",
     "mean_reward_component_tracking_cost",
     "mean_reward_planar_component_deficit_penalty",
+    "mean_mixed_planar_fullscale_gate",
+    "mean_reward_mixed_planar_fullscale_deficit_penalty",
     "mean_reward_axial_prior_preserve_penalty",
     "mean_axial_prior_residual_cancellation",
     "mean_axial_slide_activity_deficit",
@@ -358,8 +360,8 @@ def render_markdown(analysis: Dict) -> str:
             "## Telemetry by command class",
             "",
             "| Class | Mean gait blend | Prior L2 | Residual L2 | "
-            "Action L2 | Tracking cost |",
-            "| --- | ---: | ---: | ---: | ---: | ---: |",
+            "Action L2 | Tracking cost | Fullscale gate | Fullscale deficit |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
         for name, info in telemetry_rows:
             telemetry = info["telemetry_means"]
@@ -374,7 +376,9 @@ def render_markdown(analysis: Dict) -> str:
                 f"{fmt('mean_prior_component_l2')} | "
                 f"{fmt('mean_residual_component_l2')} | "
                 f"{fmt('mean_applied_action_l2')} | "
-                f"{fmt('mean_reward_component_tracking_cost')} |")
+                f"{fmt('mean_reward_component_tracking_cost')} | "
+                f"{fmt('mean_mixed_planar_fullscale_gate')} | "
+                f"{fmt('mean_reward_mixed_planar_fullscale_deficit_penalty')} |")
 
     lines += [
         "",
