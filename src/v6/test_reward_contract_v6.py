@@ -129,6 +129,38 @@ def reward_terms_for(body_vx, body_vy=0.0, yaw_rate=0.0,
     return reward, dict(env._last_reward_terms)
 
 
+def sampled_command_classes(curriculum, count=240):
+    env = object.__new__(WormEnvV6)
+    env.command_curriculum = curriculum
+    env._fixed_cmd_vx = None
+    env._fixed_cmd_vy = None
+    env._fixed_cmd_yaw = None
+    env.np_random = np.random.default_rng(20260531)
+    counts = {
+        "stop": 0,
+        "pure": 0,
+        "mixed_vx_vy": 0,
+        "mixed_vx_yaw": 0,
+        "other_mixed": 0,
+    }
+    for _ in range(count):
+        vx, vy, yaw = WormEnvV6._sample_command(env)
+        has_vx = abs(vx) > 1e-9
+        has_vy = abs(vy) > 1e-9
+        has_yaw = abs(yaw) > 1e-9
+        if not has_vx and not has_vy and not has_yaw:
+            counts["stop"] += 1
+        elif has_vx and has_vy and not has_yaw:
+            counts["mixed_vx_vy"] += 1
+        elif has_vx and not has_vy and has_yaw:
+            counts["mixed_vx_yaw"] += 1
+        elif sum([has_vx, has_vy, has_yaw]) == 1:
+            counts["pure"] += 1
+        else:
+            counts["other_mixed"] += 1
+    return counts
+
+
 def reward_for_displacement(forward_delta_m):
     env = object.__new__(WormEnvV6)
     env._cmd_vx = CMD_VX_RANGE[1]
@@ -297,6 +329,11 @@ def main():
     assert contract["normalization"][
         "continuous_omni_mixed_yaw_repair_sampling"]
     assert contract["normalization"]["mixed_planar_repair_sampling"]
+    assert "mixed_composition_repair" in COMMAND_CURRICULA
+    mixed_counts = sampled_command_classes("mixed_composition_repair")
+    assert mixed_counts["mixed_vx_vy"] >= 80, mixed_counts
+    assert mixed_counts["mixed_vx_yaw"] >= 80, mixed_counts
+    assert mixed_counts["pure"] >= 20, mixed_counts
     assert contract["normalization"]["axis_separation_curriculum"]
     assert contract["normalization"]["yaw_only_prior_scaling_applied"]
     assert contract["normalization"]["gait_blend_is_policy_gate"]
@@ -338,7 +375,7 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v26")
+    assert adapter_contract["version"].endswith("_v27")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     centers = adapter_contract["gait_gate_mapping"]["command_centers"]
@@ -391,10 +428,16 @@ def main():
     assert right_tf["yaw_trim"] < 0.0
     yaw_left_tf = command_directional_prior_transform(0.0, 0.0, 1.0)
     yaw_right_tf = command_directional_prior_transform(0.0, 0.0, -1.0)
+    mixed_yaw_left_tf = command_directional_prior_transform(0.5, 0.0, 1.0)
+    mixed_yaw_right_tf = command_directional_prior_transform(0.5, 0.0, -1.0)
     assert yaw_left_tf["uses_inplace_yaw_prior"]
     assert yaw_right_tf["uses_inplace_yaw_prior"]
     assert yaw_left_tf["yaw_sign"] == 1.0
     assert yaw_right_tf["yaw_sign"] == -1.0
+    assert not mixed_yaw_left_tf["uses_inplace_yaw_prior"]
+    assert not mixed_yaw_right_tf["uses_inplace_yaw_prior"]
+    assert mixed_yaw_left_tf["yaw_sign"] == 1.0
+    assert mixed_yaw_right_tf["yaw_sign"] == -1.0
     assert yaw_right_tf["yaw_scale"] == yaw_left_tf["yaw_scale"]
     assert yaw_left_tf["slide_scale"] == YAW_ONLY_SLIDE_PRIOR_SCALE
     assert yaw_left_tf["yaw_scale"] == YAW_ONLY_YAW_PRIOR_SCALE

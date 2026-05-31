@@ -42,6 +42,21 @@ YAW_ERROR_EXCEED_THRESHOLD_RAD_S = 0.20
 OFF_AXIS_EXCEED_THRESHOLD_M_S = 0.08
 ZERO_COMMAND_SPEED_EXCEED_THRESHOLD_M_S = 0.02
 YAW_ONLY_PLANAR_EXCEED_THRESHOLD_M_S = 0.08
+STEP_INFO_TELEMETRY_KEYS = (
+    "gait_blend",
+    "learned_gait_blend",
+    "raw_gait_gate_action",
+    "prior_component_l2",
+    "residual_component_l2",
+    "applied_action_l2",
+    "desired_gait_blend",
+    "gait_gate_error",
+    "reward_component_tracking_cost",
+    "reward_planar_component_deficit_penalty",
+    "reward_axial_prior_preserve_penalty",
+    "axial_prior_residual_cancellation",
+    "axial_slide_activity_deficit",
+)
 
 
 def parse_values(text):
@@ -58,6 +73,23 @@ def default_model_path(run_dir):
         if os.path.exists(path):
             return path
     return os.path.join(run_dir, "best_model.zip")
+
+
+def summarize_step_infos(infos):
+    summary = {}
+    for key in STEP_INFO_TELEMETRY_KEYS:
+        values = [
+            float(info[key])
+            for info in infos
+            if key in info and info[key] is not None
+        ]
+        if not values:
+            continue
+        arr = np.asarray(values, dtype=np.float64)
+        summary[f"mean_{key}"] = float(round(float(np.mean(arr)), 10))
+        summary[f"std_{key}"] = float(round(float(np.std(arr)), 10))
+        summary[f"final_{key}"] = float(round(float(arr[-1]), 10))
+    return summary
 
 
 def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
@@ -85,13 +117,15 @@ def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
     reward = 0.0
     steps = 0
     terminated = False
+    step_infos = []
 
     for _ in range(int(seconds / CTRL_DT)):
         obs_batch = norm_env.normalize_obs(obs.reshape(1, -1))
         action, _ = model.predict(obs_batch, deterministic=True)
-        obs, step_reward, done, truncated, _ = env.step(action[0])
+        obs, step_reward, done, truncated, info = env.step(action[0])
         reward += float(step_reward)
         steps += 1
+        step_infos.append(info)
         if done or truncated:
             terminated = bool(done)
             break
@@ -125,7 +159,7 @@ def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
     else:
         yaw_sign_ok = abs(yaw_rate) <= 0.05
 
-    return {
+    row = {
         "cmd_vx_m_s": float(vx),
         "cmd_vy_m_s": float(vy),
         "cmd_yaw_rad_s": float(yaw),
@@ -146,6 +180,8 @@ def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
         "planar_sign_ok": bool(planar_sign_ok),
         "yaw_sign_ok": bool(yaw_sign_ok),
     }
+    row.update(summarize_step_infos(step_infos))
+    return row
 
 
 def build_commands(args):

@@ -24,7 +24,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v26"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v27"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 POLICY_ACTION_DIM = NUM_ACTUATORS + 1
 GAIT_GATE_ACTION_GAIN = 3.0
@@ -299,7 +299,8 @@ def action_adapter_contract(
                 "primitives searched on the deployable 1 s phase clock"),
             "yaw": (
                 "pure yaw commands use an independent in-place yaw prior; "
-                "mixed yaw commands keep the signed yaw-anchor transform"),
+                "mixed yaw commands use the commanded yaw sign on the yaw "
+                "anchor"),
             "inplace_yaw_prior": {
                 "enabled": True,
                 "source": "open-loop MuJoCo search constrained to deployable phase clock",
@@ -395,6 +396,12 @@ def action_adapter_contract(
                 "left/right lateral primitives that pass 6 s prior-only "
                 "lateral acceptance while preserving the deployable 80D "
                 "observation and 12D residual-plus-gate action ABI."),
+            "v27_reason": (
+                "Strict V48 scan telemetry showed mixed vx+yaw commands had "
+                "correct primitive signs elsewhere but collapsed or flipped "
+                "the yaw component. V27 keeps the same ABI and prior family "
+                "but makes mixed-yaw anchor yaw_sign follow the commanded yaw "
+                "sign instead of the legacy inverted transform."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -633,8 +640,8 @@ def command_directional_prior_transform(
         yaw_scale = (
             YAW_ONLY_YAW_PRIOR_SCALE
             if yaw_sign > 0.0 else YAW_RIGHT_ONLY_YAW_PRIOR_SCALE)
-    elif cmd_yaw_norm >= threshold:
-        yaw_sign = -1.0
+    elif abs_yaw >= threshold:
+        yaw_sign = 1.0 if cmd_yaw_norm >= 0.0 else -1.0
     if lateral_dominant and cmd_vy_norm < 0.0:
         yaw_sign = -1.0
     if (not yaw_only_command

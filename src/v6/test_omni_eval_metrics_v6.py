@@ -14,7 +14,11 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
 from eval_v6 import command_tracking_metrics, find_vecnormalize  # noqa: E402
-from scan_command_tracking_v6 import evaluate_command, summarize  # noqa: E402
+from scan_command_tracking_v6 import (  # noqa: E402
+    evaluate_command,
+    summarize,
+    summarize_step_infos,
+)
 
 
 def main():
@@ -130,6 +134,28 @@ def main():
     failed_summary = summarize(rows)
     assert not failed_summary["fixed_lateral_speed_gate_passed"]
     assert not failed_summary["fixed_lateral_strict_gate_passed"]
+
+    telemetry = summarize_step_infos([
+        {
+            "gait_blend": 0.20,
+            "learned_gait_blend": 0.30,
+            "prior_component_l2": 1.0,
+            "residual_component_l2": 0.2,
+            "reward_component_tracking_cost": 3.0,
+        },
+        {
+            "gait_blend": 0.40,
+            "learned_gait_blend": 0.50,
+            "prior_component_l2": 2.0,
+            "residual_component_l2": 0.6,
+            "reward_component_tracking_cost": 1.0,
+        },
+    ])
+    assert telemetry["mean_gait_blend"] == 0.30
+    assert telemetry["final_gait_blend"] == 0.40
+    assert telemetry["mean_prior_component_l2"] == 1.50
+    assert telemetry["mean_residual_component_l2"] == 0.40
+    assert telemetry["mean_reward_component_tracking_cost"] == 2.00
 
     print("omni eval metrics checks passed")
 

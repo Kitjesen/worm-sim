@@ -180,21 +180,21 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V41-V46 Status
+### Latest Flat V41-V49 Status
 
-The newest flat line is V41-V46. It keeps the deployable ABI fixed:
+The newest flat line is V41-V49. It keeps the deployable ABI fixed:
 
 - observation remains 80D;
 - policy action remains `11D residual + 1D learned latent gait gate`;
 - actor and critic are both `512-256-128`;
-- action adapter is `cmaes_tri_anchor_auto_gate_directional_v26`;
-- latest reward contract is `omni_directional_offaxis_yaw_v24`.
+- action adapter is `cmaes_tri_anchor_auto_gate_directional_v27`;
+- latest reward contract is `omni_directional_offaxis_yaw_v25`.
 
-V26 adds searched left/right lateral primitives on the same 1 s deployable phase
-clock. This fixes the previous fixed-lateral gate failure without changing the
-hardware-facing interface.
+V26 added searched left/right lateral primitives on the same 1 s deployable
+phase clock. V27 keeps the same hardware-facing interface and fixes the
+mixed-yaw prior sign so mixed `vx+yaw` commands follow the commanded yaw sign.
 
-Best current flat scan:
+Best conservative flat baseline remains:
 
 ```text
 runs/worm_v6_ppo_flat_random_lateral_primitives_v41_from_v40final/best_model.zip
@@ -209,35 +209,37 @@ record/current/flat_omni_v41_v26_scan_after40k/scan_35_commands_best.json
 | `yaw_sign_rate` | `1.00` |
 | `fixed_lateral_strict_gate_passed` | `true` |
 
-V44-V46 tested several next-step ideas. A continuous-vector blend of primitive
-priors was rejected because it degraded the 35-command scan to
-`planar_rmse_m_s=0.1872` and `planar_sign_rate=0.76`. A 40k
-`mixed_planar_repair` continuation preserved correct signs and lateral gates
-but did not beat V41 best (`planar_rmse_m_s=0.1540` for V44 final). V45
-axis-separation repair also failed to beat V41. V46 added a pure-axial
-prior-preservation reward to stop the PPO residual from erasing the visible
-peristaltic slide wave, but its best scan was still worse than V41
-(`planar_rmse_m_s=0.1547`, `planar_sign_rate=0.96`).
+V47-V49 added stricter command-class proof, componentwise tracking cost,
+mixed-composition repair sampling, scan telemetry, and a mixed-yaw sign adapter
+fix. They did not yet pass continuous tracking. The latest strict result is:
 
-Current interpretation: lateral primitive support has improved, but continuous
-`vx/vy/yaw` tracking is **not solved yet**. Forward/reverse speed is still low,
-yaw-only commands still translate, and mixed vector commands under-track their
-lateral/yaw components. The detailed movement table is in
-[V41-V46 movement summary](docs/omni_v41_v46_motion_summary.md).
+```text
+record/current/flat_omni_v49_mixed_yaw_sign_adapter_scan/strict_scan_analysis.md
+```
 
-The next flat branch is paper-guided V47: keep V41 as the resume point, keep
-the 80D observation and 12D action ABI fixed, and reframe training/evaluation
-as a command-tracking cost over `[vx, vy, yaw_rate]` plus control effort and
-prior-cancellation diagnostics. The V47 reward contract is
-`omni_directional_offaxis_yaw_v25`. The paper notes are in
-[actor-critic snake tracking notes](docs/paper_actor_critic_tracking_snake_robot_notes.md).
+| Candidate | Planar RMSE | Yaw RMSE | `mixed_vx_yaw` yaw RMSE | Status |
+| --- | ---: | ---: | ---: | --- |
+| V48 final smoke | `0.1515` | `0.1196` | `0.2884` | rejected |
+| V49 adapter scan | `0.1515` | `0.1196` | `0.2145` | partial improvement, still rejected |
 
-First V47 smoke result: a local no-eval continuation reached `652,256` policy
-steps. It slightly reduced planar exceedance count versus the same-script V41
-scan, but still did not meet the continuous tracking target
-(`planar_rmse_m_s=0.1516`, target `<=0.10`). V41 remains the conservative
-baseline; V47 is currently a diagnostic tracking-cost branch, not an accepted
-controller.
+Detailed proof note:
+
+```text
+docs/omni_v47_strict_command_tracking_proof.md
+```
+
+Current interpretation: six primitive signs and fixed lateral gates are good,
+but continuous `vx/vy/yaw` tracking is **not solved yet**. The strict proof
+shows the dominant failure is still mixed command composition:
+
+- `mixed_vx_vy` cannot independently satisfy both planar components;
+- `mixed_vx_yaw` improved after the V49 sign fix but still lacks enough yaw
+  authority;
+- V41 remains the conservative baseline until a candidate passes the strict
+  scan gate.
+
+The detailed movement table is in
+[V41-V49 movement summary](docs/omni_v41_v46_motion_summary.md).
 
 ### Latest Flat V29 Status
 
