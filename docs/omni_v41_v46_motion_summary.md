@@ -444,3 +444,48 @@ The next repair should probably target the gait/prior structure for mixed
 `vx/vy` rather than only increasing training pressure: the learned residual
 L2 rose, but the measured mixed-planar velocities still under-produce one
 component.
+
+## V53/V54 curriculum and authority ablations
+
+V53 tested whether the remaining `mixed_vx_vy` problem was mainly a sampling
+problem. The run resumed from V52 final with `--allow-curriculum-resume` and
+`command_curriculum=mixed_planar_repair`, keeping the 80D observation and 12D
+action ABI unchanged. It improved yaw RMSE and preserved zero wrong signs, but
+it still failed continuous tracking:
+
+```text
+record/current/flat_omni_v53_mixed_planar_curriculum_resume_final_scan
+planar_rmse_m_s = 0.1509
+yaw_rmse_rad_s = 0.1697
+yaw_only_mean_planar_speed_m_s = 0.0888
+dominant_failure_group = mixed_vx_vy
+```
+
+V54 then tested a more aggressive authority rebalance:
+
+```text
+ACTION_ADAPTER_VERSION = cmaes_tri_anchor_auto_gate_directional_v30
+WORM_V6_ENABLE_MIXED_PLANAR_AUTHORITY_REBALANCE=1
+mixed_vx_vy dominant prior multiplier = 0.65
+mixed_vx_vy residual multiplier = 2.50
+```
+
+This ablation was rejected. No-retrain scans introduced a planar sign error,
+and a 50k continuation did not recover planar RMSE. The ablation remains
+available for comparison but is disabled by default. The default guard on the
+V53 final model reproduces the V53 metrics.
+
+| Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Status |
+| --- | ---: | ---: | ---: | ---: | --- |
+| V53 curriculum best | `0.1575` | `0.1794` | `0` | `0` | rejected |
+| V53 curriculum final | `0.1509` | `0.1697` | `0` | `0` | rejected |
+| V54 rebalance no-retrain V53 final | `0.1679` | `0.1697` | `1` | `0` | rejected |
+| V54 rebalance train best | `0.1678` | `0.1877` | `1` | `0` | rejected |
+| V54 rebalance train final | `0.1686` | `0.1714` | `0` | `0` | rejected |
+| V54 default guard V53 final | `0.1509` | `0.1697` | `0` | `0` | default protected, still rejected |
+
+The current evidence says the next useful change should not be another simple
+global gain. Mixed planar motion needs either a better compositional gait
+family, a command-specific residual architecture/curriculum with stronger
+full-diagonal coverage, or a stricter selection schedule that promotes
+full-scale diagonal commands rather than only half-scale mixed cases.

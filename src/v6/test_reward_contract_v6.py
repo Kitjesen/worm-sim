@@ -37,6 +37,7 @@ from action_adapter_v6 import (  # noqa: E402
     axial_gate_center_from_speed,
     command_conditioned_gate_center,
     command_activity_scale,
+    command_conditioned_prior_authority_scale,
     command_conditioned_prior_scale,
     command_conditioned_residual_scale,
     command_prior_scale_floor,
@@ -61,6 +62,9 @@ from worm_env_v6 import (  # noqa: E402
 from action_adapter_v6 import (  # noqa: E402
     LATERAL_PHASE_OFFSET_RAD,
     LATERAL_PRIOR_SCALE_FLOOR,
+    MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED,
+    MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT,
+    MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_PRIOR_SCALE_FLOOR,
     MIXED_YAW_RESIDUAL_SCALE_MULT,
@@ -392,13 +396,27 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v29")
+    assert adapter_contract["version"].endswith("_v30")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     residual_authority = adapter_contract[
         "command_conditioned_residual_authority"]
     assert residual_authority["enabled"]
     assert "mixed vx/vy" in residual_authority["formula"]
+    prior_authority = adapter_contract[
+        "command_conditioned_prior_authority"]
+    assert prior_authority["available"]
+    assert not prior_authority["enabled"]
+    assert not MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED
+    assert "mixed vx/vy" in prior_authority["formula"]
+    assert MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT > (
+        MIXED_PLANAR_RESIDUAL_SCALE_MULT)
+    assert MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT < 1.0
+    assert command_conditioned_prior_authority_scale(0.5, 0.5, 0.0) == 1.0
+    assert command_conditioned_prior_authority_scale(1.0, 0.0, 0.0) == 1.0
+    assert command_conditioned_prior_authority_scale(0.0, 1.0, 0.0) == 1.0
+    assert command_conditioned_prior_authority_scale(0.0, 0.0, 1.0) == 1.0
+    assert command_conditioned_prior_authority_scale(1.0, 0.0, 1.0) == 1.0
     centers = adapter_contract["gait_gate_mapping"]["command_centers"]
     assert centers["axial_translation"] < centers["mixed_or_stop"]
     assert centers["axial_translation_slow"] < centers["axial_translation_fast"]

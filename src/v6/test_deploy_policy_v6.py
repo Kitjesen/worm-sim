@@ -91,29 +91,32 @@ def main():
         assert config["control_timing"]["peristaltic_actuation_period_s"] == 1.0
         assert config["control_timing"]["phase_freq_hz"] == 1.0
 
-        raw_obs = np.zeros((1, OBS_DIM), dtype=np.float32)
-        raw_obs[0, 0:3] = np.array([0.5, 0.5, -0.25], dtype=np.float32)
-        raw_obs[0, 78] = np.sin(0.37)
-        raw_obs[0, 79] = np.cos(0.37)
         actor = torch.jit.load(os.path.join(bundle_dir, "policy_actor.pt"))
-        with torch.no_grad():
-            actor_action = actor(torch.as_tensor(raw_obs)).cpu().numpy()
-        norm_obs = (
-            (raw_obs - vec_env.obs_rms.mean) /
-            np.sqrt(vec_env.obs_rms.var + vec_env.epsilon))
-        norm_obs = np.clip(norm_obs, -vec_env.clip_obs, vec_env.clip_obs)
-        sb3_action, _ = model.predict(norm_obs, deterministic=True)
-        residual, learned_gait_blend = policy_action_to_residual_and_gait_blend(
-            sb3_action[0])
-        gait_blend = command_conditioned_gait_blend(
-            learned_gait_blend, raw_obs[0, 0:3])
-        expected_action = compose_deployable_action(
-            residual,
-            phase=phase_from_clock(raw_obs[0, 78], raw_obs[0, 79]),
-            gait_blend=gait_blend,
-            command=raw_obs[0, 0:3],
-        )[None, :]
-        assert np.max(np.abs(actor_action - expected_action)) < 1e-5
+        for command in (
+                np.array([0.5, 0.5, 0.0], dtype=np.float32),
+                np.array([0.5, 0.5, -0.25], dtype=np.float32)):
+            raw_obs = np.zeros((1, OBS_DIM), dtype=np.float32)
+            raw_obs[0, 0:3] = command
+            raw_obs[0, 78] = np.sin(0.37)
+            raw_obs[0, 79] = np.cos(0.37)
+            with torch.no_grad():
+                actor_action = actor(torch.as_tensor(raw_obs)).cpu().numpy()
+            norm_obs = (
+                (raw_obs - vec_env.obs_rms.mean) /
+                np.sqrt(vec_env.obs_rms.var + vec_env.epsilon))
+            norm_obs = np.clip(norm_obs, -vec_env.clip_obs, vec_env.clip_obs)
+            sb3_action, _ = model.predict(norm_obs, deterministic=True)
+            residual, learned_gait_blend = (
+                policy_action_to_residual_and_gait_blend(sb3_action[0]))
+            gait_blend = command_conditioned_gait_blend(
+                learned_gait_blend, raw_obs[0, 0:3])
+            expected_action = compose_deployable_action(
+                residual,
+                phase=phase_from_clock(raw_obs[0, 78], raw_obs[0, 79]),
+                gait_blend=gait_blend,
+                command=raw_obs[0, 0:3],
+            )[None, :]
+            assert np.max(np.abs(actor_action - expected_action)) < 1e-5
 
         input_csv = os.path.join(tmp, "hardware_example.csv")
         output_csv = os.path.join(tmp, "hardware_actions.csv")

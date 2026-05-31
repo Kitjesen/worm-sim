@@ -25,7 +25,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v29"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v30"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 
 
@@ -52,9 +52,14 @@ COMMAND_GATE_YAW_CENTER = 0.85
 DEFAULT_GAIT_PRIOR_SCALE = 1.0
 DEFAULT_POLICY_RESIDUAL_SCALE = 0.35
 COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED = True
+MIXED_PLANAR_AUTHORITY_REBALANCE_EXPERIMENTAL_AVAILABLE = True
+MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_MIXED_PLANAR_AUTHORITY_REBALANCE", default=False)
 MIXED_PLANAR_RESIDUAL_SCALE_MULT = 1.80
+MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT = 2.50
 MIXED_YAW_RESIDUAL_SCALE_MULT = 1.60
 YAW_ONLY_RESIDUAL_SCALE_MULT = 1.25
+MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT = 0.65
 REVERSE_PRIOR_SCALE_FLOOR = 0.40
 LATERAL_PRIOR_SCALE_FLOOR = 1.00
 YAW_ONLY_PRIOR_SCALE_FLOOR = 1.00
@@ -282,7 +287,10 @@ def action_adapter_contract(
                 "m=1 for pure vx/vy, "
                 f"m={YAW_ONLY_RESIDUAL_SCALE_MULT:.2f} for pure yaw, "
                 f"m={MIXED_PLANAR_RESIDUAL_SCALE_MULT:.2f} for mixed vx/vy, "
-                f"m={MIXED_YAW_RESIDUAL_SCALE_MULT:.2f} for mixed yaw"),
+                f"m={MIXED_YAW_RESIDUAL_SCALE_MULT:.2f} for mixed yaw; "
+                f"optional V54 ablation uses "
+                f"m={MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT:.2f} "
+                "for mixed vx/vy"),
             "reason": (
                 "V50 strict scans showed hand-composed mixed priors degraded "
                 "sign reliability, while telemetry showed mixed-command "
@@ -290,6 +298,25 @@ def action_adapter_contract(
                 "keeps the safe V49/V41 prior path and gives the learned "
                 "residual more command-conditioned authority only where "
                 "continuous tracking needs correction."),
+        },
+        "command_conditioned_prior_authority": {
+            "available": (
+                MIXED_PLANAR_AUTHORITY_REBALANCE_EXPERIMENTAL_AVAILABLE),
+            "enabled": MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED,
+            "source": "deployable normalized command obs[0:3]",
+            "enable_env": (
+                "WORM_V6_ENABLE_MIXED_PLANAR_AUTHORITY_REBALANCE=1"),
+            "formula": (
+                "prior_scale *= a(cmd); "
+                f"a={MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT:.2f} for "
+                "mixed vx/vy with zero yaw when enabled; a=1 otherwise"),
+            "reason": (
+                "V51/V52 raised residual authority but the dominant mixed "
+                "planar prior still overwhelmed the learned correction. V54 "
+                "tested reducing the dominant mixed-planar prior while "
+                "increasing residual authority, but no-retrain and short "
+                "continuation scans regressed planar RMSE. The ablation is "
+                "kept available for comparison and disabled by default."),
         },
         "command_conditioned_prior_scale": {
             "enabled": True,
@@ -501,6 +528,12 @@ def action_adapter_contract(
                 "mixed yaw, and pure yaw commands so PPO can learn corrective "
                 "components without changing the deployable 80D observation "
                 "or 12D action ABI."),
+            "v30_reason": (
+                "V53 curriculum continuation preserved signs and improved yaw "
+                "RMSE, but mixed vx/vy planar RMSE remained above the strict "
+                "gate. V30 exposes the V54 mixed-planar authority rebalance "
+                "as a default-off ablation because short scans regressed "
+                "planar RMSE and sometimes planar sign reliability."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -813,6 +846,17 @@ def is_mixed_command(command):
     return active_axes >= 2
 
 
+def is_mixed_planar_command(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+    abs_vx = abs(float(cmd_vx_norm))
+    abs_vy = abs(float(cmd_vy_norm))
+    abs_yaw = abs(float(cmd_yaw_norm))
+    threshold = DIRECTIONAL_PRIOR_THRESHOLD
+    return (
+        abs_vx >= threshold
+        and abs_vy >= threshold
+        and abs_yaw < threshold)
+
+
 def _componentwise_mixed_gait_prior_from_phase(phase, gait_blend, command):
     cmd_vx, cmd_vy, cmd_yaw = [float(v) for v in command]
     abs_vx = abs(cmd_vx)
@@ -981,11 +1025,25 @@ def command_conditioned_residual_scale(
         abs_yaw >= threshold
         and max(abs_vx, abs_vy) >= threshold)
     if mixed_planar:
+        if MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED:
+            return MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT
         return MIXED_PLANAR_RESIDUAL_SCALE_MULT
     if mixed_yaw:
         return MIXED_YAW_RESIDUAL_SCALE_MULT
     if yaw_only:
         return YAW_ONLY_RESIDUAL_SCALE_MULT
+    return 1.0
+
+
+def command_conditioned_prior_authority_scale(
+        cmd_vx_norm,
+        cmd_vy_norm,
+        cmd_yaw_norm):
+    if (MIXED_COMMAND_COMPOSITION_ENABLED
+            or not MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED):
+        return 1.0
+    if is_mixed_planar_command(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+        return MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT
     return 1.0
 
 
@@ -1101,6 +1159,7 @@ def compose_deployable_action(
     residual_scale = float(policy_residual_scale)
     if command is not None:
         prior_scale *= command_conditioned_prior_scale(*command)
+        prior_scale *= command_conditioned_prior_authority_scale(*command)
         residual_scale *= command_conditioned_residual_scale(*command)
     activity_scale = (
         1.0 if command is None else command_activity_scale(*command))

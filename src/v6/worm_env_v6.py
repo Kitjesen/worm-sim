@@ -59,6 +59,7 @@ from action_adapter_v6 import (
     command_conditioned_gate_center,
     command_conditioned_gait_blend,
     command_activity_scale,
+    command_conditioned_prior_authority_scale,
     command_conditioned_prior_scale,
     command_conditioned_residual_scale,
     compose_deployable_action,
@@ -526,8 +527,10 @@ class WormEnvV6(gym.Env):
         phase = 2.0 * math.pi * PHASE_FREQ * self._step_count * CTRL_DT
         prior = directional_gait_prior_from_phase(
             phase, self._gait_blend, command_norm)
-        prior_scale = self.gait_prior_scale * command_conditioned_prior_scale(
-            *command_norm)
+        prior_scale = (
+            self.gait_prior_scale
+            * command_conditioned_prior_scale(*command_norm)
+            * command_conditioned_prior_authority_scale(*command_norm))
         activity_scale = command_activity_scale(*command_norm)
         residual_scale = (
             self.policy_residual_scale

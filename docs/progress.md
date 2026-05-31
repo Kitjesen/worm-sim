@@ -5,8 +5,10 @@
 V50 mixed-command composition repair has been implemented and rejected as the
 default control path. V51/V52 then tested the safer follow-up: keep the
 V49/V41 prior path, increase mixed-command residual authority, and add a
-mixed-planar component/sign reward. This produced a small improvement but still
-does **not** solve continuous tracking on flat terrain.
+mixed-planar component/sign reward. V53 then continued with a mixed-planar
+curriculum, and V54 tested a more aggressive prior/residual authority
+rebalance. These produced useful ablations but still do **not** solve
+continuous tracking on flat terrain.
 
 The continuing goal is to keep the deployable interface fixed while repairing
 the failure modes exposed by the strict 35-command scan:
@@ -33,7 +35,9 @@ from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and
 `mixed_vx_vy` remained the dominant failure class. V50 confirmed that simply
 injecting stronger composed priors is not sufficient. V51/V52 show that
 residual authority plus mixed-planar reward can preserve zero wrong signs and
-bring yaw RMSE under the gate, but planar RMSE is still too high.
+bring yaw RMSE under the gate, but planar RMSE is still too high. V53 improves
+yaw RMSE further, while V54 shows that simply reducing mixed-planar prior
+authority and increasing residual authority regresses planar RMSE.
 
 ## Done
 
@@ -329,12 +333,25 @@ bring yaw RMSE under the gate, but planar RMSE is still too high.
   `wrong_yaw_sign_count=0`. This is a small improvement over V51 final but
   still fails the flat continuous-tracking gate; `mixed_vx_vy` remains the
   dominant failure group.
+- V53 continued from V52 final with `mixed_planar_repair` curriculum after
+  explicitly allowing a curriculum-resume. The final strict scan reports
+  `planar_rmse_m_s=0.1509`, `yaw_rmse_rad_s=0.1697`,
+  `wrong_planar_sign_count=0`, and `wrong_yaw_sign_count=0`. This is the
+  current safest local candidate on yaw/sign gates, but it still fails planar
+  RMSE and yaw-only drift.
+- V54 tested a mixed-planar authority rebalance:
+  `WORM_V6_ENABLE_MIXED_PLANAR_AUTHORITY_REBALANCE=1` lowers the dominant
+  mixed-planar prior to `0.65` and raises the mixed-planar residual multiplier
+  to `2.50`. No-retrain and 50k continuation scans regressed planar RMSE
+  (`0.1686` final after training), so the ablation is default-off. The V54
+  default guard on V53 final reproduces `planar_rmse_m_s=0.1509`,
+  `yaw_rmse_rad_s=0.1697`, and zero sign errors.
 - Latest detailed movement table and artifact list:
   `docs/omni_v41_v46_motion_summary.md`.
 
 ## Not Done
 
-- The current V41-V52 line is not an accepted continuous tracker yet. It is a
+- The current V41-V54 line is not an accepted continuous tracker yet. It is a
   weak omnidirectional prototype with correct signs and fixed-lateral gate
   repair.
 - Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
@@ -404,12 +421,12 @@ bring yaw RMSE under the gate, but planar RMSE is still too high.
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V41-V52 line keeps the deployable ABI fixed, restores fixed left/right
+flat V41-V54 line keeps the deployable ABI fixed, restores fixed left/right
 lateral authority through searched lateral primitives, tests axial
 prior-preservation for visible worm-like actuation, partially fixes the
 mixed-yaw sign path, rejects the V50 componentwise-prior hypothesis, and tests
-V51/V52 residual/reward repairs. The project is not yet at "any velocity
-command can be tracked": planar RMSE remains around `0.15 m/s`, reverse is
-weak, and mixed planar commands do not track both components reliably. The next
-accepted advance must pass the strict 35-command scan rather than a visually
-plausible video.
+V51/V52 residual/reward repairs plus V53/V54 curriculum/authority ablations.
+The project is not yet at "any velocity command can be tracked": planar RMSE
+remains around `0.15 m/s`, reverse is weak, and mixed planar commands do not
+track both components reliably. The next accepted advance must pass the strict
+35-command scan rather than a visually plausible video.
