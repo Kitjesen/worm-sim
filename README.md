@@ -225,6 +225,12 @@ yaw-only commands still translate, and mixed vector commands under-track their
 lateral/yaw components. The detailed movement table is in
 [V41-V46 movement summary](docs/omni_v41_v46_motion_summary.md).
 
+The next flat branch is paper-guided V47: keep V41 as the resume point, keep
+the 80D observation and 12D action ABI fixed, and reframe training/evaluation
+as a command-tracking cost over `[vx, vy, yaw_rate]` plus control effort and
+prior-cancellation diagnostics. The paper notes are in
+[actor-critic snake tracking notes](docs/paper_actor_critic_tracking_snake_robot_notes.md).
+
 ### Latest Flat V29 Status
 
 V29 is kept below as historical context. It keeps the same

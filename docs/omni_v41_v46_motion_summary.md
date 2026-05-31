@@ -163,3 +163,36 @@ fine-tune. Highest-value next steps:
 4. Redesign the reverse primitive parameterization before trying another
    reverse-prior integration.
 5. Keep sand/slope paused until flat continuous tracking improves.
+
+## Paper-guided V47 direction
+
+The actor-critic snake tracking paper reviewed on 2026-05-31 frames locomotion
+as an optimal tracking problem: a guidance/gait generator provides reference
+motion, the actor outputs corrective control, and the critic/value objective
+penalizes tracking error plus control input. The useful lesson for Worm V6 is
+not to add global position to the policy observation. The useful lesson is to
+turn the flat omni problem into a stricter command-tracking cost:
+
+```text
+e_track = [body_vx - vx_cmd,
+           body_vy - vy_cmd,
+           yaw_rate - yaw_rate_cmd]
+```
+
+The next branch should therefore keep the 80D observation and 12D action ABI
+unchanged, but use V41 as the resume point and optimize/evaluate a V47
+tracking-cost curriculum:
+
+```text
+flat_random_v47_tracking_cost_from_v41best
+```
+
+The target is to reduce component tracking errors and threshold-exceedance
+counts, while preserving the learned snake-worm gait gate and preventing the
+residual action from erasing necessary worm-style slide activity.
+
+Detailed paper notes are in:
+
+```text
+docs/paper_actor_critic_tracking_snake_robot_notes.md
+```

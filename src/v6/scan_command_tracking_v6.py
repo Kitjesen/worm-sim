@@ -35,6 +35,13 @@ from worm_env_v6 import (  # noqa: E402
 FIXED_LATERAL_SPEED_THRESHOLD_M_S = 0.03
 FIXED_LATERAL_OFF_AXIS_THRESHOLD_M_S = 0.08
 FIXED_LATERAL_YAW_THRESHOLD_RAD_S = 0.20
+VX_ERROR_EXCEED_THRESHOLD_M_S = 0.10
+VY_ERROR_EXCEED_THRESHOLD_M_S = 0.10
+PLANAR_ERROR_EXCEED_THRESHOLD_M_S = 0.10
+YAW_ERROR_EXCEED_THRESHOLD_RAD_S = 0.20
+OFF_AXIS_EXCEED_THRESHOLD_M_S = 0.08
+ZERO_COMMAND_SPEED_EXCEED_THRESHOLD_M_S = 0.02
+YAW_ONLY_PLANAR_EXCEED_THRESHOLD_M_S = 0.08
 
 
 def parse_values(text):
@@ -100,6 +107,9 @@ def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
     cmd_vec = np.array([vx, vy], dtype=np.float64)
     body_vec = np.array([body_vx, body_vy], dtype=np.float64)
     cmd_speed = float(np.linalg.norm(cmd_vec))
+    body_planar_speed = float(np.linalg.norm(body_vec))
+    vx_error = float(body_vx - vx)
+    vy_error = float(body_vy - vy)
     planar_error = float(np.linalg.norm(body_vec - cmd_vec))
     if cmd_speed > 1e-9:
         projected_speed = float(np.dot(body_vec, cmd_vec / cmd_speed))
@@ -125,6 +135,10 @@ def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
         "elapsed_s": elapsed,
         "reward": reward,
         "terminated": terminated,
+        "command_planar_speed_m_s": cmd_speed,
+        "body_planar_speed_m_s": body_planar_speed,
+        "vx_error_m_s": vx_error,
+        "vy_error_m_s": vy_error,
         "planar_error_m_s": planar_error,
         "yaw_error_rad_s": float(abs(yaw_rate - yaw)),
         "projected_speed_m_s": projected_speed,
@@ -183,6 +197,12 @@ def summarize(rows):
             return None
         return float(np.sqrt(np.mean([r[key] ** 2 for r in values])))
 
+    def count(values, predicate):
+        return int(sum(1 for r in values if predicate(r)))
+
+    def planar_speed(row):
+        return float(np.linalg.norm([row["body_vx_m_s"], row["body_vy_m_s"]]))
+
     def strongest_pure_lateral(sign):
         candidates = [
             r for r in rows
@@ -230,6 +250,8 @@ def summarize(rows):
         "num_commands": len(rows),
         "planar_rmse_m_s": rmse(planar_rows, "planar_error_m_s"),
         "yaw_rmse_rad_s": rmse(yaw_rows, "yaw_error_rad_s"),
+        "vx_error_rmse_m_s": rmse(rows, "vx_error_m_s"),
+        "vy_error_rmse_m_s": rmse(rows, "vy_error_m_s"),
         "planar_sign_rate": (
             float(np.mean([r["planar_sign_ok"] for r in planar_rows]))
             if planar_rows else None),
@@ -258,6 +280,62 @@ def summarize(rows):
                 np.linalg.norm([r["body_vx_m_s"], r["body_vy_m_s"]])
                 for r in yaw_only_rows
             ])) if yaw_only_rows else None),
+        "vx_error_exceed_threshold_m_s": VX_ERROR_EXCEED_THRESHOLD_M_S,
+        "vy_error_exceed_threshold_m_s": VY_ERROR_EXCEED_THRESHOLD_M_S,
+        "planar_error_exceed_threshold_m_s": (
+            PLANAR_ERROR_EXCEED_THRESHOLD_M_S),
+        "yaw_error_exceed_threshold_rad_s": (
+            YAW_ERROR_EXCEED_THRESHOLD_RAD_S),
+        "off_axis_exceed_threshold_m_s": OFF_AXIS_EXCEED_THRESHOLD_M_S,
+        "zero_command_speed_exceed_threshold_m_s": (
+            ZERO_COMMAND_SPEED_EXCEED_THRESHOLD_M_S),
+        "yaw_only_planar_exceed_threshold_m_s": (
+            YAW_ONLY_PLANAR_EXCEED_THRESHOLD_M_S),
+        "vx_error_exceed_count": count(
+            rows,
+            lambda r: abs(r["vx_error_m_s"])
+            > VX_ERROR_EXCEED_THRESHOLD_M_S,
+        ),
+        "vy_error_exceed_count": count(
+            rows,
+            lambda r: abs(r["vy_error_m_s"])
+            > VY_ERROR_EXCEED_THRESHOLD_M_S,
+        ),
+        "planar_error_exceed_count": count(
+            planar_rows,
+            lambda r: r["planar_error_m_s"]
+            > PLANAR_ERROR_EXCEED_THRESHOLD_M_S,
+        ),
+        "yaw_error_exceed_count": count(
+            yaw_rows,
+            lambda r: r["yaw_error_rad_s"]
+            > YAW_ERROR_EXCEED_THRESHOLD_RAD_S,
+        ),
+        "off_axis_exceed_count": count(
+            rows,
+            lambda r: (
+                abs(r["cmd_vx_m_s"]) > 1e-9
+                or abs(r["cmd_vy_m_s"]) > 1e-9)
+            and r["off_axis_speed_m_s"] > OFF_AXIS_EXCEED_THRESHOLD_M_S,
+        ),
+        "zero_command_speed_exceed_count": count(
+            zero_rows,
+            lambda r: planar_speed(r)
+            > ZERO_COMMAND_SPEED_EXCEED_THRESHOLD_M_S,
+        ),
+        "yaw_only_planar_exceed_count": count(
+            yaw_only_rows,
+            lambda r: planar_speed(r)
+            > YAW_ONLY_PLANAR_EXCEED_THRESHOLD_M_S,
+        ),
+        "wrong_planar_sign_count": count(
+            planar_rows,
+            lambda r: not r["planar_sign_ok"],
+        ),
+        "wrong_yaw_sign_count": count(
+            yaw_rows,
+            lambda r: not r["yaw_sign_ok"],
+        ),
         "fixed_lateral_speed_threshold_m_s": FIXED_LATERAL_SPEED_THRESHOLD_M_S,
         "fixed_lateral_off_axis_threshold_m_s": (
             FIXED_LATERAL_OFF_AXIS_THRESHOLD_M_S),

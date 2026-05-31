@@ -78,8 +78,11 @@ def main():
             "body_vx_m_s": 0.02,
             "body_vy_m_s": 0.04,
             "yaw_rate_rad_s": 0.05,
+            "vx_error_m_s": 0.02,
+            "vy_error_m_s": -0.11,
             "planar_error_m_s": 0.11,
             "yaw_error_rad_s": 0.05,
+            "off_axis_speed_m_s": 0.02,
             "planar_sign_ok": True,
             "yaw_sign_ok": True,
         },
@@ -90,8 +93,11 @@ def main():
             "body_vx_m_s": 0.01,
             "body_vy_m_s": -0.04,
             "yaw_rate_rad_s": -0.04,
+            "vx_error_m_s": 0.01,
+            "vy_error_m_s": 0.11,
             "planar_error_m_s": 0.11,
             "yaw_error_rad_s": 0.04,
+            "off_axis_speed_m_s": 0.01,
             "planar_sign_ok": True,
             "yaw_sign_ok": True,
         },
@@ -102,8 +108,11 @@ def main():
             "body_vx_m_s": 0.0,
             "body_vy_m_s": 0.0,
             "yaw_rate_rad_s": 0.0,
+            "vx_error_m_s": 0.0,
+            "vy_error_m_s": 0.0,
             "planar_error_m_s": 0.0,
             "yaw_error_rad_s": 0.0,
+            "off_axis_speed_m_s": 0.0,
             "planar_sign_ok": True,
             "yaw_sign_ok": True,
         },
@@ -113,6 +122,9 @@ def main():
     assert scan_summary["fixed_lateral_right_body_vy_m_s"] == -0.04
     assert scan_summary["fixed_lateral_speed_gate_passed"]
     assert scan_summary["fixed_lateral_strict_gate_passed"]
+    assert scan_summary["vy_error_exceed_count"] == 2
+    assert scan_summary["planar_error_exceed_count"] == 2
+    assert scan_summary["wrong_planar_sign_count"] == 0
 
     rows[1]["body_vy_m_s"] = -0.02
     failed_summary = summarize(rows)
