@@ -1,4 +1,4 @@
-# V41-V58 flat omni motion summary
+# V41-V59 flat omni motion summary
 
 Date: 2026-05-31
 
@@ -29,12 +29,13 @@ and `yaw=+/-0.25 rad/s`. The yaw range is intentionally narrower than the
 earlier `+/-0.5 rad/s` target until yaw-only stationarity and mixed-yaw
 tracking are repaired.
 
-The latest reward code is `omni_directional_offaxis_yaw_v27`. V57 adds a
+The latest reward code is `omni_directional_offaxis_yaw_v28`. V57 added a
 full-diagonal mixed-planar deficit term so full-speed diagonal commands are
 penalized when either signed `vx` or signed `vy` remains far below command.
-V58 keeps the same reward code and adds a hardcase mixed-diagonal curriculum.
-The V58 scan did not pass; V56 remains safer on yaw RMSE, while V58 restores
-zero sign errors at the cost of worse yaw tracking.
+V58 kept that reward code and added a hardcase mixed-diagonal curriculum. V59
+adds a yaw-preserving hardcase curriculum plus a higher yaw-only stationarity
+penalty cap. The V59 scan recovers yaw RMSE compared with V58, but it still
+does not pass continuous planar tracking.
 
 ## Version scan comparison
 
@@ -54,6 +55,8 @@ with forward+yaw rows included.
 | V57 final | `0.1566` | `0.1760` | `0.96` | `1.00` | yes | rejected, one planar sign regression |
 | V58 hardcase best | `0.1566` | `0.2709` | `1.00` | `1.00` | yes | rejected, signs restored but yaw worsened |
 | V58 hardcase final | `0.1588` | `0.2720` | `1.00` | `1.00` | yes | rejected, signs restored but yaw worsened |
+| V59 yaw-preserve best | `0.1561` | `0.1887` | `1.00` | `1.00` | no | rejected, yaw recovered but planar RMSE high |
+| V59 yaw-preserve final | `0.1591` | `0.1895` | `0.96` | `1.00` | yes | rejected, lateral gate recovered but one planar sign error |
 
 ## V57 full-diagonal reward result
 
@@ -128,6 +131,42 @@ V58 restores sign reliability compared with V57, but it fails
 `1.09` and residual L2 around `0.09`. The conclusion is that hardcase sampling
 alone does not make the policy allocate enough actuator-level authority to both
 planar components, and it also damages yaw tracking.
+
+## V59 yaw-preserving hardcase curriculum
+
+V59 tested whether V58 failed because hardcase sampling crowded out yaw repair.
+It keeps the 80D observation ABI, 12D residual-plus-gate action ABI, and
+`512-256-128` actor/critic. The new curriculum is:
+
+```text
+mixed_planar_yaw_preserve_repair
+```
+
+It continues from the V56 best checkpoint and samples full-speed mixed-planar
+hard cases, pure yaw, mixed `vx+yaw`, and primitive axis commands in the same
+training stream. V59 also increases the yaw-only stationary drift penalty cap
+under reward contract `omni_directional_offaxis_yaw_v28`.
+
+Artifacts:
+
+```text
+runs/worm_v6_ppo_flat_random_v59_yaw_preserve_hardcase_from_v56best/
+record/v6/omni_v59_yaw_preserve_hardcase/best_command_tracking_scan.json
+record/v6/omni_v59_yaw_preserve_hardcase/final_command_tracking_scan.json
+record/v6/omni_v59_yaw_preserve_hardcase/strict_scan_analysis.md
+```
+
+| Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Yaw-only planar | Status |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| V59 yaw-preserve best | `0.1561` | `0.1887` | `0` | `0` | `0.0677` | rejected |
+| V59 yaw-preserve final | `0.1591` | `0.1895` | `1` | `0` | `0.0678` | rejected |
+
+V59 is a useful diagnostic: yaw-only planar drift is lower than V58 and yaw
+RMSE returns below `0.20 rad/s`. It still fails the planar RMSE target
+`<=0.10 m/s`. The worst V59 final cases remain full-speed mixed planar
+commands, especially reverse-right `(-0.25, -0.15, 0)`, where the response was
+`(-0.0527, +0.0888, +0.0628)` instead of tracking both the reverse and right
+lateral components.
 
 ## Current V41 motion table
 
@@ -611,9 +650,10 @@ were full-speed diagonals `(+/-0.25, +/-0.15, 0)`. V56 adds those four commands 
 | V56 strict-diagonal best | `0.1509` | `0.1646` | `0` | `0` | `0.0873` | rejected |
 | V56 strict-diagonal final | `0.1538` | `0.1831` | `0` | `0` | `0.0980` | rejected |
 
-V56 remains the safest local candidate on yaw RMSE and selection coverage, and
-V58 shows that hardcase oversampling can restore signs but does not improve the
-continuous-tracking gate. The remaining hard problem is not command recognition:
+V56 remains the safest local candidate on selection coverage, while V59 shows
+that hardcase oversampling with yaw preservation can recover yaw RMSE but still
+does not improve the continuous-tracking gate. The remaining hard problem is
+not command recognition:
 the policy now sees and is selected on the full diagonals, yet still
 under-produces mixed planar velocity magnitude. The next repair should target
 actuator-level authority for mixed diagonal translation or a residual

@@ -180,16 +180,16 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V41-V58 Status
+### Latest Flat V41-V59 Status
 
-The newest flat line is V41-V58. It keeps the deployable ABI fixed:
+The newest flat line is V41-V59. It keeps the deployable ABI fixed:
 
 - observation remains 80D;
 - policy action remains `11D residual + 1D learned latent gait gate`;
 - actor and critic are both `512-256-128`;
 - action adapter is `cmaes_tri_anchor_auto_gate_directional_v31`;
-- latest reward contract is `omni_directional_offaxis_yaw_v27`;
-- latest diagnostic curriculum is `mixed_planar_hardcase_repair`.
+- latest reward contract is `omni_directional_offaxis_yaw_v28`;
+- latest diagnostic curriculum is `mixed_planar_yaw_preserve_repair`.
 - first-stage yaw command range is currently `+/-0.25 rad/s`, narrowed from
   the earlier `+/-0.5 rad/s` target while yaw-only stationarity is repaired.
 
@@ -227,11 +227,13 @@ full-diagonal mixed-planar deficit reward and continued from V56 best, but the
 strict scan regressed sign reliability. V58 then tested whether the issue was
 only residual/prior scale and whether oversampling hard mixed diagonals would
 repair the target class. The scale sweep worsened the scan, and the hardcase
-curriculum restored zero sign errors but worsened yaw RMSE. The latest strict
-result is:
+curriculum restored zero sign errors but worsened yaw RMSE. V59 then added a
+yaw-preserving hardcase curriculum and a stronger yaw-only stationarity cap.
+It recovered yaw RMSE relative to V58 but still failed continuous planar
+tracking. The latest strict result is:
 
 ```text
-record/current/flat_omni_v58_hardcase_curriculum_best_scan/strict_scan_analysis.md
+record/v6/omni_v59_yaw_preserve_hardcase/strict_scan_analysis.md
 ```
 
 | Candidate | Planar RMSE | Yaw RMSE | Wrong planar signs | Wrong yaw signs | Status |
@@ -251,6 +253,8 @@ record/current/flat_omni_v58_hardcase_curriculum_best_scan/strict_scan_analysis.
 | V57 full-diagonal reward final | `0.1566` | `0.1760` | `1` | `0` | rejected |
 | V58 hardcase curriculum best | `0.1566` | `0.2709` | `0` | `0` | rejected |
 | V58 hardcase curriculum final | `0.1588` | `0.2720` | `0` | `0` | rejected |
+| V59 yaw-preserve hardcase best | `0.1561` | `0.1887` | `0` | `0` | rejected |
+| V59 yaw-preserve hardcase final | `0.1591` | `0.1895` | `1` | `0` | rejected |
 
 Detailed proof note:
 
@@ -281,12 +285,14 @@ shows the dominant failure is still mixed command composition:
 - V58 confirms that no-retrain residual/prior scaling is not enough; the
   hardcase curriculum restores sign reliability but increases yaw RMSE and
   still leaves full-speed reverse diagonals weak;
-- V56 best remains safer than V57/V58 on yaw RMSE in this branch, but it
-  remains a weak omnidirectional prototype until a candidate passes the strict
-  scan gate.
+- V59 confirms that preserving yaw samples during hardcase training avoids the
+  severe V58 yaw regression, but full-speed mixed `vx/vy` composition is still
+  not solved;
+- V56/V59 remain diagnostic candidates rather than accepted trackers until a
+  candidate passes the strict scan gate.
 
 The detailed movement table is in
-[V41-V58 movement summary](docs/omni_v41_v46_motion_summary.md).
+[V41-V59 movement summary](docs/omni_v41_v46_motion_summary.md).
 
 ### Latest Flat V29 Status
 
@@ -353,7 +359,7 @@ not beat V29:
 
 The retained post-V29 code changes are the targeted mixed-yaw sampling contract
 (`omni_directional_offaxis_yaw_v18`) and configurable PPO learning rate. V29 is
-now superseded as the active development line by V41-V58 diagnostics, although
+now superseded as the active development line by V41-V59 diagnostics, although
 V41 is still only a weak omnidirectional prototype rather than accepted
 continuous velocity tracking. See
 [V30-V33 repair log](docs/omni_v30_v33_repair_log.md).
@@ -489,7 +495,7 @@ cross-terrain paper claims should wait until all modes are retrained plus
 
 ## Current Effect Summary
 
-The strongest current evidence is structural plus the latest flat V41-V58
+The strongest current evidence is structural plus the latest flat V41-V59
 repair line:
 
 - Deployable observation contract passes audit.
@@ -524,7 +530,7 @@ repair line:
   `133.48 mm/s`, and snake `62.89 mm/s`; the local 4K CMA-ES comparison still
   shows the stronger raw full-combined gait at `247.97 mm/s`.
 - Historical directional control has a flat V12 six-direction gate pass, but
-  the current V41-V58 line should still be described as weak omnidirectional
+  the current V41-V59 line should still be described as weak omnidirectional
   control until the 35-command continuous tracking gate passes.
 - The next training/evaluation work should not jump straight to paper claims:
   rerun robust flat tests, compare learned gate against fixed worm/mixed/snake

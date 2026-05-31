@@ -79,7 +79,7 @@ Key JSON metrics to inspect:
 ## Current Status
 
 The all-direction training and evaluation pipeline is implemented and now uses
-the strict 35-command scan as the acceptance gate. The latest V41-V58 flat line
+the strict 35-command scan as the acceptance gate. The latest V41-V59 flat line
 keeps the 80D observation ABI and 12D residual-plus-gait-gate action ABI fixed,
 with actor and critic networks set to `512-256-128`. The current first-stage
 command box is `vx=+/-0.25 m/s`, `vy=+/-0.15 m/s`, and
@@ -96,16 +96,16 @@ Current verified status:
 Latest rejected experiment:
 
 ```text
-runs/worm_v6_ppo_flat_random_v58_hardcase_curriculum_from_v56best/
-record/current/flat_omni_v58_hardcase_curriculum_best_scan/strict_scan_analysis.md
-record/current/flat_omni_v58_hardcase_curriculum_final_scan/strict_scan_analysis.md
+runs/worm_v6_ppo_flat_random_v59_yaw_preserve_hardcase_from_v56best/
+record/v6/omni_v59_yaw_preserve_hardcase/strict_scan_analysis.md
 ```
 
-V58 keeps `omni_directional_offaxis_yaw_v27` and adds
-`mixed_planar_hardcase_repair` sampling from V56 best. It restores zero wrong
-planar/yaw signs compared with V57, but it does not solve the main failure:
-`mixed_vx_vy` commands still under-track one or both planar components, yaw RMSE
-worsens to about `0.27 rad/s`, and yaw-only commands still translate while
-turning. Until a scan passes the strict gate, the correct paper wording is
+V59 uses `omni_directional_offaxis_yaw_v28` and adds
+`mixed_planar_yaw_preserve_repair` sampling from V56 best. It keeps the hard
+mixed-planar cases from V58 but preserves yaw-only and mixed-yaw samples so yaw
+does not collapse. The best strict scan reports `planar_rmse_m_s=0.1561`,
+`yaw_rmse_rad_s=0.1887`, and zero wrong signs. The final scan passes the fixed
+lateral strict gate but still has `planar_rmse_m_s=0.1591` and one wrong
+planar sign. Until a scan passes the strict gate, the correct paper wording is
 "weak omnidirectional prototype" or "six-direction primitive controller", not
 continuous body-frame velocity tracking.

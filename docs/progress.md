@@ -1,6 +1,6 @@
 # Progress
 
-## Current Target (2026-05-31)
+## Current Target (2026-06-01)
 
 V50 mixed-command composition repair has been implemented and rejected as the
 default control path. V51/V52 then tested the safer follow-up: keep the
@@ -11,8 +11,10 @@ V55 tested a split-channel mixed-planar prior, V56 added full-speed diagonal
 commands to the best-model selection schedule, and V57 tested an explicit
 full-diagonal speed-deficit reward. V58 then tested no-retrain residual/prior
 scale changes, searched deployable open-loop mixed-planar primitives, and ran a
-hardcase mixed-diagonal curriculum from V56 best. These produced useful
-ablations but still do **not** solve continuous tracking on flat terrain.
+hardcase mixed-diagonal curriculum from V56 best. V59 then added a
+yaw-preserving hardcase curriculum and a stronger yaw-only stationarity cap.
+These produced useful ablations but still do **not** solve continuous tracking
+on flat terrain.
 
 The continuing goal is to keep the deployable interface fixed while repairing
 the failure modes exposed by the strict 35-command scan:
@@ -50,7 +52,9 @@ that full-speed diagonal selection coverage preserves signs but does not reduce
 planar RMSE enough, V57 shows that a stronger full-diagonal reward alone does
 not make the policy use enough residual authority, and V58 shows that hardcase
 oversampling can restore sign reliability but still does not fix mixed-planar
-magnitude or yaw-only drift.
+magnitude or yaw-only drift. V59 shows that preserving yaw samples during
+hardcase training recovers yaw RMSE from the V58 regression, but full-speed
+mixed `vx/vy` composition still fails the strict planar RMSE gate.
 
 ## Done
 
@@ -398,12 +402,24 @@ magnitude or yaw-only drift.
   `yaw_only_mean_planar_speed_m_s=0.0959`. V58 is rejected: hardcase sampling
   restores signs but worsens yaw RMSE and still leaves `mixed_vx_vy` as the
   dominant failure group.
+- V59 added reward contract `omni_directional_offaxis_yaw_v28`, a
+  `mixed_planar_yaw_preserve_repair` curriculum, and a higher yaw-only
+  stationarity penalty cap. It continued from V56 best with the same 80D/12D
+  deployable ABI and `512-256-128` actor/critic. The best strict scan reports
+  `planar_rmse_m_s=0.1561`, `yaw_rmse_rad_s=0.1887`,
+  `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and
+  `yaw_only_mean_planar_speed_m_s=0.0677`; the final scan reports
+  `planar_rmse_m_s=0.1591`, `yaw_rmse_rad_s=0.1895`,
+  `wrong_planar_sign_count=1`, `wrong_yaw_sign_count=0`, and
+  `yaw_only_mean_planar_speed_m_s=0.0678`. V59 is rejected: yaw recovers
+  compared with V58 and fixed lateral strict gate passes in the final scan, but
+  full-speed mixed `vx/vy` commands still fail continuous tracking.
 - Latest detailed movement table and artifact list:
   `docs/omni_v41_v46_motion_summary.md`.
 
 ## Not Done
 
-- The current V41-V58 line is not an accepted continuous tracker yet. It is a
+- The current V41-V59 line is not an accepted continuous tracker yet. It is a
   weak omnidirectional prototype with correct signs and fixed-lateral gate
   repair.
 - Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
@@ -473,14 +489,15 @@ magnitude or yaw-only drift.
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V41-V58 line keeps the deployable ABI fixed, restores fixed left/right
+flat V41-V59 line keeps the deployable ABI fixed, restores fixed left/right
 lateral authority through searched lateral primitives, tests axial
 prior-preservation for visible worm-like actuation, partially fixes the
 mixed-yaw sign path, rejects the V50 componentwise-prior hypothesis, and tests
 V51/V52 residual/reward repairs plus V53/V54 curriculum/authority ablations,
-V55 split-prior ablation, V56 strict-diagonal selection coverage, and V57
-full-diagonal reward pressure, plus V58 residual/prior scale diagnostics,
-open-loop mixed-planar primitive search, and hardcase curriculum repair.
+V55 split-prior ablation, V56 strict-diagonal selection coverage, V57
+full-diagonal reward pressure, V58 residual/prior scale diagnostics plus
+open-loop mixed-planar primitive search, and V59 yaw-preserving hardcase
+repair.
 The project is not yet at "any velocity command can be tracked": planar RMSE
 remains around `0.15 m/s`, reverse is weak, and mixed planar commands do not
 track both components reliably. The next accepted advance must pass the strict

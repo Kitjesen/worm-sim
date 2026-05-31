@@ -290,6 +290,12 @@ def main():
     yaw_only_with_planar_drift = reward_for(
         0.06, body_vy=0.0, yaw_rate=0.10,
         cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.5)
+    _, yaw_only_medium_drift_terms = reward_terms_for(
+        0.06, body_vy=0.0, yaw_rate=0.10,
+        cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=CMD_YAW_RANGE[1])
+    _, yaw_only_high_drift_terms = reward_terms_for(
+        0.10, body_vy=0.0, yaw_rate=0.10,
+        cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=CMD_YAW_RANGE[1])
     prior_action = np.ones(NUM_ACTUATORS, dtype=np.float32)
     residual_smooth = reward_for(
         CMD_VX_RANGE[1],
@@ -369,6 +375,9 @@ def main():
     assert lateral_right_reward > lateral_wrong_reward
     assert yaw_only_stationary > yaw_only_with_planar_drift + 6.0, (
         yaw_only_stationary, yaw_only_with_planar_drift)
+    assert yaw_only_high_drift_terms[
+        "reward_yaw_stationary_penalty"] > yaw_only_medium_drift_terms[
+            "reward_yaw_stationary_penalty"]
     assert residual_smooth > residual_jump, (residual_smooth, residual_jump)
     assert axial_preserved > axial_cancelled, (
         axial_preserved, axial_cancelled)
@@ -385,7 +394,7 @@ def main():
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v27"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v28"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -394,6 +403,7 @@ def main():
     assert contract["normalization"]["zero_yaw_translation_uses_reset_body_axes"]
     assert contract["normalization"]["zero_yaw_heading_hold_weight_boost"]
     assert contract["normalization"]["yaw_only_stationary_speed_penalty"]
+    assert contract["normalization"]["yaw_stationary_penalty_clip"] == 6.0
     assert contract["normalization"]["pure_lateral_forward_drift_penalty"]
     assert contract["normalization"]["pure_lateral_speed_deficit_penalty"]
     assert contract["normalization"]["pure_lateral_progress_target_m_s"] > 0.0
@@ -401,11 +411,17 @@ def main():
     assert contract["normalization"][
         "continuous_omni_mixed_yaw_repair_sampling"]
     assert contract["normalization"]["mixed_planar_repair_sampling"]
+    assert contract["normalization"]["mixed_planar_yaw_preserve_repair_sampling"]
     assert "mixed_composition_repair" in COMMAND_CURRICULA
     mixed_counts = sampled_command_classes("mixed_composition_repair")
     assert mixed_counts["mixed_vx_vy"] >= 80, mixed_counts
     assert mixed_counts["mixed_vx_yaw"] >= 80, mixed_counts
     assert mixed_counts["pure"] >= 20, mixed_counts
+    balanced_counts = sampled_command_classes(
+        "mixed_planar_yaw_preserve_repair")
+    assert balanced_counts["mixed_vx_vy"] >= 70, balanced_counts
+    assert balanced_counts["mixed_vx_yaw"] >= 45, balanced_counts
+    assert balanced_counts["pure"] >= 55, balanced_counts
     assert contract["normalization"]["axis_separation_curriculum"]
     assert contract["normalization"]["yaw_only_prior_scaling_applied"]
     assert contract["normalization"]["gait_blend_is_policy_gate"]
@@ -684,6 +700,7 @@ def main():
     assert "continuous_omni" in COMMAND_CURRICULA
     assert "mixed_planar_repair" in COMMAND_CURRICULA
     assert "mixed_planar_hardcase_repair" in COMMAND_CURRICULA
+    assert "mixed_planar_yaw_preserve_repair" in COMMAND_CURRICULA
     assert "axis_separation" in COMMAND_CURRICULA
 
     env.command_curriculum = "continuous_omni"
@@ -757,6 +774,25 @@ def main():
                   & (hard_mixed_samples[:, 1] > 0.0))
     assert np.any((hard_mixed_samples[:, 0] < 0.0)
                   & (hard_mixed_samples[:, 1] < 0.0))
+
+    env.command_curriculum = "mixed_planar_yaw_preserve_repair"
+    samples = np.array([env._sample_command() for _ in range(240)])
+    yaw_samples = samples[np.abs(samples[:, 2]) > 1e-9]
+    mixed_planar_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    mixed_yaw_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    assert len(yaw_samples) >= 60
+    assert len(mixed_planar_samples) >= 70
+    assert len(mixed_yaw_samples) >= 45
+    assert np.any(yaw_samples[:, 2] > 0.0)
+    assert np.any(yaw_samples[:, 2] < 0.0)
 
     env.command_curriculum = "axis_separation"
     samples = np.array([env._sample_command() for _ in range(240)])
