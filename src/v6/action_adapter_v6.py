@@ -24,7 +24,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v25"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v26"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 POLICY_ACTION_DIM = NUM_ACTUATORS + 1
 GAIT_GATE_ACTION_GAIN = 3.0
@@ -39,7 +39,7 @@ COMMAND_GATE_YAW_CENTER = 0.85
 DEFAULT_GAIT_PRIOR_SCALE = 1.0
 DEFAULT_POLICY_RESIDUAL_SCALE = 0.35
 REVERSE_PRIOR_SCALE_FLOOR = 0.40
-LATERAL_PRIOR_SCALE_FLOOR = 0.80
+LATERAL_PRIOR_SCALE_FLOOR = 1.00
 YAW_ONLY_PRIOR_SCALE_FLOOR = 1.00
 YAW_ONLY_SLIDE_PRIOR_SCALE = 0.80
 YAW_ONLY_YAW_PRIOR_SCALE = 5.00
@@ -83,6 +83,68 @@ INPLACE_YAW_PRIOR_PARAMS = (
     INPLACE_YAW_YAW_WAVE_N,
     INPLACE_YAW_YAW_PHASE_RAD,
 )
+
+LATERAL_PRIMITIVE_PARAM_NAMES = (
+    "slide_bias",
+    "slide_amp",
+    "slide_freq",
+    "slide_wave_n",
+    "slide_phase",
+    "yaw_amp",
+    "yaw_freq",
+    "yaw_wave_n",
+    "yaw_phase",
+    "yaw_bias",
+    "yaw_trim_gradient",
+)
+LATERAL_PRIMITIVE_ANCHORS = {
+    "left": {
+        "source": "flat_omni_v41_lateral_prior_search_left6s",
+        "validation": {
+            "signed_lateral_m_s": 0.07789418867807911,
+            "body_vx_m_s": -0.013611432358963315,
+            "yaw_rate_rad_s": 0.12322999117731077,
+            "seconds": 6.0,
+            "accepted": True,
+        },
+        "params": (
+            -0.16168439069782814,
+            0.22441459381006515,
+            1.081554091014169,
+            0.5406491247057135,
+            -2.5410827041471515,
+            0.2148520770425268,
+            0.8036597351620074,
+            -0.8284909199581207,
+            2.041947989004318,
+            0.12645026605709297,
+            0.21854809007045828,
+        ),
+    },
+    "right": {
+        "source": "flat_omni_v41_lateral_prior_search_right6s",
+        "validation": {
+            "signed_lateral_m_s": 0.12631675565734124,
+            "body_vx_m_s": 0.010188427029385095,
+            "yaw_rate_rad_s": -0.11304522310354237,
+            "seconds": 6.0,
+            "accepted": True,
+        },
+        "params": (
+            -0.5054361187954457,
+            0.0004378962640689175,
+            1.22782626619309,
+            2.2511784615350194,
+            -1.7471121550631785,
+            0.6417442419638648,
+            1.0357562708917787,
+            -0.40805273913296425,
+            -0.688387111640751,
+            0.008020713598054452,
+            -0.3785763291478317,
+        ),
+    },
+}
 
 CMAES_PARAM_NAMES = (
     "slide_amp",
@@ -195,8 +257,10 @@ def action_adapter_contract(
             "yaw_only_floor": YAW_ONLY_PRIOR_SCALE_FLOOR,
             "reason": (
                 "The CMA-ES anchors are strong forward priors. Reverse, "
-                "lateral, and pure yaw commands reduce the prior so the "
-                "residual policy does not first need to cancel forward drift."),
+                "and pure yaw commands reduce the prior so the residual "
+                "policy does not first need to cancel forward drift. "
+                "Dominant lateral commands now use dedicated V41 lateral "
+                "primitives and keep full prior scale."),
         },
         "command_activity_scale": {
             "enabled": True,
@@ -231,9 +295,8 @@ def action_adapter_contract(
             },
             "reverse": "dominant negative vx reverses phase",
             "lateral": (
-                "dominant vy uses a worm-centered shared -pi/2 slide phase "
-                "offset; right-lateral motion mirrors only the yaw-anchor "
-                "sign"),
+                "dominant vy uses dedicated left/right open-loop lateral "
+                "primitives searched on the deployable 1 s phase clock"),
             "yaw": (
                 "pure yaw commands use an independent in-place yaw prior; "
                 "mixed yaw commands keep the signed yaw-anchor transform"),
@@ -245,6 +308,25 @@ def action_adapter_contract(
                 "left_right_rule": (
                     "cmd_yaw sign multiplies only the yaw joints; slide "
                     "compression wave is shared for both turn directions"),
+            },
+            "lateral_primitives": {
+                "enabled": True,
+                "source": "open-loop MuJoCo lateral primitive search constrained to deployable phase clock",
+                "param_names": list(LATERAL_PRIMITIVE_PARAM_NAMES),
+                "anchors": {
+                    side: {
+                        "source": anchor["source"],
+                        "validation": dict(anchor["validation"]),
+                        "params": [float(v) for v in anchor["params"]],
+                    }
+                    for side, anchor in LATERAL_PRIMITIVE_ANCHORS.items()
+                },
+                "acceptance": {
+                    "signed_lateral_m_s_min": 0.03,
+                    "abs_body_vx_m_s_max": 0.08,
+                    "abs_yaw_rate_rad_s_max": 0.20,
+                    "validation_seconds": 6.0,
+                },
             },
             "lateral_right_yaw_flip": (
                 "negative vy flips only the yaw-anchor sign; the slide phase "
@@ -307,6 +389,12 @@ def action_adapter_contract(
                 "V18 replaces pure yaw commands with an independently "
                 "searched in-place yaw prior while preserving the 80D "
                 "observation and 12D policy-action ABI."),
+            "v26_reason": (
+                "V40 still failed fixed lateral speed gates. V26 replaces "
+                "dominant lateral command priors with independently searched "
+                "left/right lateral primitives that pass 6 s prior-only "
+                "lateral acceptance while preserving the deployable 80D "
+                "observation and 12D residual-plus-gate action ABI."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -345,7 +433,10 @@ def action_adapter_contract(
                 "center so tracking is not capped by the slower worm anchor. "
                 "V25 moves dominant lateral commands back to the worm anchor "
                 "after prior-only search showed this reduces forward "
-                "off-axis drift."),
+                "off-axis drift. V26 then replaces that transformed anchor "
+                "with dedicated searched lateral primitives, so the command "
+                "center can still make lateral motion visibly worm-like while "
+                "the prior has enough side-slip authority."),
         },
         "phase_projection": (
             "phase_cycle_s = (phase mod 2*pi) / (2*pi); "
@@ -455,6 +546,51 @@ def inplace_yaw_prior_from_phase(phase, cmd_yaw_norm):
     return np.clip(action, -1.0, 1.0).astype(np.float32)
 
 
+def lateral_primitive_action_from_phase(side, phase):
+    """Normalized open-loop primitive for dominant lateral commands."""
+    if side not in LATERAL_PRIMITIVE_ANCHORS:
+        raise ValueError(
+            f"Unknown lateral primitive side {side!r}; expected left/right")
+    direction_sign = 1.0 if side == "left" else -1.0
+    p = LATERAL_PRIMITIVE_ANCHORS[side]["params"]
+    t = _phase_cycle_seconds(phase)
+    action = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    slide_bias = float(p[0])
+    slide_amp = float(p[1])
+    slide_freq = float(p[2])
+    slide_wave_n = float(p[3])
+    slide_phase = float(p[4])
+    yaw_amp = float(p[5])
+    yaw_freq = float(p[6])
+    yaw_wave_n = float(p[7])
+    yaw_phase = float(p[8])
+    yaw_bias = float(p[9])
+    yaw_trim_gradient = float(p[10])
+
+    for j in range(NUM_SLIDES):
+        joint_phase = (
+            TWO_PI * (t * slide_freq - slide_wave_n * j / NUM_SLIDES)
+            + slide_phase
+        )
+        action[j] = (
+            slide_bias
+            - slide_amp * (0.5 + 0.5 * math.sin(joint_phase)))
+
+    center = 0.5 * (NUM_YAWS - 1)
+    for j in range(NUM_YAWS):
+        joint_phase = (
+            TWO_PI * (t * yaw_freq + yaw_wave_n * j / NUM_YAWS)
+            + yaw_phase
+        )
+        body_gradient = 0.0 if center <= 0.0 else (j - center) / center
+        action[NUM_SLIDES + j] = direction_sign * (
+            yaw_bias
+            + yaw_trim_gradient * body_gradient
+            + yaw_amp * math.sin(joint_phase))
+
+    return np.clip(action, -1.0, 1.0).astype(np.float32)
+
+
 def command_directional_prior_transform(
         cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
     cmd_vx_norm = float(cmd_vx_norm)
@@ -472,6 +608,7 @@ def command_directional_prior_transform(
     yaw_scale = 1.0
     yaw_trim = 0.0
     uses_inplace_yaw_prior = False
+    uses_lateral_primitive = False
 
     reverse = max(-cmd_vx_norm, 0.0)
     if (reverse >= threshold
@@ -485,6 +622,7 @@ def command_directional_prior_transform(
         and abs_vy >= abs_yaw)
     if lateral_dominant:
         phase_offset = LATERAL_PHASE_OFFSET_RAD
+        uses_lateral_primitive = True
 
     yaw_only_command = is_yaw_only_command(
         cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm)
@@ -522,6 +660,7 @@ def command_directional_prior_transform(
         "yaw_scale": yaw_scale,
         "yaw_trim": yaw_trim,
         "uses_inplace_yaw_prior": uses_inplace_yaw_prior,
+        "uses_lateral_primitive": uses_lateral_primitive,
     }
 
 
@@ -529,6 +668,9 @@ def _dominant_directional_gait_prior_from_phase(phase, gait_blend, command):
     if command is None:
         return gait_prior_from_phase(phase, gait_blend)
     transform = command_directional_prior_transform(*command)
+    if transform["uses_lateral_primitive"]:
+        side = "left" if command[1] >= 0.0 else "right"
+        return lateral_primitive_action_from_phase(side, phase)
     if transform["uses_inplace_yaw_prior"]:
         prior = inplace_yaw_prior_from_phase(phase, command[2])
         prior = prior.copy()

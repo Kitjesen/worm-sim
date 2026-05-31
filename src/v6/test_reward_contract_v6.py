@@ -43,6 +43,7 @@ from action_adapter_v6 import (  # noqa: E402
     directional_gait_prior_from_phase,
     gait_prior_from_phase,
     inplace_yaw_prior_from_phase,
+    lateral_primitive_action_from_phase,
     policy_action_to_residual_and_gait_blend,
 )
 from worm_env_v6 import (  # noqa: E402
@@ -57,6 +58,7 @@ from worm_env_v6 import (  # noqa: E402
 )
 from action_adapter_v6 import (  # noqa: E402
     LATERAL_PHASE_OFFSET_RAD,
+    LATERAL_PRIOR_SCALE_FLOOR,
     YAW_ONLY_SLIDE_PRIOR_SCALE,
     YAW_ONLY_YAW_PRIOR_SCALE,
 )
@@ -248,7 +250,7 @@ def main():
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v21"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v23"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -263,6 +265,7 @@ def main():
     assert contract["normalization"]["continuous_omni_repair_oversampling"]
     assert contract["normalization"][
         "continuous_omni_mixed_yaw_repair_sampling"]
+    assert contract["normalization"]["mixed_planar_repair_sampling"]
     assert contract["normalization"]["axis_separation_curriculum"]
     assert contract["normalization"]["yaw_only_prior_scaling_applied"]
     assert contract["normalization"]["gait_blend_is_policy_gate"]
@@ -272,7 +275,9 @@ def main():
     assert contract["weights"]["yaw_stationary"] >= 3.0
     assert contract["weights"]["lateral_only_forward_drift"] > 0.0
     assert contract["weights"]["lateral_only_speed_deficit"] > 0.0
+    assert contract["weights"]["planar_component_deficit"] > 0.0
     assert contract["weights"]["gait_gate_target"] > 0.0
+    assert contract["normalization"]["signed_planar_component_deficit_penalty"]
     selection_contract = best_selection_contract()
     assert selection_contract["version"] == "omni_tracking_scan_v3"
     assert selection_contract["requires_continuous_tracking_metrics"]
@@ -291,7 +296,7 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v25")
+    assert adapter_contract["version"].endswith("_v26")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     centers = adapter_contract["gait_gate_mapping"]["command_centers"]
@@ -311,6 +316,8 @@ def main():
         centers["axial_translation_fast"])
     assert adapter_contract["command_directional_prior_transform"][
         "inplace_yaw_prior"]["enabled"]
+    assert adapter_contract["command_directional_prior_transform"][
+        "lateral_primitives"]["enabled"]
     residual = np.zeros(NUM_ACTUATORS, dtype=np.float32)
     action = compose_deployable_action(residual, 0.0, gait_blend=0.0)
     assert np.allclose(action, prior)
@@ -332,6 +339,8 @@ def main():
     assert left_tf["phase_offset_rad"] == LATERAL_PHASE_OFFSET_RAD
     assert left_tf["phase_offset_rad"] < 0.0
     assert right_tf["phase_offset_rad"] == left_tf["phase_offset_rad"]
+    assert left_tf["uses_lateral_primitive"]
+    assert right_tf["uses_lateral_primitive"]
     assert left_tf["yaw_sign"] == 1.0
     assert right_tf["yaw_sign"] == -1.0
     assert 0.0 < left_tf["yaw_scale"] < 1.0
@@ -356,6 +365,15 @@ def main():
         reverse_prior[6:],
         np.clip(reverse_tf["yaw_scale"] * reverse_base[6:], -1.0, 1.0),
     )
+    lateral_left_prior = directional_gait_prior_from_phase(
+        0.3, gait_blend=0.0, command=(0.0, 1.0, 0.0))
+    lateral_right_prior = directional_gait_prior_from_phase(
+        0.3, gait_blend=0.0, command=(0.0, -1.0, 0.0))
+    assert np.allclose(
+        lateral_left_prior, lateral_primitive_action_from_phase("left", 0.3))
+    assert np.allclose(
+        lateral_right_prior, lateral_primitive_action_from_phase("right", 0.3))
+    assert not np.allclose(lateral_left_prior, lateral_right_prior)
     yaw_left_prior = directional_gait_prior_from_phase(
         0.3, gait_blend=0.5, command=(0.0, 0.0, 1.0))
     yaw_right_prior = directional_gait_prior_from_phase(
@@ -373,12 +391,15 @@ def main():
     assert np.isclose(command_activity_scale(0.5, 0.0, 0.0), 0.6)
     assert command_activity_scale(1.0, 0.0, 0.0) == 1.0
     assert np.isclose(command_prior_scale_floor(-1.0, 0.0, 0.0), 0.4)
-    assert np.isclose(command_prior_scale_floor(0.0, 1.0, 0.0), 0.8)
+    assert np.isclose(
+        command_prior_scale_floor(0.0, 1.0, 0.0),
+        LATERAL_PRIOR_SCALE_FLOOR)
     assert np.isclose(command_prior_scale_floor(0.0, 0.0, 1.0), 1.0)
     assert np.isclose(
         command_conditioned_prior_scale(-1.0, 0.0, 0.0), 0.4)
     assert np.isclose(
-        command_conditioned_prior_scale(0.0, 1.0, 0.0), 0.8)
+        command_conditioned_prior_scale(0.0, 1.0, 0.0),
+        LATERAL_PRIOR_SCALE_FLOOR)
     assert np.isclose(
         command_conditioned_prior_scale(0.0, 0.0, 1.0), 1.0)
     zero_command_action = compose_deployable_action(
@@ -428,6 +449,7 @@ def main():
     assert "heading_hold" in COMMAND_CURRICULA
     assert "heading_omni" in COMMAND_CURRICULA
     assert "continuous_omni" in COMMAND_CURRICULA
+    assert "mixed_planar_repair" in COMMAND_CURRICULA
     assert "axis_separation" in COMMAND_CURRICULA
 
     env.command_curriculum = "continuous_omni"
@@ -456,6 +478,25 @@ def main():
                   & (mixed_yaw_samples[:, 2] > 0.0))
     assert np.any((mixed_yaw_samples[:, 0] < 0.0)
                   & (mixed_yaw_samples[:, 2] < 0.0))
+
+    env.command_curriculum = "mixed_planar_repair"
+    samples = np.array([env._sample_command() for _ in range(240)])
+    nonzero_dims = np.count_nonzero(np.abs(samples) > 1e-9, axis=1)
+    mixed_planar_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    assert np.any(nonzero_dims == 0)
+    assert len(mixed_planar_samples) >= 80
+    assert np.any((mixed_planar_samples[:, 0] > 0.0)
+                  & (mixed_planar_samples[:, 1] > 0.0))
+    assert np.any((mixed_planar_samples[:, 0] > 0.0)
+                  & (mixed_planar_samples[:, 1] < 0.0))
+    assert np.any((mixed_planar_samples[:, 0] < 0.0)
+                  & (mixed_planar_samples[:, 1] > 0.0))
+    assert np.any((mixed_planar_samples[:, 0] < 0.0)
+                  & (mixed_planar_samples[:, 1] < 0.0))
 
     env.command_curriculum = "axis_separation"
     samples = np.array([env._sample_command() for _ in range(240)])

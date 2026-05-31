@@ -120,7 +120,7 @@
 - Actor and critic defaults are now both `512-256-128`. The actor-transfer tool
   now writes `training_config.json`, so transferred actors can be resumed by
   `train_v6.py` instead of being rejected as missing metadata.
-- V29 was trained as the current valid flat candidate:
+- V29 was trained as the then-current flat six-direction candidate:
   `runs/worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_gate`.
   It resumes the faster V22 actor into a fresh `512-256-128` critic under the
   V23/V16 contract.
@@ -215,16 +215,46 @@
   single-command videos, trajectory plots, telemetry plots, and `3840x2160`
   3x2 comparison video. The comparison verifies as 30.0 s and 750 frames.
   Details are in `docs/omni_v40_long30_recording_log.md`.
+- V41 adds a dedicated lateral primitive search path and V26 action adapter.
+  The adapter keeps the same 80D observation and 12D action ABI, but dominant
+  lateral commands now use independently searched left/right 1 s phase-clock
+  primitives instead of the older transformed forward anchor. Prior-only
+  integrated smoke passes both lateral sides:
+  left `body_vy=0.0814 m/s`, right `body_vy=-0.1784 m/s`, both within the
+  forward-drift and yaw-drift thresholds.
+- Re-scanning the V40 final PPO policy with the V26 adapter immediately fixes
+  the previous fixed-lateral gate failure: 35-command scan reports
+  `planar_rmse_m_s=0.1535`, `yaw_rmse_rad_s=0.1127`,
+  `planar_sign_rate=1.00`, `yaw_sign_rate=1.00`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- V41/V42/V43 continuation training was run from the V40/V41 line with
+  actor/critic `512-256-128`. The best current planar scan is V41 best:
+  `planar_rmse_m_s=0.1517`, `yaw_rmse_rad_s=0.1105`,
+  `planar_sign_rate=1.00`, `yaw_sign_rate=1.00`, and lateral strict gate
+  passed. V42 final improves yaw RMSE to `0.1009` but has slightly worse
+  planar RMSE. V43's first V22-reward continuation did not improve the
+  35-command scan.
+- V44 added a `mixed_planar_repair` curriculum under reward contract
+  `omni_directional_offaxis_yaw_v23` and ran one 40k continuation from V41
+  best. It preserved correct signs and fixed-lateral strict gates, but did not
+  beat V41 best on the 35-command scan: V44 final has
+  `planar_rmse_m_s=0.1540`, `yaw_rmse_rad_s=0.1193`, and yaw-only planar drift
+  `0.0602 m/s`. A continuous-vector-prior probe was worse
+  (`planar_rmse_m_s=0.1872`, `planar_sign_rate=0.76`), and residual-scale
+  sweeps did not beat V41 best.
+- Latest detailed movement table and artifact list:
+  `docs/omni_v41_v43_lateral_primitives_and_motion_summary.md`.
 
 ## Not Done
 
-- Flat direction/yaw command control has a current accepted candidate, but it
-  is not yet a complete paper result.
+- The current V41-V44 line is not an accepted continuous tracker yet. It is a
+  weak omnidirectional prototype with correct signs and fixed-lateral gate
+  repair.
 - Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
-  summaries must still be regenerated under the V12 adapter.
-- Lateral commands still show large off-axis forward motion, and yaw-only
-  commands still translate while turning; these are limitations to address
-  before making strong omnidirectional-tracking claims.
+  summaries must still be regenerated under the current V26/V23 line.
+- Mixed `vx/vy` commands under-track lateral components, reverse remains weak,
+  and yaw-only commands still translate while turning; these are limitations to
+  address before making strong omnidirectional-tracking claims.
 - Arbitrary continuous velocity tracking is not solved yet. V13 stops cleanly
   at zero command, but the 35-command scan still has
   `planar_rmse_m_s=0.1628` and `yaw_rmse_rad_s=0.3189`.
@@ -259,16 +289,20 @@
   `planar_rmse_m_s=0.1665`, `yaw_rmse_rad_s=0.1179`,
   `planar_sign_rate=0.84`, `yaw_sign_rate=1.00`, and yaw-only planar drift of
   about `0.0966 m/s`.
-- V30-V33 are not accepted policies. Current best remains V29 until a new run
-  reduces lateral forward off-axis speed and yaw-only planar drift without
-  reintroducing yaw-sign errors.
+- V30-V33 are not accepted policies. They are historical repair diagnostics
+  superseded by the V41-V44 line.
 - V35/V36 are also not accepted policies. They show that the yaw-only prior
   scaling fix helps reduce pure-yaw planar drift, but lateral-only and mixed
   planar commands still dominate the remaining failure mode.
 - V39/V40 are not accepted. V39 fixes the lateral reward contract but does not
   produce enough lateral speed; V40's final and best scans still fail fixed
   lateral speed, especially right lateral motion.
-- No formal 1M-step PPO artifacts exist under the current V12 omni contract.
+- V41/V42/V44 improve the lateral gate, but flat continuous velocity tracking
+  is still not accepted. The limiting metrics remain planar RMSE above `0.10`,
+  yaw-only planar drift above `0.05 m/s`, weak reverse speed, and weak mixed
+  vector tracking.
+- No formal 1M-step PPO artifacts exist under the current V26/V23 omni
+  contract.
 - Fixed-mode eval, robust eval, auto-gated random-policy deploy bundles, and
   final paper summaries must be regenerated.
 - Real flat/sand/slope hardware logs and videos are still missing.
@@ -282,10 +316,9 @@
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V12/V13 line passes the formal flat six-direction gate while keeping the
-deployable ABI fixed, and V15 now provides a documented continuous-tracking
-attempt under the stronger `omni_tracking_scan_v3` selection contract. The
-project is not yet at "any velocity command can be tracked": V15 stops cleanly
-and preserves signed yaw separation, while V16 increases yaw authority and
-reduces yaw RMSE. The main blockers remain yaw-only translation, straight-line
-yaw drift, mixed planar commands, and off-axis coupling.
+flat V41-V44 line keeps the deployable ABI fixed, restores fixed left/right
+lateral authority through searched lateral primitives, and preserves correct
+signs in the 35-command scan. The project is not yet at "any velocity command
+can be tracked": planar RMSE remains around `0.15 m/s`, yaw-only planar drift
+is still above target, reverse is weak, and mixed planar commands do not track
+both components reliably.

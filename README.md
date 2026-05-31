@@ -180,9 +180,50 @@ The migration plan is tracked in
 
 ## Current Progress
 
+### Latest Flat V41-V44 Status
+
+The newest flat line is V41-V44. It keeps the deployable ABI fixed:
+
+- observation remains 80D;
+- policy action remains `11D residual + 1D learned latent gait gate`;
+- actor and critic are both `512-256-128`;
+- action adapter is `cmaes_tri_anchor_auto_gate_directional_v26`;
+- reward contract is `omni_directional_offaxis_yaw_v23`.
+
+V26 adds searched left/right lateral primitives on the same 1 s deployable phase
+clock. This fixes the previous fixed-lateral gate failure without changing the
+hardware-facing interface.
+
+Best current flat scan:
+
+```text
+runs/worm_v6_ppo_flat_random_lateral_primitives_v41_from_v40final/best_model.zip
+record/current/flat_omni_v41_v26_scan_after40k/scan_35_commands_best.json
+```
+
+| Metric | Value |
+| --- | ---: |
+| `planar_rmse_m_s` | `0.1517` |
+| `yaw_rmse_rad_s` | `0.1105` |
+| `planar_sign_rate` | `1.00` |
+| `yaw_sign_rate` | `1.00` |
+| `fixed_lateral_strict_gate_passed` | `true` |
+
+V44 tested two next-step ideas. A continuous-vector blend of primitive priors
+was rejected because it degraded the 35-command scan to
+`planar_rmse_m_s=0.1872` and `planar_sign_rate=0.76`. A 40k
+`mixed_planar_repair` continuation preserved correct signs and lateral gates
+but did not beat V41 best (`planar_rmse_m_s=0.1540` for V44 final).
+
+Current interpretation: lateral primitive support has improved, but continuous
+`vx/vy/yaw` tracking is **not solved yet**. Forward/reverse speed is still low,
+yaw-only commands still translate, and mixed vector commands under-track their
+lateral/yaw components. The detailed movement table is in
+[V41-V44 movement summary](docs/omni_v41_v43_lateral_primitives_and_motion_summary.md).
+
 ### Latest Flat V29 Status
 
-The current best viewable flat policy is still V29. It keeps the same
+V29 is kept below as historical context. It keeps the same
 deployable ABI but updates the learning setup:
 
 - observation remains 80D;
@@ -244,9 +285,10 @@ not beat V29:
 | V38 | lateral speed-deficit reward from V37 final | yaw-only planar drift improved to `0.060 m/s`, but planar RMSE worsened |
 
 The retained post-V29 code changes are the targeted mixed-yaw sampling contract
-(`omni_directional_offaxis_yaw_v18`) and configurable PPO learning rate. The
-current accepted policy remains V29 until a new run reduces lateral off-axis
-speed and yaw-only translation. See
+(`omni_directional_offaxis_yaw_v18`) and configurable PPO learning rate. V29 is
+now superseded as the active development line by V41-V44 diagnostics, although
+V41 is still only a weak omnidirectional prototype rather than accepted
+continuous velocity tracking. See
 [V30-V33 repair log](docs/omni_v30_v33_repair_log.md).
 The latest V34 continuation is recorded in
 [V34 training log](docs/omni_v34_training_log.md).
@@ -300,13 +342,13 @@ The corrected current contract line is now:
 Older PPO artifacts that do not match these contracts are treated as stale by
 the audit and should not be used for paper claims.
 
-### Latest Flat Omni Training Status
+### Historical Flat V12 Omni Training Status
 
-Flat now has a current-contract accepted candidate under `omni_tracking_gate_v2`.
-This is a flat-only result; it is not yet a final paper result because robust
-tests, fixed-gate ablations, and sand/slope transfer are still pending.
+V12 is kept as a historical flat six-direction gate result. It is no longer the
+active current line because the adapter/reward contracts have moved on to
+V26/V23 and the current target is continuous `vx/vy/yaw` tracking.
 
-The accepted flat candidate uses:
+The historical flat candidate used:
 
 ```text
 runs/worm_v6_ppo_flat_random_heading_omni_v11_from_hhbest/best_model.zip
@@ -367,7 +409,7 @@ Current status:
 | Terrain | Mode | Current-contract PPO status |
 | --- | --- | --- |
 | flat | worm | old 1M low-speed run exists but is stale under the auto-gated contract |
-| flat | random | current V12 auto-gated candidate passes the flat directional gate and six fixed 6 s command thresholds; robust tests and ablations still pending |
+| flat | random | current V41 best passes correct signs and fixed lateral strict gates, but continuous `vx/vy/yaw` tracking is not accepted |
 | flat | snake/mixed | previous videos are diagnostic only; fixed-mode ablation retraining still needed |
 | sand | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
 | slope | worm/snake/mixed/random | old artifacts exist, retraining under current contract still needed |
@@ -380,14 +422,19 @@ cross-terrain paper claims should wait until all modes are retrained plus
 
 ## Current Effect Summary
 
-The strongest current evidence is structural plus a fresh corrected-prior smoke
-result:
+The strongest current evidence is structural plus the latest flat V41-V44
+repair line:
 
 - Deployable observation contract passes audit.
 - The current policy observation is 80-D and remains limited to command,
   encoders, per-segment IMUs, previous action, and phase.
 - The current command slot is `vx/vy/yaw`; `gait_blend` is selected by the
   policy's 12th action and is exported only as an action-derived diagnostic.
+- V26 lateral primitives pass adapter prior-only lateral checks and make the
+  fixed left/right lateral gates pass in the 35-command scan.
+- The current best flat candidate is still a weak omnidirectional prototype:
+  it has correct signs for planar and yaw commands, but not accepted continuous
+  velocity tracking because `planar_rmse_m_s` remains about `0.15`.
 - The old negative PPO results are explained: saturated residuals plus a
   low-speed `25 mm/s` reward target were the wrong training setup.
 - The action prior now reuses the three CMA-ES anchors that generated the
@@ -409,9 +456,9 @@ result:
   baseline. The 300k v3 straight-command speeds are worm `38.32 mm/s`, mixed
   `133.48 mm/s`, and snake `62.89 mm/s`; the local 4K CMA-ES comparison still
   shows the stronger raw full-combined gait at `247.97 mm/s`.
-- Directional control has a flat accepted candidate under the current V12
-  deployable adapter: the gate reports planar `1.00`, yaw `0.875`, zero wrong
-  signs, and one allowed straight-drift violation.
+- Historical directional control has a flat V12 six-direction gate pass, but
+  the current V41-V44 line should still be described as weak omnidirectional
+  control until the 35-command continuous tracking gate passes.
 - The next training/evaluation work should not jump straight to paper claims:
   rerun robust flat tests, compare learned gate against fixed worm/mixed/snake
   gates, and then transfer the same ABI to sand and slope.
@@ -650,11 +697,12 @@ V4 open-loop worm and pipe-crawling demos are still useful historical prototypes
 
 ## Remaining Work
 
-- Freeze and robustly verify the flat V12 accepted candidate under
-  `omni_directional_offaxis_yaw_v10` +
-  `cmaes_tri_anchor_auto_gate_directional_v12`.
-- Improve trajectory quality: lateral commands still have large off-axis
-  forward motion, and yaw-only commands still translate while turning.
+- Keep V41 best as the current flat planar baseline while improving continuous
+  `vx/vy/yaw` tracking under `omni_directional_offaxis_yaw_v23` +
+  `cmaes_tri_anchor_auto_gate_directional_v26`.
+- Improve trajectory quality: mixed `vx/vy` commands under-track lateral
+  components, reverse is weak, and yaw-only commands still translate while
+  turning.
 - Retrain flat worm/snake plus all sand and slope policies under the current reward/action contracts.
 - Regenerate all eval, robust eval, fixed-gate ablation scan, summary, and audit artifacts.
 - Collect real hardware logs and videos on flat, sand, and slope.

@@ -105,6 +105,7 @@ COMMAND_CURRICULA = (
     "right_recovery",
     "omni",
     "continuous_omni",
+    "mixed_planar_repair",
     "axis_separation",
 )
 
@@ -161,6 +162,7 @@ W_YAW_DRIFT = 6.0
 W_YAW_STATIONARY = 8.0
 W_LATERAL_ONLY_FORWARD_DRIFT = 5.0
 W_LATERAL_ONLY_SPEED_DEFICIT = 4.0
+W_PLANAR_COMPONENT_DEFICIT = 1.5
 W_GAIT_GATE_TARGET = 3.0
 YAW_DRIFT_TOLERANCE_RAD = 0.20
 YAW_STATIONARY_TOLERANCE_M_S = 0.02
@@ -173,7 +175,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v21"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v23"
 
 
 def reward_contract():
@@ -195,6 +197,7 @@ def reward_contract():
             "yaw_stationary": W_YAW_STATIONARY,
             "lateral_only_forward_drift": W_LATERAL_ONLY_FORWARD_DRIFT,
             "lateral_only_speed_deficit": W_LATERAL_ONLY_SPEED_DEFICIT,
+            "planar_component_deficit": W_PLANAR_COMPONENT_DEFICIT,
             "gait_gate_target": W_GAIT_GATE_TARGET,
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
@@ -222,8 +225,10 @@ def reward_contract():
             "pure_lateral_speed_deficit_penalty": True,
             "pure_lateral_progress_target_m_s": (
                 LATERAL_ONLY_PROGRESS_TARGET_M_S),
+            "signed_planar_component_deficit_penalty": True,
             "continuous_omni_repair_oversampling": True,
             "continuous_omni_mixed_yaw_repair_sampling": True,
+            "mixed_planar_repair_sampling": True,
             "axis_separation_curriculum": True,
             "yaw_only_prior_scaling_applied": True,
             "gait_blend_is_policy_gate": True,
@@ -1016,6 +1021,82 @@ class WormEnvV6(gym.Env):
                 )
             return self._with_fixed_command_overrides(vx, vy, yaw)
 
+        if self.command_curriculum == "mixed_planar_repair":
+            primitive = int(self.np_random.integers(0, 18))
+            if primitive == 0:
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive == 1:
+                vx = self._sample_low_axis_command(CMD_VX_RANGE)
+                vy = self._sample_low_axis_command(CMD_VY_RANGE)
+                yaw = 0.0
+            elif primitive == 2:
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.50)
+                vy, yaw = 0.0, 0.0
+            elif primitive == 3:
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.50)
+                vy, yaw = 0.0, 0.0
+            elif primitive == 4:
+                vx, vy, yaw = (
+                    0.0,
+                    self._sample_signed_range(
+                        (0.0, CMD_VY_RANGE[1]), min_abs_fraction=0.50),
+                    0.0,
+                )
+            elif primitive == 5:
+                vx, vy, yaw = (
+                    0.0,
+                    self._sample_signed_range(
+                        (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.50),
+                    0.0,
+                )
+            elif primitive in (6, 10):
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]),
+                    min_abs_fraction=0.50 if primitive == 6 else 0.75)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]),
+                    min_abs_fraction=0.50 if primitive == 6 else 0.75)
+                yaw = 0.0
+            elif primitive in (7, 11):
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]),
+                    min_abs_fraction=0.50 if primitive == 7 else 0.75)
+                vy = self._sample_signed_range(
+                    (CMD_VY_RANGE[0], 0.0),
+                    min_abs_fraction=0.50 if primitive == 7 else 0.75)
+                yaw = 0.0
+            elif primitive in (8, 12):
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0),
+                    min_abs_fraction=0.50 if primitive == 8 else 0.75)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]),
+                    min_abs_fraction=0.50 if primitive == 8 else 0.75)
+                yaw = 0.0
+            elif primitive in (9, 13):
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0),
+                    min_abs_fraction=0.50 if primitive == 9 else 0.75)
+                vy = self._sample_signed_range(
+                    (CMD_VY_RANGE[0], 0.0),
+                    min_abs_fraction=0.50 if primitive == 9 else 0.75)
+                yaw = 0.0
+            elif primitive in (14, 15):
+                vx = self.np_random.uniform(*CMD_VX_RANGE)
+                vy = self.np_random.uniform(*CMD_VY_RANGE)
+                yaw = 0.0
+            else:
+                vx, vy, yaw = (
+                    self._sample_signed_range(CMD_VX_RANGE,
+                                              min_abs_fraction=0.20),
+                    self._sample_signed_range(CMD_VY_RANGE,
+                                              min_abs_fraction=0.20),
+                    0.0,
+                )
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
         if self.command_curriculum == "axis_separation":
             primitive = int(self.np_random.integers(0, 18))
             if primitive in (0, 1):
@@ -1221,6 +1302,18 @@ class WormEnvV6(gym.Env):
 
         # ── Other penalties ──
         forward_deficit = max(0.0, cmd_speed - along_cmd) / speed_scale
+        planar_component_deficit = 0.0
+        if abs(cmd_vx) > 1e-6:
+            vx_progress = float(np.sign(cmd_vx) * forward_speed)
+            planar_component_deficit += (
+                max(0.0, abs(cmd_vx) - vx_progress)
+                / max(CMD_VX_RANGE[1], 1e-6))
+        if abs(cmd_vy) > 1e-6:
+            vy_progress = float(np.sign(cmd_vy) * lateral_speed)
+            planar_component_deficit += (
+                max(0.0, abs(cmd_vy) - vy_progress)
+                / max(CMD_VY_RANGE[1], 1e-6))
+        planar_component_deficit = min(planar_component_deficit, 3.0)
         backward_speed = max(0.0, -along_cmd) / speed_scale
         off_axis_speed_norm = off_axis_speed / speed_scale
         yaw_stationary_speed_norm = min(
@@ -1279,6 +1372,8 @@ class WormEnvV6(gym.Env):
                 lateral_only_gate * lateral_only_forward_norm),
             "reward_lateral_only_speed_deficit_penalty": float(
                 lateral_only_gate * lateral_only_speed_deficit),
+            "reward_planar_component_deficit_penalty": float(
+                planar_component_deficit),
             "desired_gait_blend": float(desired_gait_blend),
             "gait_gate_error": float(gate_target_active * gait_gate_error),
         }
@@ -1300,6 +1395,7 @@ class WormEnvV6(gym.Env):
                 lateral_only_forward_norm)
             - W_LATERAL_ONLY_SPEED_DEFICIT * lateral_only_gate * (
                 lateral_only_speed_deficit)
+            - W_PLANAR_COMPONENT_DEFICIT * planar_component_deficit
             - W_GAIT_GATE_TARGET * gate_target_active * gait_gate_error
             - W_ENERGY    * energy
             - W_SMOOTH    * action_rate

@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "action_adapter_version": "cmaes_tri_anchor_auto_gate_directional_v26",
+  "mode": "adapter_prior_only_zero_residual",
+  "seconds": 6.0,
+  "acceptance": {
+    "signed_lateral_m_s_min": 0.03,
+    "abs_body_vx_m_s_max": 0.08,
+    "abs_yaw_rate_rad_s_max": 0.2
+  },
+  "left": {
+    "cmd_vx_m_s": 0.0,
+    "cmd_vy_m_s": 0.15,
+    "cmd_yaw_rad_s": 0.0,
+    "body_vx_m_s": -0.01887777291711035,
+    "body_vy_m_s": 0.0814263231459519,
+    "signed_lateral_m_s": 0.0814263231459519,
+    "yaw_rate_rad_s": 0.11704369963209353,
+    "elapsed_s": 6.0,
+    "terminated": false,
+    "reward": -11758.024877107833,
+    "accepted": true
+  },
+  "right": {
+    "cmd_vx_m_s": 0.0,
+    "cmd_vy_m_s": -0.15,
+    "cmd_yaw_rad_s": 0.0,
+    "body_vx_m_s": 0.04431219047768295,
+    "body_vy_m_s": -0.17837506043736903,
+    "signed_lateral_m_s": 0.17837506043736903,
+    "yaw_rate_rad_s": -0.11233503711989982,
+    "elapsed_s": 6.0,
+    "terminated": false,
+    "reward": -17576.354656090043,
+    "accepted": true
+  },
+  "both_accepted": true
+}

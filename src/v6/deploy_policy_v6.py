@@ -50,6 +50,7 @@ from action_adapter_v6 import (  # noqa: E402
     INPLACE_YAW_YAW_FREQ,
     INPLACE_YAW_YAW_PHASE_RAD,
     INPLACE_YAW_YAW_WAVE_N,
+    LATERAL_PRIMITIVE_ANCHORS,
     LATERAL_PRIOR_SCALE_FLOOR,
     POLICY_ACTION_DIM,
     REVERSE_PRIOR_SCALE_FLOOR,
@@ -105,6 +106,19 @@ class DeployablePPOActor(torch.nn.Module):
             "serpentine_params",
             torch.tensor(CMAES_ANCHORS["serpentine"]["params"],
                          dtype=torch.float32))
+        self.register_buffer(
+            "lateral_left_params",
+            torch.tensor(LATERAL_PRIMITIVE_ANCHORS["left"]["params"],
+                         dtype=torch.float32))
+        self.register_buffer(
+            "lateral_right_params",
+            torch.tensor(LATERAL_PRIMITIVE_ANCHORS["right"]["params"],
+                         dtype=torch.float32))
+        yaw_center = max(0.5 * (NUM_YAWS - 1), 1.0)
+        self.register_buffer(
+            "yaw_centered_fraction",
+            (torch.arange(NUM_YAWS, dtype=torch.float32)
+             - 0.5 * float(NUM_YAWS - 1)) / float(yaw_center))
         self.slide_target_scale_m = float(SLIDE_TARGET_SCALE_M)
         self.yaw_target_scale_rad = float(YAW_TARGET_SCALE_RAD)
 
@@ -180,6 +194,37 @@ class DeployablePPOActor(torch.nn.Module):
             * torch.sin(yaw_phase))
         return torch.clamp(
             torch.cat([slide_prior, yaw_prior], dim=1), -1.0, 1.0)
+
+    def _lateral_prior_from_params(self, phase, params, direction_sign):
+        phase_cycle_s = torch.remainder(
+            phase, 2.0 * torch.pi) / (2.0 * torch.pi)
+        slide_phase = (
+            2.0 * torch.pi
+            * (phase_cycle_s * params[2]
+               - params[3] * self.slide_fraction.unsqueeze(0))
+            + params[4])
+        slide_prior = (
+            params[0]
+            - params[1] * (0.5 + 0.5 * torch.sin(slide_phase)))
+
+        yaw_phase = (
+            2.0 * torch.pi
+            * (phase_cycle_s * params[6]
+               + params[7] * self.yaw_fraction.unsqueeze(0))
+            + params[8])
+        yaw_prior = direction_sign * (
+            params[9]
+            + params[10] * self.yaw_centered_fraction.unsqueeze(0)
+            + params[5] * torch.sin(yaw_phase))
+        return torch.clamp(
+            torch.cat([slide_prior, yaw_prior], dim=1), -1.0, 1.0)
+
+    def _lateral_prior(self, phase, cmd_vy):
+        left_prior = self._lateral_prior_from_params(
+            phase, self.lateral_left_params, 1.0)
+        right_prior = self._lateral_prior_from_params(
+            phase, self.lateral_right_params, -1.0)
+        return torch.where(cmd_vy >= 0.0, left_prior, right_prior)
 
     def _dominant_directional_prior(
             self, phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw):
@@ -279,6 +324,8 @@ class DeployablePPOActor(torch.nn.Module):
         )
         prior = torch.clamp(prior, -1.0, 1.0)
         inplace_yaw_prior = self._inplace_yaw_prior(phase, cmd_yaw)
+        lateral_prior = self._lateral_prior(phase, cmd_vy)
+        prior = torch.where(lateral_mask, lateral_prior, prior)
         return torch.where(yaw_only_mask, inplace_yaw_prior, prior)
 
     def _continuous_directional_prior(
