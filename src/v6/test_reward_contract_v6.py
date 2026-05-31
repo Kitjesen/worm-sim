@@ -319,6 +319,26 @@ def main():
         0.12, body_vy=0.07, cmd_vx=0.12, cmd_vy=0.07)
     mixed_planar_wrong_vy = reward_for(
         0.12, body_vy=-0.07, cmd_vx=0.12, cmd_vy=0.07)
+    full_diag_good = reward_for(
+        CMD_VX_RANGE[1] * 0.92,
+        body_vy=CMD_VY_RANGE[1] * 0.92,
+        cmd_vx=CMD_VX_RANGE[1],
+        cmd_vy=CMD_VY_RANGE[1])
+    full_diag_underpowered = reward_for(
+        CMD_VX_RANGE[1] * 0.30,
+        body_vy=CMD_VY_RANGE[1] * 0.30,
+        cmd_vx=CMD_VX_RANGE[1],
+        cmd_vy=CMD_VY_RANGE[1])
+    _, full_diag_underpowered_terms = reward_terms_for(
+        CMD_VX_RANGE[1] * 0.30,
+        body_vy=CMD_VY_RANGE[1] * 0.30,
+        cmd_vx=CMD_VX_RANGE[1],
+        cmd_vy=CMD_VY_RANGE[1])
+    _, full_diag_good_terms = reward_terms_for(
+        CMD_VX_RANGE[1] * 0.92,
+        body_vy=CMD_VY_RANGE[1] * 0.92,
+        cmd_vx=CMD_VX_RANGE[1],
+        cmd_vy=CMD_VY_RANGE[1])
     displacement_reward = reward_for_displacement(
         CMD_VX_RANGE[1] * 0.02)
 
@@ -354,11 +374,18 @@ def main():
         axial_preserved, axial_cancelled)
     assert mixed_planar_clean > mixed_planar_wrong_vy + 3.0, (
         mixed_planar_clean, mixed_planar_wrong_vy)
+    assert full_diag_good > full_diag_underpowered + 4.0, (
+        full_diag_good, full_diag_underpowered)
+    assert full_diag_underpowered_terms["mixed_planar_fullscale_gate"] == 1.0
+    assert full_diag_underpowered_terms[
+        "reward_mixed_planar_fullscale_deficit_penalty"] > 0.5
+    assert full_diag_good_terms[
+        "reward_mixed_planar_fullscale_deficit_penalty"] == 0.0
     assert displacement_reward > stalled + 4.0, (
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v26"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v27"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -394,6 +421,7 @@ def main():
     assert contract["weights"]["component_tracking"] > 0.0
     assert contract["weights"]["mixed_planar_component_tracking"] > 0.0
     assert contract["weights"]["mixed_planar_sign"] > 0.0
+    assert contract["weights"]["mixed_planar_fullscale_deficit"] > 0.0
     assert contract["normalization"]["signed_planar_component_deficit_penalty"]
     assert contract["normalization"]["pure_axial_residual_cancellation_penalty"]
     assert contract["normalization"][
@@ -401,6 +429,8 @@ def main():
     assert contract["normalization"]["componentwise_vx_vy_yaw_tracking_cost"]
     assert contract["normalization"]["mixed_planar_component_tracking_cost"]
     assert contract["normalization"]["mixed_planar_sign_penalty"]
+    assert contract["normalization"]["mixed_planar_fullscale_deficit_penalty"]
+    assert contract["normalization"]["mixed_planar_fullscale_threshold"] == 0.75
     assert contract["normalization"]["component_tracking_cost_scale"] == {
         "vx": CMD_VX_RANGE[1],
         "vy": CMD_VY_RANGE[1],

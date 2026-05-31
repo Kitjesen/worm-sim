@@ -1,4 +1,4 @@
-# V41-V46 flat omni motion summary
+# V41-V57 flat omni motion summary
 
 Date: 2026-05-31
 
@@ -22,11 +22,12 @@ The deployable ABI is unchanged:
   velocities + previous 11D action + 7 segment IMUs + 1 s phase clock;
 - action: 12D, `11D residual motor action + 1D learned latent gait gate`;
 - actor/critic: `512-256-128`;
-- action adapter: `cmaes_tri_anchor_auto_gate_directional_v26`.
+- action adapter: `cmaes_tri_anchor_auto_gate_directional_v31`.
 
-The latest reward code is `omni_directional_offaxis_yaw_v24`. V24 adds a
-pure-axial prior-preservation term so residual actions are penalized when they
-erase the peristaltic slide wave. V46 tested that idea but did not replace V41.
+The latest reward code is `omni_directional_offaxis_yaw_v27`. V57 adds a
+full-diagonal mixed-planar deficit term so full-speed diagonal commands are
+penalized when either signed `vx` or signed `vy` remains far below command.
+The V57 scan did not pass; V56 remains safer on sign reliability.
 
 ## Version scan comparison
 
@@ -41,6 +42,31 @@ with forward+yaw rows included.
 | V45 final | `0.1590` | `0.1182` | `1.00` | `1.00` | no | rejected, lateral gate lost |
 | V46 best | `0.1547` | `0.1141` | `0.96` | `1.00` | yes | rejected, worse than V41 |
 | V46 final | `0.1569` | `0.1152` | `1.00` | `1.00` | yes | rejected, worse than V41 |
+| V56 best | `0.1509` | `0.1646` | `1.00` | `1.00` | yes | rejected, safest signs among latest runs |
+| V57 best | `0.1527` | `0.1933` | `0.96` | `1.00` | yes | rejected, one planar sign regression |
+| V57 final | `0.1566` | `0.1760` | `0.96` | `1.00` | yes | rejected, one planar sign regression |
+
+## V57 full-diagonal reward result
+
+V57 continued from:
+
+```text
+runs/worm_v6_ppo_flat_random_v56_strict_diagonal_eval_from_v53final/best_model.zip
+```
+
+New artifacts:
+
+```text
+runs/worm_v6_ppo_flat_random_v57_full_diagonal_reward_from_v56best/training_result.json
+record/current/flat_omni_v57_full_diagonal_reward_best_scan/strict_scan_analysis.md
+record/current/flat_omni_v57_full_diagonal_reward_final_scan/strict_scan_analysis.md
+```
+
+The best scan still fails `planar_rmse_m_s`, `wrong_planar_sign_count`, and
+`yaw_only_mean_planar_speed_m_s`. The dominant failure group is `mixed_vx_vy`.
+The telemetry shows the learned residual remains small (`~0.09` L2) compared
+with the mixed-planar prior (`~1.09` L2), so reward pressure alone did not make
+the policy compose both planar components.
 
 ## Current V41 motion table
 

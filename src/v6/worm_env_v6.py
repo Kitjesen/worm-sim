@@ -171,6 +171,8 @@ W_AXIAL_PRIOR_PRESERVE = 2.0
 W_COMPONENT_TRACKING = 1.5
 W_MIXED_PLANAR_COMPONENT_TRACKING = 2.5
 W_MIXED_PLANAR_SIGN = 3.0
+W_MIXED_PLANAR_FULLSCALE_DEFICIT = 4.0
+MIXED_PLANAR_FULLSCALE_THRESHOLD = 0.75
 YAW_DRIFT_TOLERANCE_RAD = 0.20
 YAW_STATIONARY_TOLERANCE_M_S = 0.02
 LATERAL_ONLY_FORWARD_TOLERANCE_M_S = 0.04
@@ -182,7 +184,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v26"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v27"
 
 
 def reward_contract():
@@ -211,6 +213,8 @@ def reward_contract():
             "mixed_planar_component_tracking": (
                 W_MIXED_PLANAR_COMPONENT_TRACKING),
             "mixed_planar_sign": W_MIXED_PLANAR_SIGN,
+            "mixed_planar_fullscale_deficit": (
+                W_MIXED_PLANAR_FULLSCALE_DEFICIT),
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
         },
@@ -250,6 +254,9 @@ def reward_contract():
             "componentwise_vx_vy_yaw_tracking_cost": True,
             "mixed_planar_component_tracking_cost": True,
             "mixed_planar_sign_penalty": True,
+            "mixed_planar_fullscale_deficit_penalty": True,
+            "mixed_planar_fullscale_threshold": (
+                MIXED_PLANAR_FULLSCALE_THRESHOLD),
             "component_tracking_cost_scale": {
                 "vx": CMD_VX_RANGE[1],
                 "vy": CMD_VY_RANGE[1],
@@ -1425,6 +1432,12 @@ class WormEnvV6(gym.Env):
                 and abs(cmd_vy) > 1e-6
                 and abs(cmd_yaw) <= 1e-6)
             else 0.0)
+        mixed_planar_fullscale_gate = (
+            1.0
+            if (mixed_planar_gate > 0.0
+                and cmd_vx_norm >= MIXED_PLANAR_FULLSCALE_THRESHOLD
+                and cmd_vy_norm >= MIXED_PLANAR_FULLSCALE_THRESHOLD)
+            else 0.0)
         prior_component = np.asarray(
             getattr(self, "_last_prior_component",
                     np.zeros(NUM_ACTUATORS, dtype=np.float32)),
@@ -1509,6 +1522,24 @@ class WormEnvV6(gym.Env):
             0.0,
             9.0,
         ))
+        mixed_planar_fullscale_deficit = 0.0
+        if mixed_planar_fullscale_gate > 0.0:
+            target_fraction = MIXED_PLANAR_FULLSCALE_THRESHOLD
+            vx_fullscale_progress = float(np.sign(cmd_vx) * forward_speed)
+            vy_fullscale_progress = float(np.sign(cmd_vy) * lateral_speed)
+            vx_fullscale_deficit = (
+                max(0.0, target_fraction * abs(cmd_vx)
+                    - vx_fullscale_progress)
+                / max(CMD_VX_RANGE[1], 1e-6))
+            vy_fullscale_deficit = (
+                max(0.0, target_fraction * abs(cmd_vy)
+                    - vy_fullscale_progress)
+                / max(CMD_VY_RANGE[1], 1e-6))
+            mixed_planar_fullscale_deficit = float(np.clip(
+                vx_fullscale_deficit + vy_fullscale_deficit,
+                0.0,
+                3.0,
+            ))
         mixed_planar_sign_violation = 0.0
         if mixed_planar_gate > 0.0:
             if cmd_vx * forward_speed <= 0.0:
@@ -1586,6 +1617,10 @@ class WormEnvV6(gym.Env):
                 mixed_planar_component_cost),
             "reward_mixed_planar_sign_penalty": float(
                 mixed_planar_sign_violation),
+            "mixed_planar_fullscale_gate": float(
+                mixed_planar_fullscale_gate),
+            "reward_mixed_planar_fullscale_deficit_penalty": float(
+                mixed_planar_fullscale_deficit),
             "desired_gait_blend": float(desired_gait_blend),
             "gait_gate_error": float(gate_target_active * gait_gate_error),
             "reward_axial_prior_preserve_penalty": float(
@@ -1617,6 +1652,8 @@ class WormEnvV6(gym.Env):
             - W_MIXED_PLANAR_COMPONENT_TRACKING * (
                 mixed_planar_component_cost)
             - W_MIXED_PLANAR_SIGN * mixed_planar_sign_violation
+            - W_MIXED_PLANAR_FULLSCALE_DEFICIT * (
+                mixed_planar_fullscale_deficit)
             - W_GAIT_GATE_TARGET * gate_target_active * gait_gate_error
             - W_AXIAL_PRIOR_PRESERVE * axial_prior_preserve_penalty
             - W_COMPONENT_TRACKING * component_tracking_cost

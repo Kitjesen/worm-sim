@@ -7,9 +7,10 @@ default control path. V51/V52 then tested the safer follow-up: keep the
 V49/V41 prior path, increase mixed-command residual authority, and add a
 mixed-planar component/sign reward. V53 then continued with a mixed-planar
 curriculum, V54 tested a more aggressive prior/residual authority rebalance,
-V55 tested a split-channel mixed-planar prior, and V56 added full-speed
-diagonal commands to the best-model selection schedule. These produced useful
-ablations but still do **not** solve continuous tracking on flat terrain.
+V55 tested a split-channel mixed-planar prior, V56 added full-speed diagonal
+commands to the best-model selection schedule, and V57 tested an explicit
+full-diagonal speed-deficit reward. These produced useful ablations but still
+do **not** solve continuous tracking on flat terrain.
 
 The continuing goal is to keep the deployable interface fixed while repairing
 the failure modes exposed by the strict 35-command scan:
@@ -39,9 +40,10 @@ residual authority plus mixed-planar reward can preserve zero wrong signs and
 bring yaw RMSE under the gate, but planar RMSE is still too high. V53 improves
 yaw RMSE further, while V54 shows that simply reducing mixed-planar prior
 authority and increasing residual authority regresses planar RMSE. V55 shows
-that a naive slide/yaw split prior reintroduces wrong planar signs, while V56
-shows that full-speed diagonal selection coverage preserves signs but does not
-reduce planar RMSE enough.
+that a naive slide/yaw split prior reintroduces wrong planar signs, V56 shows
+that full-speed diagonal selection coverage preserves signs but does not reduce
+planar RMSE enough, and V57 shows that a stronger full-diagonal reward alone
+does not make the policy use enough residual authority.
 
 ## Done
 
@@ -362,12 +364,23 @@ reduce planar RMSE enough.
   `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and
   `yaw_only_mean_planar_speed_m_s=0.0873`. This is the safest local candidate
   on selection coverage and yaw RMSE, but it is still rejected.
+- V57 added reward contract `omni_directional_offaxis_yaw_v27` with a
+  full-diagonal mixed-planar deficit term. It continued from V56 best at
+  `918,016` steps with the same `512-256-128` actor/critic and fixed 80D/12D
+  ABI. The best strict scan reports `planar_rmse_m_s=0.1527`,
+  `yaw_rmse_rad_s=0.1933`, `wrong_planar_sign_count=1`, and
+  `yaw_only_mean_planar_speed_m_s=0.0965`; the final scan reports
+  `planar_rmse_m_s=0.1566`, `yaw_rmse_rad_s=0.1760`,
+  `wrong_planar_sign_count=1`, and `yaw_only_mean_planar_speed_m_s=0.0913`.
+  V57 is rejected. The telemetry still shows `mixed_vx_vy` residual L2 around
+  `0.09` against prior L2 around `1.09`, so reward pressure alone did not give
+  the learned residual enough authority to compose both planar components.
 - Latest detailed movement table and artifact list:
   `docs/omni_v41_v46_motion_summary.md`.
 
 ## Not Done
 
-- The current V41-V56 line is not an accepted continuous tracker yet. It is a
+- The current V41-V57 line is not an accepted continuous tracker yet. It is a
   weak omnidirectional prototype with correct signs and fixed-lateral gate
   repair.
 - Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
@@ -437,12 +450,13 @@ reduce planar RMSE enough.
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V41-V56 line keeps the deployable ABI fixed, restores fixed left/right
+flat V41-V57 line keeps the deployable ABI fixed, restores fixed left/right
 lateral authority through searched lateral primitives, tests axial
 prior-preservation for visible worm-like actuation, partially fixes the
 mixed-yaw sign path, rejects the V50 componentwise-prior hypothesis, and tests
 V51/V52 residual/reward repairs plus V53/V54 curriculum/authority ablations,
-V55 split-prior ablation, and V56 strict-diagonal selection coverage.
+V55 split-prior ablation, V56 strict-diagonal selection coverage, and V57
+full-diagonal reward pressure.
 The project is not yet at "any velocity command can be tracked": planar RMSE
 remains around `0.15 m/s`, reverse is weak, and mixed planar commands do not
 track both components reliably. The next accepted advance must pass the strict
