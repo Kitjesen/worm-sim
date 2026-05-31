@@ -85,6 +85,8 @@ CMD_VY_RANGE    = (-0.15, 0.15)  # m/s body-lateral target
 CMD_YAW_RANGE   = (-0.25, 0.25)  # rad/s yaw target; narrowed for first-stage yaw tracking
 CMD_VEL_RANGE   = (0.0, CMD_VX_RANGE[1])  # legacy forward-speed alias
 CMD_RESAMPLE_P  = 0.005          # probability of resampling command each step
+LOW_YAW_ENVELOPE_YAW_ABS_RANGE = (0.08, 0.12)
+LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE = (0.05, 0.10)
 
 GAIT_BLENDS = {
     "worm": 0.0,
@@ -110,6 +112,7 @@ COMMAND_CURRICULA = (
     "mixed_planar_repair",
     "mixed_planar_hardcase_repair",
     "mixed_planar_yaw_preserve_repair",
+    "low_yaw_envelope",
     "mixed_composition_repair",
     "axis_separation",
 )
@@ -864,6 +867,13 @@ class WormEnvV6(gym.Env):
                                        max_abs * max_fraction)
         return float(np.clip(value, lo, hi))
 
+    def _sample_signed_abs_command(self, abs_range, sign=None):
+        lo, hi = abs_range
+        magnitude = float(self.np_random.uniform(lo, hi))
+        if sign is None:
+            sign = -1.0 if self.np_random.random() < 0.5 else 1.0
+        return float(math.copysign(magnitude, sign))
+
     def _with_fixed_command_overrides(self, vx, vy, yaw):
         if self._fixed_cmd_vx is not None:
             vx = float(np.clip(
@@ -1404,6 +1414,26 @@ class WormEnvV6(gym.Env):
                 vx = self.np_random.uniform(*CMD_VX_RANGE)
                 vy = self.np_random.uniform(*CMD_VY_RANGE)
                 yaw = self.np_random.uniform(*CMD_YAW_RANGE)
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "low_yaw_envelope":
+            primitive = int(self.np_random.integers(0, 10))
+            if primitive in (0, 1, 2):
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (3, 4, 5, 6):
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    LOW_YAW_ENVELOPE_YAW_ABS_RANGE)
+            elif primitive in (7, 8):
+                vx = self._sample_signed_abs_command(
+                    LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE)
+                vy, yaw = 0.0, 0.0
+            else:
+                vx = self._sample_signed_abs_command(
+                    LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE, sign=1.0)
+                vy = 0.0
+                yaw = self._sample_signed_abs_command(
+                    LOW_YAW_ENVELOPE_YAW_ABS_RANGE)
             return self._with_fixed_command_overrides(vx, vy, yaw)
 
         if self.command_curriculum == "mixed_composition_repair":

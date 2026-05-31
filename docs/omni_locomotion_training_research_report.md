@@ -364,9 +364,9 @@ yaw up to ±0.25
 
 ## 5. 下一轮 V60/V61 实施建议
 
-### V60: v29 compact yaw repair
+### V60: low-yaw compact repair
 
-目的：吃到 v29 纯 yaw 防蜷缩奖励，修复纯 yaw 平移漂移和蜷缩。
+目的：先吃到 v29 纯 yaw 防蜷缩奖励，并把训练命令收缩到低速 yaw 可行包络。第一轮不再继续硬训 full continuous omni。
 
 建议命令：
 
@@ -374,8 +374,8 @@ yaw up to ±0.25
 python src\v6\train_v6.py `
   --terrain flat `
   --gait-mode random `
-  --run-label flat_random_v60_compact_yaw_repair_from_v59best `
-  --command-curriculum mixed_planar_yaw_preserve_repair `
+  --run-label flat_random_v60_low_yaw_envelope_from_v59best `
+  --command-curriculum low_yaw_envelope `
   --timesteps 1200000 `
   --train-chunk-timesteps 200000 `
   --resume runs\worm_v6_ppo_flat_random_v59_yaw_preserve_hardcase_from_v56best\best_model.zip `
@@ -391,21 +391,31 @@ python src\v6\train_v6.py `
 说明：
 
 - `--allow-contract-resume` 是因为 v29 reward_contract 比 V59 的 v28 多了 pure-yaw compactness 项。
+- `low_yaw_envelope` 是已实现训练课程：30% stop、40% pure yaw `±0.08..±0.12 rad/s`、20% slow axial `±0.05..±0.10 m/s`、10% slow forward + yaw。
 - 这不是破坏 ABI：observation/action/actuator contract 不变，只是训练 reward 改了。
 
-### V61: low-yaw feasible-envelope curriculum
+### V61: mixed-envelope rejoin
 
-如果 V60 仍然在纯 yaw 上平移漂移，新增 curriculum：
+如果 V60 的 pure yaw 不再蜷缩、平移漂移下降，再回到 mixed-planar/yaw-preserve 课程：
 
-```text
-low_yaw_envelope:
-  30% stop
-  40% pure yaw at ±0.08 / ±0.12
-  20% slow axial at ±0.05 / ±0.10
-  10% yaw+slow_forward
+```powershell
+python src\v6\train_v6.py `
+  --terrain flat `
+  --gait-mode random `
+  --run-label flat_random_v61_mixed_rejoin_from_v60best `
+  --command-curriculum mixed_planar_yaw_preserve_repair `
+  --timesteps 1400000 `
+  --train-chunk-timesteps 200000 `
+  --resume runs\worm_v6_ppo_flat_random_v60_low_yaw_envelope_from_v59best\best_model.zip `
+  --allow-curriculum-resume `
+  --policy-net-arch 512,256,128 `
+  --value-net-arch 512,256,128 `
+  --learning-rate 3e-5 `
+  --n-envs 4 `
+  --device cpu
 ```
 
-这一步要比继续训 full continuous omni 更合理，因为现在失败集中在纯 yaw 稳定性和 mixed 命令。
+这一步再检查 mixed `vx+vy`、`vx+yaw`。如果又出现纯 yaw 蜷缩或 stationary drift，退回 V60 继续低速 yaw 修复。
 
 ## 6. 论文实验矩阵建议
 
@@ -514,9 +524,9 @@ Full envelope pass:
 
 下一步不要泛化地“继续训练全向”。应该执行：
 
-1. V60：用 v29 reward 从 V59 best 继续，验证纯 yaw 防蜷缩是否有效。
+1. V60：用 v29 reward 和 `low_yaw_envelope` 从 V59 best 继续，验证纯 yaw 防蜷缩是否有效。
 2. 做 feasible envelope scan，把不可实现命令从训练目标中移除或降权。
-3. 如果 V60 不够，新增 V61 low-yaw envelope curriculum。
+3. 如果 V60 通过，V61 再回到 mixed-planar/yaw-preserve 课程。
 4. flat low-speed envelope 通过后，再扩展 full envelope。
 5. full envelope 通过后，再启动 sand/slope。
 

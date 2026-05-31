@@ -55,6 +55,8 @@ from worm_env_v6 import (  # noqa: E402
     CMD_VX_RANGE,
     CMD_VY_RANGE,
     COMMAND_CURRICULA,
+    LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE,
+    LOW_YAW_ENVELOPE_YAW_ABS_RANGE,
     NUM_ACTUATORS,
     NUM_SLIDES,
     OBS_DIM,
@@ -787,7 +789,47 @@ def main():
     assert "mixed_planar_repair" in COMMAND_CURRICULA
     assert "mixed_planar_hardcase_repair" in COMMAND_CURRICULA
     assert "mixed_planar_yaw_preserve_repair" in COMMAND_CURRICULA
+    assert "low_yaw_envelope" in COMMAND_CURRICULA
     assert "axis_separation" in COMMAND_CURRICULA
+
+    env.command_curriculum = "low_yaw_envelope"
+    samples = np.array([env._sample_command() for _ in range(480)])
+    nonzero_dims = np.count_nonzero(np.abs(samples) > 1e-9, axis=1)
+    stop_samples = samples[nonzero_dims == 0]
+    pure_yaw_samples = samples[
+        (np.abs(samples[:, 0]) <= 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    slow_axial_samples = samples[
+        (np.abs(samples[:, 0]) > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    forward_yaw_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    assert len(stop_samples) >= 80
+    assert len(pure_yaw_samples) >= 120
+    assert len(slow_axial_samples) >= 50
+    assert len(forward_yaw_samples) >= 20
+    assert np.all(np.abs(samples[:, 1]) <= 1e-9)
+    assert np.any(pure_yaw_samples[:, 2] > 0.0)
+    assert np.any(pure_yaw_samples[:, 2] < 0.0)
+    assert np.all(
+        np.abs(pure_yaw_samples[:, 2]) >= LOW_YAW_ENVELOPE_YAW_ABS_RANGE[0])
+    assert np.all(
+        np.abs(pure_yaw_samples[:, 2]) <= LOW_YAW_ENVELOPE_YAW_ABS_RANGE[1])
+    assert np.any(slow_axial_samples[:, 0] > 0.0)
+    assert np.any(slow_axial_samples[:, 0] < 0.0)
+    assert np.all(
+        np.abs(slow_axial_samples[:, 0])
+        >= LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE[0])
+    assert np.all(
+        np.abs(slow_axial_samples[:, 0])
+        <= LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE[1])
 
     env.command_curriculum = "continuous_omni"
     samples = np.array([env._sample_command() for _ in range(240)])
