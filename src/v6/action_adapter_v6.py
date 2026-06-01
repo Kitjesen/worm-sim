@@ -42,6 +42,9 @@ MIXED_COMMAND_COMPOSITION_ENABLED = _env_flag(
 MIXED_PLANAR_CONTINUOUS_GATE_EXPERIMENTAL_AVAILABLE = True
 MIXED_PLANAR_CONTINUOUS_GATE_ENABLED = _env_flag(
     "WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE", default=False)
+MIXED_PLANAR_HARDCASE_GATE_EXPERIMENTAL_AVAILABLE = True
+MIXED_PLANAR_HARDCASE_GATE_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE", default=False)
 POLICY_ACTION_DIM = NUM_ACTUATORS + 1
 GAIT_GATE_ACTION_GAIN = 3.0
 COMMAND_GATE_CENTER_RESIDUAL_RANGE = 0.35
@@ -53,6 +56,10 @@ COMMAND_GATE_MIXED_CENTER = 0.50
 COMMAND_GATE_LATERAL_CENTER = 0.00
 COMMAND_GATE_YAW_CENTER = 0.85
 MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR = 0.25
+MIXED_PLANAR_HARDCASE_GATE_CENTER = 0.28
+MIXED_PLANAR_HARDCASE_MIN_VX_NORM = 0.40
+MIXED_PLANAR_HARDCASE_MAX_VX_NORM = 0.70
+MIXED_PLANAR_HARDCASE_MIN_VY_NORM = 0.85
 DEFAULT_GAIT_PRIOR_SCALE = 1.0
 DEFAULT_POLICY_RESIDUAL_SCALE = 0.35
 COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED = True
@@ -464,6 +471,30 @@ def action_adapter_contract(
                         "components without doubling motor amplitude when two "
                         "full-strength axes are active."),
                 },
+            },
+            "mixed_planar_hardcase_gate": {
+                "available": MIXED_PLANAR_HARDCASE_GATE_EXPERIMENTAL_AVAILABLE,
+                "enabled": MIXED_PLANAR_HARDCASE_GATE_ENABLED,
+                "default": "disabled",
+                "enable_env": "WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1",
+                "target_command": {
+                    "cmd_vx_norm_range": [
+                        MIXED_PLANAR_HARDCASE_MIN_VX_NORM,
+                        MIXED_PLANAR_HARDCASE_MAX_VX_NORM,
+                    ],
+                    "cmd_vy_norm_min": MIXED_PLANAR_HARDCASE_MIN_VY_NORM,
+                    "cmd_yaw_norm_max": DIRECTIONAL_PRIOR_THRESHOLD,
+                    "signed_vx": "positive",
+                },
+                "gate_center": MIXED_PLANAR_HARDCASE_GATE_CENTER,
+                "reason": (
+                    "V74/V76 diagnostics show cmd=(+0.05,+0.075,0) is "
+                    "sampled but still mapped to the pure lateral gate "
+                    "center, suppressing visible axial peristaltic action "
+                    "and yielding negative body vx. This narrow ablation "
+                    "restores a small axial gate only for slow-forward, "
+                    "full-lateral planar commands without changing the "
+                    "80D observation or 12D action ABI."),
             },
             "reverse": "dominant negative vx reverses phase",
             "lateral": (
@@ -1278,12 +1309,21 @@ def axial_gate_center_from_speed(cmd_vx_norm):
 def command_conditioned_gate_center(command):
     if command is None:
         return COMMAND_GATE_MIXED_CENTER
-    cmd_vx, cmd_vy, cmd_yaw = [abs(float(v)) for v in command]
+    signed_vx, signed_vy, signed_yaw = [float(v) for v in command]
+    cmd_vx, cmd_vy, cmd_yaw = [
+        abs(signed_vx), abs(signed_vy), abs(signed_yaw)]
     cmd_mag = max(cmd_vx, cmd_vy, cmd_yaw)
     if cmd_mag <= 1e-6:
         return COMMAND_GATE_MIXED_CENTER
     if cmd_yaw >= DIRECTIONAL_PRIOR_THRESHOLD and max(cmd_vx, cmd_vy) < DIRECTIONAL_PRIOR_THRESHOLD:
         return COMMAND_GATE_YAW_CENTER
+    if (MIXED_PLANAR_HARDCASE_GATE_ENABLED
+            and signed_vx > 0.0
+            and MIXED_PLANAR_HARDCASE_MIN_VX_NORM <= cmd_vx
+            <= MIXED_PLANAR_HARDCASE_MAX_VX_NORM
+            and cmd_vy >= MIXED_PLANAR_HARDCASE_MIN_VY_NORM
+            and cmd_yaw < DIRECTIONAL_PRIOR_THRESHOLD):
+        return MIXED_PLANAR_HARDCASE_GATE_CENTER
     if (MIXED_PLANAR_CONTINUOUS_GATE_ENABLED
             and cmd_vx >= DIRECTIONAL_PRIOR_THRESHOLD
             and cmd_vy >= DIRECTIONAL_PRIOR_THRESHOLD

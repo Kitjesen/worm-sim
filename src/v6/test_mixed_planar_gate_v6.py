@@ -12,14 +12,30 @@ import action_adapter_v6 as action_adapter  # noqa: E402
 
 def main():
     os.environ.pop("WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE", None)
+    os.environ.pop("WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE", None)
     module = importlib.reload(action_adapter)
     lateral = module.command_conditioned_gate_center((0.0, 1.0, 0.0))
     default_slow_forward_left = module.command_conditioned_gate_center(
         (0.5, 1.0, 0.0))
+    default_slow_reverse_left = module.command_conditioned_gate_center(
+        (-0.5, 1.0, 0.0))
 
     assert lateral == module.COMMAND_GATE_LATERAL_CENTER
     assert default_slow_forward_left == module.COMMAND_GATE_LATERAL_CENTER
+    assert default_slow_reverse_left == module.COMMAND_GATE_LATERAL_CENTER
     assert not module.MIXED_PLANAR_CONTINUOUS_GATE_ENABLED
+    assert not module.MIXED_PLANAR_HARDCASE_GATE_ENABLED
+
+    os.environ["WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE"] = "1"
+    module = importlib.reload(module)
+    assert module.MIXED_PLANAR_HARDCASE_GATE_ENABLED
+    assert module.command_conditioned_gate_center(
+        (0.5, 1.0, 0.0)) == module.MIXED_PLANAR_HARDCASE_GATE_CENTER
+    assert module.command_conditioned_gate_center(
+        (0.0, 1.0, 0.0)) == module.COMMAND_GATE_LATERAL_CENTER
+    assert module.command_conditioned_gate_center(
+        (-0.5, 1.0, 0.0)) == module.COMMAND_GATE_LATERAL_CENTER
+    os.environ.pop("WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE", None)
 
     os.environ["WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE"] = "1"
     module = importlib.reload(module)
@@ -37,6 +53,7 @@ def main():
     assert axial_dominant > balanced_forward_left
 
     os.environ.pop("WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE", None)
+    os.environ.pop("WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE", None)
     importlib.reload(module)
 
     print("mixed planar gait gate checks passed")
