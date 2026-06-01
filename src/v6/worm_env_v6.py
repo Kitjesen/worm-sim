@@ -93,6 +93,8 @@ FEASIBLE_MIXED_VX_ABS_RANGE = (0.04, 0.10)
 FEASIBLE_MIXED_VY_ABS_RANGE = (0.03, 0.075)
 FEASIBLE_MIXED_YAW_ABS_RANGE = (0.08, 0.125)
 SLOW_LATERAL_REPAIR_VY_ABS_RANGE = (0.03, 0.045)
+ROBUST_FORWARD_LEFT_VX_RANGE = (0.045, 0.060)
+ROBUST_FORWARD_LEFT_VY_RANGE = (0.065, 0.075)
 
 GAIT_BLENDS = {
     "worm": 0.0,
@@ -122,6 +124,7 @@ COMMAND_CURRICULA = (
     "low_yaw_envelope",
     "feasible_mixed_low_speed",
     "feasible_forward_diagonal_repair",
+    "robust_forward_left_diagonal_repair",
     "mixed_composition_repair",
     "axis_separation",
 )
@@ -279,6 +282,18 @@ def reward_contract():
                 "yaw_abs_range_rad_s": FEASIBLE_MIXED_YAW_ABS_RANGE,
             },
             "feasible_forward_diagonal_repair_sampling": True,
+            "robust_forward_left_diagonal_repair_sampling": {
+                "vx_range_m_s": ROBUST_FORWARD_LEFT_VX_RANGE,
+                "vy_range_m_s": ROBUST_FORWARD_LEFT_VY_RANGE,
+                "target_case": "cmd=(+0.05,+0.075,0)",
+                "reason": (
+                    "V71-V73 robust scans repeatedly failed the slow "
+                    "forward-left diagonal under sensor noise, one-step "
+                    "delay, and 0.90 action saturation. This curriculum "
+                    "oversamples that local command neighborhood while "
+                    "keeping pure-axis, right-diagonal, yaw, and reverse "
+                    "samples in the mix."),
+            },
             "axis_separation_curriculum": True,
             "yaw_only_prior_scaling_applied": True,
             "gait_blend_is_policy_gate": True,
@@ -1545,6 +1560,54 @@ class WormEnvV6(gym.Env):
                 yaw = self._sample_signed_abs_command(
                     FEASIBLE_MIXED_YAW_ABS_RANGE)
             elif primitive in (12, 13):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            else:
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+                yaw = 0.0
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "robust_forward_left_diagonal_repair":
+            primitive = int(self.np_random.integers(0, 24))
+            if primitive in (0, 1):
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (2, 3):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (4, 5):
+                vx, yaw = 0.0, 0.0
+                vy = self._sample_signed_abs_command(
+                    (0.0, CMD_VY_RANGE[1]), sign=1.0)
+            elif primitive in (6, 7, 8, 9, 10, 11, 12, 13):
+                vx = float(self.np_random.uniform(
+                    *ROBUST_FORWARD_LEFT_VX_RANGE))
+                vy = float(self.np_random.uniform(
+                    *ROBUST_FORWARD_LEFT_VY_RANGE))
+                yaw = 0.0
+            elif primitive in (14, 15, 16):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=-1.0)
+                yaw = 0.0
+            elif primitive in (17, 18):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=1.0)
+                yaw = 0.0
+            elif primitive == 19:
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            elif primitive in (20, 21):
                 vx = self._sample_signed_abs_command(
                     FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
                 vy = 0.0
