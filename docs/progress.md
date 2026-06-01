@@ -110,6 +110,24 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   failure group is still `mixed_vx_vy`. This confirms the low-learning-rate
   server resume is stable but has not solved the remaining mixed planar sign
   failure yet.
+- The V69c chunk completed at about `1,835,696` steps. Its later best
+  checkpoint at `1,805,696` and its final checkpoint both still fail the strict
+  scan on exactly the same acceptance condition:
+  `wrong_planar_sign_count=1`.
+  - Best artifact:
+    `record/current/flat_omni_v69c_server_best1805696_scan/`,
+    `planar_rmse_m_s=0.06403`, `yaw_rmse_rad_s=0.01892`.
+  - Final artifact:
+    `record/current/flat_omni_v69c_server_final_scan/`,
+    `planar_rmse_m_s=0.06010`, `yaw_rmse_rad_s=0.01891`.
+  The concrete counterexample in the final scan is slow right lateral:
+  `cmd=(0, -0.0375, 0)` produces `body_vy=+0.03865 m/s` and
+  `body_vx=-0.09485 m/s`.
+- V70 preparation adds `slow_lateral_left` and `slow_lateral_right` to the
+  best-model selection schedule and adds a `slow_lateral_right_repair`
+  curriculum. This directly covers the strict-scan counterexample while
+  retaining left-lateral, full-right-lateral, zero-command, axial, mixed
+  right-lateral, and yaw samples.
 - Previous flat/random PPO diagnostics reached about 311k steps, but are stale
   under the new auto-gated contract.
 - Flat V6 omnidirectional training has been pushed through yaw, planar repair,

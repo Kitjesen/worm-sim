@@ -92,6 +92,7 @@ LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE = (0.05, 0.10)
 FEASIBLE_MIXED_VX_ABS_RANGE = (0.04, 0.10)
 FEASIBLE_MIXED_VY_ABS_RANGE = (0.03, 0.075)
 FEASIBLE_MIXED_YAW_ABS_RANGE = (0.08, 0.125)
+SLOW_LATERAL_REPAIR_VY_ABS_RANGE = (0.03, 0.045)
 
 GAIT_BLENDS = {
     "worm": 0.0,
@@ -109,6 +110,7 @@ COMMAND_CURRICULA = (
     "heading_omni",
     "lateral",
     "lateral_right",
+    "slow_lateral_right_repair",
     "yaw",
     "yaw_right",
     "right_recovery",
@@ -968,6 +970,45 @@ class WormEnvV6(gym.Env):
         if self.command_curriculum == "lateral_right":
             return self._with_fixed_command_overrides(
                 0.0, self._sample_signed_range((CMD_VY_RANGE[0], 0.0)), 0.0)
+
+        if self.command_curriculum == "slow_lateral_right_repair":
+            primitive = int(self.np_random.integers(0, 16))
+            if primitive in (0, 1, 2, 3, 4, 5):
+                vx, vy, yaw = (
+                    0.0,
+                    -self.np_random.uniform(*SLOW_LATERAL_REPAIR_VY_ABS_RANGE),
+                    0.0,
+                )
+            elif primitive in (6, 7):
+                vx, vy, yaw = (
+                    0.0,
+                    self._sample_signed_range(
+                        (CMD_VY_RANGE[0], 0.0), min_abs_fraction=0.70),
+                    0.0,
+                )
+            elif primitive == 8:
+                vx, vy, yaw = (
+                    0.0,
+                    self.np_random.uniform(*SLOW_LATERAL_REPAIR_VY_ABS_RANGE),
+                    0.0,
+                )
+            elif primitive == 9:
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (10, 11):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE)
+                vy = -self.np_random.uniform(
+                    *SLOW_LATERAL_REPAIR_VY_ABS_RANGE)
+                yaw = 0.0
+            elif primitive in (12, 13):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE)
+                vy, yaw = 0.0, 0.0
+            else:
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            return self._with_fixed_command_overrides(vx, vy, yaw)
 
         if self.command_curriculum == "yaw":
             return self._with_fixed_command_overrides(

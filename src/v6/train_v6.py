@@ -174,6 +174,8 @@ def best_eval_schedule(gait_mode, gait_blend=None):
         ("stop", 0.0, 0.0, 0.0),
         ("slow_forward", float(CMD_VX_RANGE[1]) * 0.25, 0.0, 0.0),
         ("slow_reverse", float(CMD_VX_RANGE[0]) * 0.25, 0.0, 0.0),
+        ("slow_lateral_left", 0.0, float(CMD_VY_RANGE[1]) * 0.5, 0.0),
+        ("slow_lateral_right", 0.0, float(CMD_VY_RANGE[0]) * 0.5, 0.0),
         ("forward", float(CMD_VX_RANGE[1]), 0.0, 0.0),
         ("reverse", float(CMD_VX_RANGE[0]), 0.0, 0.0),
         ("lateral_left", 0.0, float(CMD_VY_RANGE[1]), 0.0),

@@ -225,6 +225,13 @@ It is stable but not accepted: `planar_rmse_m_s=0.06289`,
 `wrong_yaw_sign_count=0`. The remaining failure group is still `mixed_vx_vy`,
 so V69c should continue training and must be rescanned at later checkpoints.
 
+V69c later-best and final scans were also not accepted. The final scan has
+`planar_rmse_m_s=0.06010`, `yaw_rmse_rad_s=0.01891`, and still
+`wrong_planar_sign_count=1`. The concrete remaining counterexample is the slow
+right-lateral command `cmd=(0, -0.0375, 0)`, which moves left instead of right.
+V70 therefore adds slow lateral commands to best-model selection and introduces
+a focused `slow_lateral_right_repair` curriculum.
+
 Long runs should use the clean Git checkout under
 `/home/bsrl/hongsenpang/codex_runs`; the older
 `/home/bsrl/hongsenpang/worm_project` directory is a manual copy and should not

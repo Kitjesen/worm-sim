@@ -36,11 +36,18 @@ left unchanged for Isaac Lab. The aborted V69b startup is retained only as a
 diagnostic because it used the default `3e-4` learning rate instead of the
 intended fine-tuning rate `5e-6`.
 
+V69c has now been scanned at early-best, later-best, and final checkpoints.
+All three scans are stable but fail on `wrong_planar_sign_count=1`. The final
+counterexample is the strict slow-right-lateral command
+`cmd=(0, -0.0375, 0)`, which moves left instead of right. V70 therefore adds
+slow lateral cases to best-model selection and a focused
+`slow_lateral_right_repair` curriculum.
+
 ## Immediate Priorities
 
-1. Monitor V69c on the 3090 server and run the corrected 35-command scan when
-   it reaches candidate checkpoints. Do not run long training on the local
-   Windows machine.
+1. Launch and monitor V70 on the 3090 server using the new
+   `slow_lateral_right_repair` curriculum. Do not run long training on the
+   local Windows machine.
 2. Keep V50 mixed-command composition behind
    `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1` unless a future strict scan
    proves it beats the default guard.
