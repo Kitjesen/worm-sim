@@ -32,10 +32,10 @@ the failure modes exposed by the strict 35-command scan:
   acceptance certificate, not video appearance alone.
 
 The flat V37 adapter plus V70-best policy first passed the strict scan in a
-no-retrain evaluation. Server-trained V71, V72, and V73 nominal checkpoints now
+no-retrain evaluation. Server-trained V71, V72, V73, and V74 nominal checkpoints now
 also pass the strict 35-command scan under the same deployable ABI. The V71 HD
 video set is recorded. Robust scans with sensor noise, one-step action delay,
-and `0.90` action saturation are archived through V73, and they show the policy
+and `0.90` action saturation are archived through V74, and they show the policy
 is still a nominal flat strict-scan checkpoint rather than a robust continuous
 tracker. The remaining robust failure is a mixed `vx/vy` counterexample.
 
@@ -48,9 +48,9 @@ The flat acceptance targets are:
 - `mixed_vx_vy` planar exceed below `8/16`;
 - `mixed_vx_yaw` yaw exceed below `3/6`.
 
-Current V73 evidence:
+Current V74 evidence:
 
-- The server is the only active training machine. The V73 train and scan jobs
+- The server is the only active training machine. The V74 train and scan jobs
   completed on the server; no local Windows training was used for this run.
 - Server checkout:
   `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-v71-clean`.
@@ -146,6 +146,31 @@ Current V73 evidence:
   The remaining robust wrong-sign command is still `cmd=(+0.05,+0.075,0)`,
   measured in V73 final robust as `body_vx=-0.03165 m/s`,
   `body_vy=+0.01286 m/s`.
+- V74 server targeted repair continued from V73 final with
+  `command_curriculum=robust_forward_left_diagonal_repair`, robust sensor
+  noise, one action-delay step, action saturation `0.90`, actor/critic
+  `512-256-128`, and unchanged 80D/12D ABI. The scan artifacts are archived in
+  `record/current/flat_omni_v74_server_robust_forward_left_targeted_scan/`.
+  V74 best and final nominal scans are accepted:
+  - V74 best nominal: `planar_rmse_m_s=0.05529`,
+    `yaw_rmse_rad_s=0.01920`, `wrong_planar_sign_count=0`,
+    `wrong_yaw_sign_count=0`, `fixed_lateral_strict_gate_passed=true`;
+  - V74 final nominal: `planar_rmse_m_s=0.05925`,
+    `yaw_rmse_rad_s=0.01919`, `wrong_planar_sign_count=0`,
+    `wrong_yaw_sign_count=0`, `fixed_lateral_strict_gate_passed=true`.
+  Robust scans still fail `wrong_planar_sign_count=1` in `mixed_vx_vy`:
+  - V74 best robust: `planar_rmse_m_s=0.05602`,
+    `yaw_rmse_rad_s=0.02028`, `wrong_yaw_sign_count=0`,
+    `fixed_lateral_strict_gate_passed=true`;
+  - V74 final robust: `planar_rmse_m_s=0.05915`,
+    `yaw_rmse_rad_s=0.02019`, `wrong_yaw_sign_count=0`,
+    `fixed_lateral_strict_gate_passed=false`.
+  The repeated robust wrong-sign command remains `cmd=(+0.05,+0.075,0)`.
+  V74 best robust measures it as `body_vx=-0.03253 m/s`,
+  `body_vy=+0.01780 m/s`; V74 final robust measures it as
+  `body_vx=-0.03531 m/s`, `body_vy=+0.01460 m/s`. This targeted curriculum did
+  not solve the robust diagonal failure and slightly regressed robust lateral
+  left in the final checkpoint.
 
 V49 fixed part of the mixed-yaw sign issue, reducing `mixed_vx_yaw` yaw RMSE
 from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and

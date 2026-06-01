@@ -180,7 +180,7 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V64-V73 Status
+### Latest Flat V64-V74 Status
 
 The active flat baseline is now the V64 best checkpoint evaluated with the
 current V36 feasible-speed adapter. The command envelope is intentionally
@@ -210,8 +210,8 @@ Training has moved off the local Windows machine. The active server checkout is
 `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-v71-clean`. The original
 `thunder2` environment remains reserved for Isaac Lab; Worm V6 MuJoCo PPO uses
 the cloned `wormv6_np2` environment so NumPy-2 VecNormalize files load
-correctly. The latest server fine-tune is V73,
-`flat_random_v73_server_robust_forward_left_from_v72final_np2`.
+correctly. The latest server fine-tune is V74,
+`flat_random_v74_server_robust_forward_left_targeted_from_v73final_np2`.
 
 The first server-side V69c early-best 35-command scan is:
 
@@ -322,6 +322,29 @@ remaining robust counterexample is still a slow forward-left diagonal:
 `body_vy=+0.01286 m/s`. Therefore V73 is a nominal flat strict-scan result,
 not a robust continuous tracker yet.
 
+V74 continued from V73 final with a targeted
+`robust_forward_left_diagonal_repair` curriculum centered around the repeated
+robust failure. The scan artifacts are:
+
+```text
+record/current/flat_omni_v74_server_robust_forward_left_targeted_scan/
+```
+
+V74 again preserves nominal strict-scan acceptance. V74 best nominal has
+`planar_rmse_m_s=0.05529`, `yaw_rmse_rad_s=0.01920`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and
+`fixed_lateral_strict_gate_passed=true`; V74 final nominal has
+`planar_rmse_m_s=0.05925`, `yaw_rmse_rad_s=0.01919`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and
+`fixed_lateral_strict_gate_passed=true`. Robust scans are still rejected for
+one wrong planar sign in `mixed_vx_vy`. V74 best robust keeps the fixed lateral
+strict gate and measures the repeated counterexample as
+`cmd=(+0.05,+0.075,0) -> body_vx=-0.03253 m/s, body_vy=+0.01780 m/s`;
+V74 final robust measures it as `body_vx=-0.03531 m/s`,
+`body_vy=+0.01460 m/s` and also drops the fixed lateral-left strict speed gate
+under robust perturbation. Therefore V74 is still a nominal flat strict-scan
+result, not a robust continuous tracker.
+
 The current V71 best checkpoint has also been recorded as a viewable HD video
 set with visual spring-steel strips and head-speed overlay:
 
@@ -336,7 +359,7 @@ yaw signs, visible gait-gate separation, and non-empty videos. It is still a
 flat simulation artifact, not a sand/slope or hardware result.
 
 Detailed server notes are tracked in
-[V70-V73 server training log](docs/omni_v70_v71_server_training_log.md).
+[V70-V74 server training log](docs/omni_v70_v71_server_training_log.md).
 
 Long runs should use the clean Git checkout under
 `/home/bsrl/hongsenpang/codex_runs`; the older

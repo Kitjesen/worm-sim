@@ -291,6 +291,48 @@ remaining robust counterexample is still the slow forward-left diagonal
 `body_vx=-0.03165 m/s`, `body_vy=+0.01286 m/s`, so the policy still reverses
 the forward component under the robust perturbation.
 
+## V74 Targeted Robust Forward-Left Scan
+
+Artifact:
+
+```text
+record/current/flat_omni_v74_server_robust_forward_left_targeted_scan/
+```
+
+V74 continued from the V73 final checkpoint in the clean server checkout:
+
+```text
+/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-v71-clean
+```
+
+The run used the same server-only `wormv6_np2` environment and kept the
+deployable ABI unchanged: 80D observation, 12D residual-plus-gate action, and
+actor/critic `512-256-128`. Training used the targeted
+`robust_forward_left_diagonal_repair` curriculum with robust sensor noise,
+one action-delay step, and action saturation `0.90`.
+
+Nominal scans:
+
+| Checkpoint | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V74 best nominal | true | `0.05529` | `0.01920` | `0` | `0` | true |
+| V74 final nominal | true | `0.05925` | `0.01919` | `0` | `0` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V74 best robust | false | `0.05602` | `0.02028` | `1` | `0` | true |
+| V74 final robust | false | `0.05915` | `0.02019` | `1` | `0` | false |
+
+V74 preserves nominal strict-scan acceptance but does not solve robust
+continuous tracking. The repeated robust counterexample is still the slow
+forward-left diagonal `cmd=(+0.05,+0.075,0)`. V74 best robust measures
+`body_vx=-0.03253 m/s`, `body_vy=+0.01780 m/s`; V74 final robust measures
+`body_vx=-0.03531 m/s`, `body_vy=+0.01460 m/s`. The final checkpoint also
+regresses the fixed lateral-left strict speed gate under robust perturbation,
+so V74 best is the better robust candidate but is still rejected.
+
 ## V71 HD Video Evidence
 
 Artifact:
