@@ -293,7 +293,9 @@ def config_stub(contract):
 
 
 def main():
-    assert CMD_VX_RANGE[1] >= 0.20, CMD_VX_RANGE
+    assert CMD_VX_RANGE[1] == FEASIBLE_MIXED_VX_ABS_RANGE[1], CMD_VX_RANGE
+    assert CMD_VY_RANGE[1] == FEASIBLE_MIXED_VY_ABS_RANGE[1], CMD_VY_RANGE
+    assert CMD_YAW_RANGE[1] == FEASIBLE_MIXED_YAW_ABS_RANGE[1], CMD_YAW_RANGE
     assert CMD_VY_RANGE[1] > 0.0, CMD_VY_RANGE
     forward = reward_for(CMD_VX_RANGE[1])
     slow = reward_for(0.025, cmd_vx=CMD_VX_RANGE[1])
@@ -569,7 +571,7 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v34")
+    assert adapter_contract["version"].endswith("_v36")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     assert "|cmd_yaw_norm|" in adapter_contract[
@@ -611,6 +613,10 @@ def main():
         "inplace_yaw_prior"]["enabled"]
     assert adapter_contract["command_directional_prior_transform"][
         "lateral_primitives"]["enabled"]
+    assert adapter_contract["command_directional_prior_transform"][
+        "lateral_primitives"]["runtime_scales"]["left"] == 1.0
+    assert adapter_contract["command_directional_prior_transform"][
+        "lateral_primitives"]["runtime_scales"]["right"] == 0.75
     mixed_composition_contract = adapter_contract[
         "command_directional_prior_transform"][
         "mixed_command_component_composition"]
@@ -727,8 +733,8 @@ def main():
     assert command_activity_scale(0.0, 0.0, 0.0) == 0.0
     assert np.isclose(command_activity_scale(0.5, 0.0, 0.0), 0.6)
     assert command_activity_scale(1.0, 0.0, 0.0) == 1.0
-    assert np.isclose(command_activity_scale(0.0, 0.0, 0.5), 0.25)
-    assert np.isclose(command_activity_scale(0.0, 0.0, 1.0), 0.5)
+    assert np.isclose(command_activity_scale(0.0, 0.0, 0.5), 0.125)
+    assert np.isclose(command_activity_scale(0.0, 0.0, 1.0), 0.25)
     assert command_conditioned_residual_scale(1.0, 0.0, 0.0) == 1.0
     assert command_conditioned_residual_scale(0.0, 1.0, 0.0) == 1.0
     assert np.isclose(
@@ -1215,6 +1221,24 @@ def main():
     assert "reward_contract" in reasons
     ok, reasons = training_config_compatible(
         config_stub(old),
+        config_stub(contract),
+        allow_experimental_contract_mismatch=True,
+    )
+    assert ok, reasons
+
+    stale_eval_command = config_stub(contract)
+    stale_eval_command["eval_command"] = {
+        "cmd_vx_m_s": 0.25,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0,
+        "command_resample_prob": 0.0,
+    }
+    ok, reasons = training_config_compatible(
+        stale_eval_command, config_stub(contract))
+    assert not ok
+    assert "eval_command" in reasons
+    ok, reasons = training_config_compatible(
+        stale_eval_command,
         config_stub(contract),
         allow_experimental_contract_mismatch=True,
     )

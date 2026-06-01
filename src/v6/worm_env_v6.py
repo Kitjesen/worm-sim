@@ -13,9 +13,9 @@ Observation:   80-dim deployable state:
                + segment_gyro(7*3) + phase_clock(2)
 
 Command:       [vx_cmd, vy_cmd, yaw_rate_cmd]
-               - vx_cmd        in [-0.25, 0.25] m/s (body forward speed target)
-               - vy_cmd        in [-0.15, 0.15] m/s (body lateral speed target)
-               - yaw_rate_cmd  in [-0.5, 0.5] rad/s (turning rate target)
+               - vx_cmd        in [-0.10, 0.10] m/s (body forward speed target)
+               - vy_cmd        in [-0.075, 0.075] m/s (body lateral speed target)
+               - yaw_rate_cmd  in [-0.125, 0.125] rad/s (turning rate target)
 
 Policy action: residual joint action(11) + learned gait gate(1)
                - high-sensitivity gait gate maps [-1, 1] to gait_blend [0, 1]
@@ -79,10 +79,12 @@ MAX_EP_TIME = 20.0                          # seconds per episode
 MAX_EP_STEPS = int(MAX_EP_TIME / CTRL_DT)   # 1000 steps
 SETTLE_STEPS = 250                          # 0.5s settle after reset
 
-# Command ranges (sampled randomly each episode)
-CMD_VX_RANGE    = (-0.25, 0.25)  # m/s body-forward target (+ forward, - reverse)
-CMD_VY_RANGE    = (-0.15, 0.15)  # m/s body-lateral target
-CMD_YAW_RANGE   = (-0.25, 0.25)  # rad/s yaw target; narrowed for first-stage yaw tracking
+# Command ranges (sampled randomly each episode).  These are the explicit
+# first-stage feasible-envelope bounds used for training, deployment command
+# normalization, best-model selection, and paper claims.
+CMD_VX_RANGE    = (-0.10, 0.10)   # m/s body-forward target (+ forward, - reverse)
+CMD_VY_RANGE    = (-0.075, 0.075) # m/s body-lateral target
+CMD_YAW_RANGE   = (-0.125, 0.125) # rad/s yaw target
 CMD_VEL_RANGE   = (0.0, CMD_VX_RANGE[1])  # legacy forward-speed alias
 CMD_RESAMPLE_P  = 0.005          # probability of resampling command each step
 LOW_YAW_ENVELOPE_YAW_ABS_RANGE = (0.08, 0.12)

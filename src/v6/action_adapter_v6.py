@@ -25,7 +25,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v34"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v36"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 
 
@@ -79,6 +79,8 @@ MIXED_LATERAL_YAW_GAIN = 1.50
 MIXED_YAW_YAW_GAIN = 1.00
 MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM = True
 LATERAL_PHASE_OFFSET_RAD = -0.5 * math.pi
+LATERAL_LEFT_PRIMITIVE_SCALE = 1.00
+LATERAL_RIGHT_PRIMITIVE_SCALE = 0.75
 ZERO_YAW_FORWARD_PHASE_OFFSET_RAD = math.pi
 ZERO_YAW_REVERSE_PHASE_OFFSET_RAD = math.pi
 ZERO_YAW_FORWARD_YAW_PRIOR_SCALE = 1.15
@@ -87,7 +89,7 @@ ZERO_YAW_LATERAL_YAW_PRIOR_SCALE = 0.65
 ZERO_YAW_LATERAL_YAW_TRIM = 0.24
 COMMAND_ACTIVITY_MIN_ACTIVE_SCALE = 0.20
 YAW_ONLY_ACTIVITY_MIN_ACTIVE_SCALE = 0.00
-YAW_ONLY_ACTIVITY_GAIN = 0.50
+YAW_ONLY_ACTIVITY_GAIN = 0.25
 NON_FORWARD_PRIOR_SCALE_FLOOR = REVERSE_PRIOR_SCALE_FLOOR
 DIRECTIONAL_PRIOR_THRESHOLD = 0.20
 TWO_PI = 2.0 * math.pi
@@ -371,7 +373,11 @@ def action_adapter_contract(
                 "commands deployable. V60/V61/V62 low-yaw scans showed the "
                 "pure yaw primitive was overdriven for small commands, so "
                 "V34 uses calibrated linear pure-yaw activity to match the "
-                "feasible low-yaw envelope."),
+                "feasible low-yaw envelope. V35 halves that pure-yaw "
+                "activity gain after the global yaw command range is narrowed "
+                "from +/-0.25 rad/s to +/-0.125 rad/s, keeping physical "
+                "turning activity close to the previous feasible envelope "
+                "instead of overdriving pure-yaw commands."),
         },
         "command_directional_prior_transform": {
             "enabled": True,
@@ -448,6 +454,10 @@ def action_adapter_contract(
             "lateral_primitives": {
                 "enabled": True,
                 "source": "open-loop MuJoCo lateral primitive search constrained to deployable phase clock",
+                "runtime_scales": {
+                    "left": LATERAL_LEFT_PRIMITIVE_SCALE,
+                    "right": LATERAL_RIGHT_PRIMITIVE_SCALE,
+                },
                 "param_names": list(LATERAL_PRIMITIVE_PARAM_NAMES),
                 "anchors": {
                     side: {
@@ -585,6 +595,23 @@ def action_adapter_contract(
                 "0.50 pure-yaw activity gain; a no-retrain 13-command "
                 "low-yaw scan reached yaw RMSE near 0.02 rad/s and pure-yaw "
                 "planar drift near 0.03 m/s while preserving yaw sign."),
+            "v35_reason": (
+                "The deployable command envelope was narrowed to the "
+                "first-stage feasible range vx +/-0.10 m/s, vy +/-0.075 m/s, "
+                "and yaw +/-0.125 rad/s. Because normalized pure-yaw commands "
+                "now map to half the old physical yaw range, V35 reduces the "
+                "pure-yaw activity gain from 0.50 to 0.25 to avoid the robot "
+                "curling under yaw-only commands while preserving the 80D "
+                "observation and 12D residual-plus-gate action ABI."),
+            "v36_reason": (
+                "A V35 no-retrain feasible-envelope scan showed yaw was fixed "
+                "but the right-lateral primitive remained calibrated to the "
+                "old wider lateral command range, producing about -0.16 m/s "
+                "for a -0.075 m/s command. V36 keeps the left primitive "
+                "unchanged and applies a conservative 0.75 runtime scale to "
+                "the right lateral primitive, reducing overshoot without "
+                "removing the signed right-lateral contact pattern before "
+                "PPO continuation."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -778,6 +805,10 @@ def lateral_primitive_action_from_phase(side, phase):
             + yaw_trim_gradient * body_gradient
             + yaw_amp * math.sin(joint_phase))
 
+    runtime_scale = (
+        LATERAL_LEFT_PRIMITIVE_SCALE
+        if side == "left" else LATERAL_RIGHT_PRIMITIVE_SCALE)
+    action *= float(runtime_scale)
     return np.clip(action, -1.0, 1.0).astype(np.float32)
 
 

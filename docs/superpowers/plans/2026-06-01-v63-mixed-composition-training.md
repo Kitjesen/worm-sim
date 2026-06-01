@@ -241,3 +241,80 @@ schedule to match the feasible envelope. The current training best selector
 still evaluates high-speed commands such as `vx=0.25, vy=0.15`, which are not
 the V64/V65/V66 target and can select checkpoints that are not optimal for the
 low-speed feasible-envelope claim.
+
+## V67 feasible-envelope contract update
+
+The global deployable command envelope is now the first-stage feasible range:
+
+- `vx in [-0.10, 0.10] m/s`
+- `vy in [-0.075, 0.075] m/s`
+- `yaw_rate in [-0.125, 0.125] rad/s`
+
+This is now used by the environment command normalization, training best-eval
+schedule, and the default command scan grid. The 80D observation and 12D action
+ABI are unchanged.
+
+Adapter changes:
+
+- V35 reduces pure-yaw activity gain from `0.50` to `0.25` after the yaw range
+  was narrowed. This keeps pure-yaw physical activity close to the previously
+  validated low-yaw envelope.
+- V36 keeps left lateral primitive scale at `1.00` and sets right lateral
+  primitive runtime scale to `0.75`. A `0.50` trial under-shot and flipped the
+  right-lateral sign, while `1.00` over-produced right lateral speed.
+
+No-retrain scans from V64 best:
+
+| candidate | planar RMSE | yaw RMSE | wrong planar | wrong yaw | planar exceed | off-axis exceed | right lateral vy |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| V35 yaw gain 0.25 | 0.0725 | 0.0195 | 0 | 0 | 2 | 3 | -0.1619 |
+| V36 right scale 0.50 | 0.0755 | 0.0195 | 2 | 0 | 3 | 4 | +0.0236 |
+| V36 right scale 0.75 | 0.0609 | 0.0195 | 0 | 0 | 1 | 3 | -0.1143 |
+
+Current selected candidate:
+
+```text
+runs/worm_v6_ppo_flat_random_v64_feasible_mixed_low_speed_from_v63best/best_model.zip
+```
+
+Use it with the current V36 action adapter. The corresponding scan artifact is:
+
+```text
+runs/worm_v6_ppo_flat_random_v64_feasible_mixed_low_speed_from_v63best/v36_range_lateralright075_baseline_scan_6s.json
+```
+
+V67 PPO continuation was run from the same V64 best checkpoint with:
+
+- `learning_rate = 5e-6`
+- `train_chunk_timesteps = 100000`
+- `directional_eval_freq_steps = 0`
+
+Online directional eval was disabled because allocating the 21-case MuJoCo eval
+environment hit local memory limits. Resume compatibility now treats
+`eval_command` as part of the experimental contract override when
+`--allow-contract-resume` is explicitly passed, so old high-speed eval tables do
+not block deliberate command-envelope migration.
+
+V67 checkpoint scans:
+
+| candidate | planar RMSE | yaw RMSE | wrong planar | wrong yaw | planar exceed | off-axis exceed | right lateral vy |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ckpt 1611008 | 0.0677 | 0.0196 | 0 | 0 | 3 | 3 | -0.0926 |
+| ckpt 1631008 | 0.0686 | 0.0196 | 1 | 0 | 1 | 3 | -0.0856 |
+| ckpt 1651008 | 0.0615 | 0.0195 | 0 | 0 | 2 | 2 | -0.0857 |
+| ckpt 1671008 | 0.0641 | 0.0195 | 0 | 0 | 1 | 1 | -0.1152 |
+| ckpt 1691008 | 0.0634 | 0.0194 | 0 | 0 | 2 | 2 | -0.1295 |
+| final | 0.0666 | 0.0193 | 0 | 0 | 3 | 2 | -0.0491 |
+
+Conclusion:
+
+The useful improvement came from correcting the feasible speed envelope and
+adapter priors, not from the V67 PPO continuation. V67 did not clearly beat the
+V36 no-retrain baseline. The next training step should avoid another broad
+random continuation and instead use a lower learning rate plus a hard-case
+curriculum focused on:
+
+- reverse plus negative lateral commands;
+- forward/yaw and reverse/yaw off-axis coupling;
+- right-lateral speed overshoot without losing sign;
+- keeping pure yaw stationary and non-compact.

@@ -597,7 +597,8 @@ def training_config_compatible(
     if (existing.get("reward_contract") != expected.get("reward_contract")
             and not allow_experimental_contract_mismatch):
         reasons.append("reward_contract")
-    if existing.get("eval_command") != expected.get("eval_command"):
+    if (existing.get("eval_command") != expected.get("eval_command")
+            and not allow_experimental_contract_mismatch):
         reasons.append("eval_command")
     if (existing.get("command_curriculum") != expected.get(
             "command_curriculum")
