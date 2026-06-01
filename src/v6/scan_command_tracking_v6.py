@@ -94,9 +94,31 @@ def summarize_step_infos(infos):
     return summary
 
 
+def robust_env_kwargs(args):
+    return {
+        "encoder_pos_noise_std": float(args.encoder_pos_noise),
+        "encoder_vel_noise_std": float(args.encoder_vel_noise),
+        "imu_gravity_noise_std": float(args.imu_gravity_noise),
+        "imu_gyro_noise_std": float(args.imu_gyro_noise),
+        "action_delay_steps": int(args.action_delay_steps),
+        "action_saturation": float(args.action_saturation),
+    }
+
+
+def sensor_noise_summary(env_kwargs):
+    return {
+        "encoder_pos_noise_std": env_kwargs["encoder_pos_noise_std"],
+        "encoder_vel_noise_std": env_kwargs["encoder_vel_noise_std"],
+        "imu_gravity_noise_std": env_kwargs["imu_gravity_noise_std"],
+        "imu_gyro_noise_std": env_kwargs["imu_gyro_noise_std"],
+    }
+
+
 def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
                      vx, vy, yaw, seconds, seed,
-                     gait_prior_scale=1.0, policy_residual_scale=0.35):
+                     gait_prior_scale=1.0, policy_residual_scale=0.35,
+                     env_kwargs=None):
+    env_kwargs = dict(env_kwargs or {})
     env = WormEnvV6(
         terrain=terrain,
         gait_mode=gait_mode,
@@ -107,6 +129,7 @@ def evaluate_command(model, norm_env, terrain, gait_mode, gait_blend,
         command_resample_prob=0.0,
         gait_prior_scale=gait_prior_scale,
         policy_residual_scale=policy_residual_scale,
+        **env_kwargs,
     )
     obs, _ = env.reset(seed=seed)
     env.set_command(vx=vx, vy=vy, yaw_rate=yaw, gait_blend=gait_blend)
@@ -422,9 +445,24 @@ def main():
     ap.add_argument("--forward-yaw-values", default="-0.10,0.10")
     ap.add_argument("--gait-prior-scale", type=float, default=1.0)
     ap.add_argument("--policy-residual-scale", type=float, default=0.35)
+    ap.add_argument("--eval-condition", default="nominal",
+                    help="Free-form label, e.g. nominal or robust")
+    ap.add_argument("--encoder-pos-noise", type=float, default=0.0,
+                    help="Normalized encoder position noise std")
+    ap.add_argument("--encoder-vel-noise", type=float, default=0.0,
+                    help="Normalized encoder velocity noise std")
+    ap.add_argument("--imu-gravity-noise", type=float, default=0.0,
+                    help="Projected-gravity IMU noise std")
+    ap.add_argument("--imu-gyro-noise", type=float, default=0.0,
+                    help="Normalized gyro noise std")
+    ap.add_argument("--action-delay-steps", type=int, default=0,
+                    help="Integer control-step delay before action is applied")
+    ap.add_argument("--action-saturation", type=float, default=1.0,
+                    help="Applied action limit in [0, 1] before actuator scaling")
     ap.add_argument("--json-out", default=None)
     ap.add_argument("--csv-out", default=None)
     args = ap.parse_args()
+    env_kwargs = robust_env_kwargs(args)
 
     run_dir = args.run_dir or default_run_dir(args.terrain, args.gait_mode)
     model_path = args.model or default_model_path(run_dir)
@@ -439,6 +477,7 @@ def main():
         gait_prior_scale=args.gait_prior_scale,
         policy_residual_scale=args.policy_residual_scale,
         command_resample_prob=0.0,
+        **env_kwargs,
     )])
     norm_path = find_vecnormalize(model_path)
     if norm_path is None:
@@ -465,6 +504,7 @@ def main():
             seed=args.seed + idx,
             gait_prior_scale=args.gait_prior_scale,
             policy_residual_scale=args.policy_residual_scale,
+            env_kwargs=env_kwargs,
         ))
 
     summary = {
@@ -476,6 +516,10 @@ def main():
         "time_s": args.time,
         "model_path": os.path.abspath(model_path),
         "vecnormalize": os.path.abspath(norm_path),
+        "eval_condition": args.eval_condition,
+        "sensor_noise": sensor_noise_summary(env_kwargs),
+        "action_delay_steps": env_kwargs["action_delay_steps"],
+        "action_saturation": env_kwargs["action_saturation"],
         "gait_prior_scale": args.gait_prior_scale,
         "policy_residual_scale": args.policy_residual_scale,
         "action_adapter": action_adapter_contract(

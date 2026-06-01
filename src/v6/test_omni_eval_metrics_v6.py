@@ -18,6 +18,8 @@ from eval_v6 import command_tracking_metrics, find_vecnormalize  # noqa: E402
 from scan_command_tracking_v6 import (  # noqa: E402
     build_commands,
     evaluate_command,
+    robust_env_kwargs,
+    sensor_noise_summary,
     summarize,
     summarize_step_infos,
 )
@@ -75,6 +77,31 @@ def main():
         assert find_vecnormalize(checkpoint) == vecnorm
 
     assert "policy_residual_scale" in evaluate_command.__code__.co_varnames
+    assert "env_kwargs" in evaluate_command.__code__.co_varnames
+
+    robust_args = Namespace(
+        encoder_pos_noise=0.01,
+        encoder_vel_noise=0.02,
+        imu_gravity_noise=0.03,
+        imu_gyro_noise=0.04,
+        action_delay_steps=1,
+        action_saturation=0.90,
+    )
+    env_kwargs = robust_env_kwargs(robust_args)
+    assert env_kwargs == {
+        "encoder_pos_noise_std": 0.01,
+        "encoder_vel_noise_std": 0.02,
+        "imu_gravity_noise_std": 0.03,
+        "imu_gyro_noise_std": 0.04,
+        "action_delay_steps": 1,
+        "action_saturation": 0.90,
+    }
+    assert sensor_noise_summary(env_kwargs) == {
+        "encoder_pos_noise_std": 0.01,
+        "encoder_vel_noise_std": 0.02,
+        "imu_gravity_noise_std": 0.03,
+        "imu_gyro_noise_std": 0.04,
+    }
 
     default_scan_args = Namespace(
         vx_values="-0.10,-0.05,0,0.05,0.10",
