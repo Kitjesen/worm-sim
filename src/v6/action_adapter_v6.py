@@ -49,6 +49,7 @@ COMMAND_GATE_WORM_CENTER = COMMAND_GATE_WORM_CENTER_SLOW
 COMMAND_GATE_MIXED_CENTER = 0.50
 COMMAND_GATE_LATERAL_CENTER = 0.00
 COMMAND_GATE_YAW_CENTER = 0.85
+MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR = 0.25
 DEFAULT_GAIT_PRIOR_SCALE = 1.0
 DEFAULT_POLICY_RESIDUAL_SCALE = 0.35
 COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED = True
@@ -666,6 +667,8 @@ def action_adapter_contract(
                 "axial_fast_threshold_norm": (
                     COMMAND_GATE_WORM_FAST_THRESHOLD),
                 "mixed_or_stop": COMMAND_GATE_MIXED_CENTER,
+                "mixed_planar_axial_share_floor": (
+                    MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR),
                 "lateral_translation": COMMAND_GATE_LATERAL_CENTER,
                 "yaw": COMMAND_GATE_YAW_CENTER,
             },
@@ -689,7 +692,11 @@ def action_adapter_contract(
                 "off-axis drift. V26 then replaces that transformed anchor "
                 "with dedicated searched lateral primitives, so the command "
                 "center can still make lateral motion visibly worm-like while "
-                "the prior has enough side-slip authority."),
+                "the prior has enough side-slip authority. V75 changes mixed "
+                "planar commands from a hard lateral-vs-axial center switch "
+                "to a continuous center based on axial command share, so "
+                "slow-forward/strong-lateral commands retain some axial "
+                "peristaltic authority under robust perturbations."),
         },
         "phase_projection": (
             "phase_cycle_s = (phase mod 2*pi) / (2*pi); "
@@ -1269,6 +1276,22 @@ def command_conditioned_gate_center(command):
         return COMMAND_GATE_MIXED_CENTER
     if cmd_yaw >= DIRECTIONAL_PRIOR_THRESHOLD and max(cmd_vx, cmd_vy) < DIRECTIONAL_PRIOR_THRESHOLD:
         return COMMAND_GATE_YAW_CENTER
+    if (cmd_vx >= DIRECTIONAL_PRIOR_THRESHOLD
+            and cmd_vy >= DIRECTIONAL_PRIOR_THRESHOLD
+            and cmd_yaw < DIRECTIONAL_PRIOR_THRESHOLD):
+        axial_share = cmd_vx / max(cmd_vx + cmd_vy, 1e-9)
+        if axial_share < MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR:
+            return COMMAND_GATE_LATERAL_CENTER
+        alpha = float(np.clip(
+            (axial_share - MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR)
+            / max(1.0 - MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR, 1e-9),
+            0.0,
+            1.0,
+        ))
+        axial_center = axial_gate_center_from_speed(cmd_vx)
+        return float(
+            COMMAND_GATE_LATERAL_CENTER
+            + alpha * (axial_center - COMMAND_GATE_LATERAL_CENTER))
     if (cmd_vy >= DIRECTIONAL_PRIOR_THRESHOLD
             and cmd_vy > cmd_vx
             and cmd_vy >= cmd_yaw):
@@ -1310,7 +1333,8 @@ def compose_deployable_action(
         gait_blend,
         command=None,
         gait_prior_scale=DEFAULT_GAIT_PRIOR_SCALE,
-        policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE):
+        policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE,
+        activity_floor=0.0):
     residual = np.clip(
         np.asarray(residual_action, dtype=np.float32),
         -1.0,
@@ -1328,6 +1352,7 @@ def compose_deployable_action(
         residual_scale *= command_conditioned_residual_scale(*command)
     activity_scale = (
         1.0 if command is None else command_activity_scale(*command))
+    activity_scale = max(activity_scale, float(activity_floor))
     action = (
         prior_scale * prior
         + residual_scale * residual)
