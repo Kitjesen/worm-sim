@@ -193,6 +193,18 @@ def best_eval_schedule(gait_mode, gait_blend=None):
             0.0,
         ),
         (
+            "mixed_slow_forward_full_left",
+            float(CMD_VX_RANGE[1]) * 0.5,
+            float(CMD_VY_RANGE[1]),
+            0.0,
+        ),
+        (
+            "mixed_slow_forward_full_right",
+            float(CMD_VX_RANGE[1]) * 0.5,
+            float(CMD_VY_RANGE[0]),
+            0.0,
+        ),
+        (
             "mixed_reverse_left",
             float(CMD_VX_RANGE[0]) * 0.5,
             float(CMD_VY_RANGE[1]) * 0.5,
@@ -202,6 +214,18 @@ def best_eval_schedule(gait_mode, gait_blend=None):
             "mixed_reverse_right",
             float(CMD_VX_RANGE[0]) * 0.5,
             float(CMD_VY_RANGE[0]) * 0.5,
+            0.0,
+        ),
+        (
+            "mixed_slow_reverse_full_left",
+            float(CMD_VX_RANGE[0]) * 0.5,
+            float(CMD_VY_RANGE[1]),
+            0.0,
+        ),
+        (
+            "mixed_slow_reverse_full_right",
+            float(CMD_VX_RANGE[0]) * 0.5,
+            float(CMD_VY_RANGE[0]),
             0.0,
         ),
         (
