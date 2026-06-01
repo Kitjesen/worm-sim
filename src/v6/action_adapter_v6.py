@@ -39,6 +39,9 @@ def _env_flag(name, default=False):
 MIXED_COMMAND_COMPOSITION_EXPERIMENTAL_AVAILABLE = True
 MIXED_COMMAND_COMPOSITION_ENABLED = _env_flag(
     "WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION", default=False)
+MIXED_PLANAR_CONTINUOUS_GATE_EXPERIMENTAL_AVAILABLE = True
+MIXED_PLANAR_CONTINUOUS_GATE_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE", default=False)
 POLICY_ACTION_DIM = NUM_ACTUATORS + 1
 GAIT_GATE_ACTION_GAIN = 3.0
 COMMAND_GATE_CENTER_RESIDUAL_RANGE = 0.35
@@ -667,8 +670,15 @@ def action_adapter_contract(
                 "axial_fast_threshold_norm": (
                     COMMAND_GATE_WORM_FAST_THRESHOLD),
                 "mixed_or_stop": COMMAND_GATE_MIXED_CENTER,
-                "mixed_planar_axial_share_floor": (
-                    MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR),
+                "mixed_planar_continuous_gate": {
+                    "available": (
+                        MIXED_PLANAR_CONTINUOUS_GATE_EXPERIMENTAL_AVAILABLE),
+                    "enabled": MIXED_PLANAR_CONTINUOUS_GATE_ENABLED,
+                    "enable_env": (
+                        "WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE=1"),
+                    "axial_share_floor": (
+                        MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR),
+                },
                 "lateral_translation": COMMAND_GATE_LATERAL_CENTER,
                 "yaw": COMMAND_GATE_YAW_CENTER,
             },
@@ -692,11 +702,10 @@ def action_adapter_contract(
                 "off-axis drift. V26 then replaces that transformed anchor "
                 "with dedicated searched lateral primitives, so the command "
                 "center can still make lateral motion visibly worm-like while "
-                "the prior has enough side-slip authority. V75 changes mixed "
-                "planar commands from a hard lateral-vs-axial center switch "
-                "to a continuous center based on axial command share, so "
-                "slow-forward/strong-lateral commands retain some axial "
-                "peristaltic authority under robust perturbations."),
+                "the prior has enough side-slip authority. The V75 continuous "
+                "mixed-planar gate is kept as an experiment switch rather "
+                "than a default because no-retrain and early retrain scans "
+                "regressed nominal and robust mixed-planar sign reliability."),
         },
         "phase_projection": (
             "phase_cycle_s = (phase mod 2*pi) / (2*pi); "
@@ -1204,8 +1213,7 @@ def command_conditioned_prior_authority_scale(
         cmd_vx_norm,
         cmd_vy_norm,
         cmd_yaw_norm):
-    if (MIXED_COMMAND_COMPOSITION_ENABLED
-            or not MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED):
+    if not MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED:
         return 1.0
     if is_mixed_planar_command(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
         return MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT
@@ -1276,7 +1284,8 @@ def command_conditioned_gate_center(command):
         return COMMAND_GATE_MIXED_CENTER
     if cmd_yaw >= DIRECTIONAL_PRIOR_THRESHOLD and max(cmd_vx, cmd_vy) < DIRECTIONAL_PRIOR_THRESHOLD:
         return COMMAND_GATE_YAW_CENTER
-    if (cmd_vx >= DIRECTIONAL_PRIOR_THRESHOLD
+    if (MIXED_PLANAR_CONTINUOUS_GATE_ENABLED
+            and cmd_vx >= DIRECTIONAL_PRIOR_THRESHOLD
             and cmd_vy >= DIRECTIONAL_PRIOR_THRESHOLD
             and cmd_yaw < DIRECTIONAL_PRIOR_THRESHOLD):
         axial_share = cmd_vx / max(cmd_vx + cmd_vy, 1e-9)
