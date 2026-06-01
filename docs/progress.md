@@ -24,9 +24,10 @@ the failure modes exposed by the strict 35-command scan:
 - keep the 12D action ABI unchanged: 11D residual motor action plus 1D learned
   latent gait gate;
 - keep actor and critic networks at `512-256-128`;
-- current first-stage command limits are `vx=+/-0.25 m/s`,
-  `vy=+/-0.15 m/s`, and `yaw=+/-0.25 rad/s`; the yaw target was narrowed
-  while yaw-only drift and over-turning are being repaired;
+- current first-stage feasible command limits are `vx=+/-0.10 m/s`,
+  `vy=+/-0.075 m/s`, and `yaw=+/-0.125 rad/s`; the command envelope is kept
+  intentionally narrow until mixed planar tracking and yaw-only stationarity
+  are reliable;
 - use `src/v6/analyze_command_scan_v6.py` and the strict scan report as the
   acceptance certificate, not video appearance alone.
 
@@ -78,6 +79,23 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 - An Isaac Lab migration plan now exists in
   `docs/isaaclab_migration_plan_v6.md`, including the reduced actuation model
   and visual-only steel-strip rendering path.
+- Server training is now active on the 3090 machine, not the local Windows
+  workstation. The clean Git checkout is
+  `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-omni`, branch
+  `codex/real-robot-experiment-todo`, commit `b2d0c08`.
+- A Worm-only server Conda environment, `wormv6_np2`, was created by cloning
+  `thunder2` and upgrading NumPy to `2.2.6`, because tracked V64/V67
+  VecNormalize pickle files require NumPy 2 module names. The original
+  `thunder2` environment remains unchanged for Isaac Lab.
+- V69b server training is running in tmux session `worm_v69b_omni_np2` with
+  run label `flat_random_v69b_server_mixed_planar_yaw_preserve_from_v67final_np2`.
+  It resumes from V67 final at `1,705,696` steps and targets `2,400,000`
+  steps using `mixed_planar_yaw_preserve_repair`, `n_envs=8`, CUDA device
+  mapped from physical GPU 1, and actor/critic `512-256-128`.
+- First V69b directional eval is only a startup sanity point, not a result:
+  `planar_sign_rate=1.00`, `yaw_sign_rate=0.33`,
+  `planar_rmse_m_s=0.054`, `yaw_rmse_rad_s=0.063`, with
+  `wrong_planar=0` and `wrong_yaw=1`.
 - Previous flat/random PPO diagnostics reached about 311k steps, but are stale
   under the new auto-gated contract.
 - Flat V6 omnidirectional training has been pushed through yaw, planar repair,

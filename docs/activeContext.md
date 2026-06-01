@@ -26,14 +26,23 @@ rather than the accepted path. The next technical blocker is learning a robust
 mixed `vx/vy` composition without losing the visible worm-like axial actuation
 and without changing the 80D observation / 12D action ABI.
 
+Long training has moved to the 3090 server. The active run is
+`flat_random_v69b_server_mixed_planar_yaw_preserve_from_v67final_np2` in tmux
+session `worm_v69b_omni_np2` under the clean server checkout
+`/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-omni`. It uses the
+Worm-only `wormv6_np2` Conda environment, because the V64/V67 VecNormalize
+files need NumPy 2 to load correctly. The original `thunder2` environment is
+left unchanged for Isaac Lab.
+
 ## Immediate Priorities
 
-1. Use the 3090 server for further training; do not run long training on the
-   local Windows machine.
+1. Monitor V69b on the 3090 server and run the corrected 35-command scan when
+   it reaches candidate checkpoints. Do not run long training on the local
+   Windows machine.
 2. Keep V50 mixed-command composition behind
    `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1` unless a future strict scan
    proves it beats the default guard.
-3. Continue from the V64/V67 feasible-envelope line with selection based on the
+3. Continue selection from the V64/V67/V69 feasible-envelope line using the
    corrected 35-command scan, especially mixed `vx/vy` cases.
 4. Compare learned latent gait gate against fixed worm/mixed/snake gates.
 5. Regenerate deploy bundles and audit reports before sand/slope transfer.
