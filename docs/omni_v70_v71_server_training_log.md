@@ -93,10 +93,10 @@ Key metrics:
 
 This is the first flat random controller combination in this line that passes
 the strict 35-command scan. It is still a no-retrain adapter-policy
-combination, so V71 fine-tuning is running to produce a formally trained
-checkpoint under the V37 action-adapter contract.
+combination. V71 fine-tuning then produced trained best and final checkpoints
+under the V37 action-adapter contract.
 
-## Active V71 Training
+## V71 Training
 
 tmux session:
 `worm_v71_v37_np2_lowlr`
@@ -117,7 +117,8 @@ Training settings:
 - device: CUDA, mapped from physical GPU 2
 - actor network: `512,256,128`
 - critic network: `512,256,128`
-- target timesteps for this chunk: `2,066,768`
+- nominal target timesteps for this chunk: `2,066,768`
+- saved final checkpoint step: `2,096,768`
 
 Log:
 
@@ -125,16 +126,42 @@ Log:
 server_logs/flat_random_v71_server_v37_slow_right_prior_lowlr_from_v70best_np2.log
 ```
 
-Interim status while running: the run has already produced checkpoints and a
-best model around `2,046,768` steps. That intermediate `best_eval_summary` is
-not yet an acceptance result; the latest directional summary still reports
-`direction_gate_passed=false` and `tracking_gate_passed=false`, mainly from yaw
-sign and straight-yaw drift cases. The accepted result above is the V37
-no-retrain strict scan with the V70-best policy.
+The SB3 rollout chunk finished at `131,072` fresh rollout steps, so the saved
+final checkpoint is `2,096,768` rather than exactly `2,066,768`.
 
-Next required output after the run finishes:
+## V71 Trained Strict Scan
 
-- scan V71 best and final checkpoints with the 35-command scan;
-- run strict analyzer;
+Artifact:
+
+```text
+record/current/flat_omni_v71_server_v37_trained_scan/
+```
+
+V71 best:
+
+- analyzer verdict: accepted
+- `planar_rmse_m_s=0.05902`
+- `yaw_rmse_rad_s=0.01852`
+- `wrong_planar_sign_count=0`
+- `wrong_yaw_sign_count=0`
+- `fixed_lateral_strict_gate_passed=true`
+
+V71 final:
+
+- analyzer verdict: accepted
+- `planar_rmse_m_s=0.06150`
+- `yaw_rmse_rad_s=0.01860`
+- `wrong_planar_sign_count=0`
+- `wrong_yaw_sign_count=0`
+- `fixed_lateral_strict_gate_passed=true`
+
+The directional best-model summary still marks `direction_gate_passed=false`
+for some yaw/straight-yaw cases, so the result should be stated narrowly:
+V71 passes the current strict 35-command scan on flat terrain, while videos and
+robustness checks are still pending.
+
+Next required output:
+
 - record six fixed-command videos and a continuous sweep video;
+- run robustness checks;
 - update README/progress only with verified metrics.

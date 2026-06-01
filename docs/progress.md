@@ -31,10 +31,11 @@ the failure modes exposed by the strict 35-command scan:
 - use `src/v6/analyze_command_scan_v6.py` and the strict scan report as the
   acceptance certificate, not video appearance alone.
 
-The flat V37 adapter plus V70-best policy now has a first strict-scan pass in a
-no-retrain evaluation. The remaining requirement is to produce and archive a
-formally trained V71 checkpoint under the V37 action-adapter contract, then
-record videos and robustness checks before widening to sand/slope.
+The flat V37 adapter plus V70-best policy first passed the strict scan in a
+no-retrain evaluation. The server-trained V71 best and final checkpoints now
+also pass the strict 35-command scan under the V37 action-adapter contract.
+The remaining requirement is to record videos and robustness checks before
+widening to sand/slope.
 
 The flat acceptance targets are:
 
@@ -66,10 +67,14 @@ Current V71 evidence:
   `planar_rmse_m_s=0.05689`, `yaw_rmse_rad_s=0.01885`,
   `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
   `planar_error_exceed_count=0`.
-- Active V71 training has produced intermediate checkpoints, but the current
-  best directional summary is not yet an accepted V71 result. It still reports
-  `direction_gate_passed=false` and `tracking_gate_passed=false`, so V71 must
-  finish and be rescanned before it replaces the accepted V37 no-retrain scan.
+- V71 trained best and final checkpoints are archived in
+  `record/current/flat_omni_v71_server_v37_trained_scan/`.
+  V71 best: `planar_rmse_m_s=0.05902`, `yaw_rmse_rad_s=0.01852`,
+  `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
+  `fixed_lateral_strict_gate_passed=true`, analyzer `accepted=true`.
+  V71 final: `planar_rmse_m_s=0.06150`, `yaw_rmse_rad_s=0.01860`,
+  `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
+  `fixed_lateral_strict_gate_passed=true`, analyzer `accepted=true`.
 
 V49 fixed part of the mixed-yaw sign issue, reducing `mixed_vx_yaw` yaw RMSE
 from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and
@@ -123,13 +128,14 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 - V69b was stopped immediately after startup because it accidentally used the
   training script default learning rate (`3e-4`) instead of the V67 fine-tuning
   rate (`5e-6`).
-- V71 server fine-tuning is running in tmux session
+- V71 server fine-tuning completed in tmux session
   `worm_v71_v37_np2_lowlr` with run label
   `flat_random_v71_server_v37_slow_right_prior_lowlr_from_v70best_np2`.
-  It resumes from V70 best at `1,966,768` steps, targets `2,066,768` total
-  steps for this chunk, uses `continuous_omni`, `learning_rate=2e-6`,
-  `n_envs=8`, CUDA device mapped from physical GPU 2, and actor/critic
-  `512-256-128`.
+  It resumed from V70 best at `1,966,768` steps and saved final artifacts at
+  `2,096,768` steps after the SB3 chunk overshot the nominal `100,000` target
+  to `131,072` rollout steps. It used `continuous_omni`,
+  `learning_rate=2e-6`, `n_envs=8`, CUDA device mapped from physical GPU 2,
+  and actor/critic `512-256-128`.
 - First V69c directional eval is only a startup sanity point, not a result:
   `planar_sign_rate=1.00`, `yaw_sign_rate=0.33`,
   `planar_rmse_m_s=0.054`, `yaw_rmse_rad_s=0.063`, with

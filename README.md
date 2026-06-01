@@ -210,9 +210,8 @@ Training has moved off the local Windows machine. The active server checkout is
 `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-omni`. The original `thunder2`
 environment remains reserved for Isaac Lab; Worm V6 MuJoCo PPO uses a cloned
 `wormv6_np2` environment so V64/V67 VecNormalize files saved with NumPy 2 load
-correctly. The current active server fine-tune is V71,
-`flat_random_v71_server_v37_slow_right_prior_lowlr_from_v70best_np2`, in tmux
-session `worm_v71_v37_np2_lowlr`.
+correctly. The latest server fine-tune is V71,
+`flat_random_v71_server_v37_slow_right_prior_lowlr_from_v70best_np2`.
 
 The first server-side V69c early-best 35-command scan is:
 
@@ -249,10 +248,23 @@ record/current/flat_omni_v71_v37_noretrain_scan/v71_v37_noretrain_35cmd_scan_ana
 
 Key metrics: `planar_rmse_m_s=0.05689`, `yaw_rmse_rad_s=0.01885`,
 `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and
-`planar_error_exceed_count=0`. This is the first flat random controller
-combination in this line that passes the strict 35-command scan. The V71 server
-fine-tune is still running to produce a formally trained checkpoint under the
-V37 action-adapter contract.
+`planar_error_exceed_count=0`. This was the first flat random controller
+combination in this line that passed the strict 35-command scan.
+
+The trained V71 server checkpoints also pass the strict 35-command scan:
+
+```text
+record/current/flat_omni_v71_server_v37_trained_scan/v71_best_35cmd_scan_6s.json
+record/current/flat_omni_v71_server_v37_trained_scan/v71_final_35cmd_scan_6s.json
+```
+
+V71 best: `planar_rmse_m_s=0.05902`, `yaw_rmse_rad_s=0.01852`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
+`fixed_lateral_strict_gate_passed=true`, analyzer `accepted=true`.
+
+V71 final: `planar_rmse_m_s=0.06150`, `yaw_rmse_rad_s=0.01860`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
+`fixed_lateral_strict_gate_passed=true`, analyzer `accepted=true`.
 
 Detailed server notes are tracked in
 [V70-V71 server training log](docs/omni_v70_v71_server_training_log.md).
