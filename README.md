@@ -266,6 +266,23 @@ V71 final: `planar_rmse_m_s=0.06150`, `yaw_rmse_rad_s=0.01860`,
 `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
 `fixed_lateral_strict_gate_passed=true`, analyzer `accepted=true`.
 
+The same V71 checkpoints have now been evaluated under the robust
+`robust_sensor_delay_sat_v1` condition:
+
+```text
+record/current/flat_omni_v71_server_v37_robust_scan/
+```
+
+This adds encoder noise, IMU noise, one action-delay step, and `0.90` action
+saturation. Both robust scans are rejected by the strict analyzer because of
+one mixed `vx/vy` wrong-sign case: `cmd=(+0.05,+0.075,0)`. V71 best robust has
+`planar_rmse_m_s=0.05816`, `yaw_rmse_rad_s=0.02155`,
+`wrong_planar_sign_count=1`, and `wrong_yaw_sign_count=0`; V71 final robust has
+`planar_rmse_m_s=0.05908`, `yaw_rmse_rad_s=0.02047`,
+`wrong_planar_sign_count=1`, and `wrong_yaw_sign_count=0`. Therefore V71 is
+the current nominal flat strict-scan checkpoint, not a robust continuous
+tracker yet.
+
 The current V71 best checkpoint has also been recorded as a viewable HD video
 set with visual spring-steel strips and head-speed overlay:
 

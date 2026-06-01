@@ -157,8 +157,56 @@ V71 final:
 
 The directional best-model summary still marks `direction_gate_passed=false`
 for some yaw/straight-yaw cases, so the result should be stated narrowly:
-V71 passes the current strict 35-command scan on flat terrain, while robustness
-checks are still pending.
+V71 passes the current nominal strict 35-command scan on flat terrain. It does
+not yet pass the robust scan described below.
+
+## V71 Robust Scan
+
+Artifact:
+
+```text
+record/current/flat_omni_v71_server_v37_robust_scan/
+```
+
+Evaluation condition:
+
+- `eval_condition=robust_sensor_delay_sat_v1`
+- encoder position noise `0.01`
+- encoder velocity noise `0.02`
+- IMU gravity noise `0.01`
+- IMU gyro noise `0.01`
+- action delay `1` control step
+- action saturation `0.90`
+
+V71 best robust:
+
+- analyzer verdict: rejected
+- failed condition: `wrong_planar_sign_count`
+- dominant failure group: `mixed_vx_vy`
+- `planar_rmse_m_s=0.05816`
+- `yaw_rmse_rad_s=0.02155`
+- `wrong_planar_sign_count=1`
+- `wrong_yaw_sign_count=0`
+- `fixed_lateral_strict_gate_passed=true`
+- concrete counterexample: `cmd=(+0.05,+0.075,0)` measured
+  `body_vx=-0.03496 m/s`, `body_vy=-0.00321 m/s`
+
+V71 final robust:
+
+- analyzer verdict: rejected
+- failed condition: `wrong_planar_sign_count`
+- dominant failure group: `mixed_vx_vy`
+- `planar_rmse_m_s=0.05908`
+- `yaw_rmse_rad_s=0.02047`
+- `wrong_planar_sign_count=1`
+- `wrong_yaw_sign_count=0`
+- `fixed_lateral_strict_gate_passed=false`
+- concrete counterexample: `cmd=(+0.05,+0.075,0)` measured
+  `body_vx=-0.03489 m/s`, `body_vy=+0.01432 m/s`
+
+Conclusion: V71 should be cited as the current nominal flat strict-scan
+checkpoint, not as a robust continuous tracker. The next repair target is the
+low-speed forward-left diagonal under the feasible command envelope.
 
 ## V71 HD Video Evidence
 
@@ -198,6 +246,6 @@ lateral-left is `+0.053 m/s`, and lateral-right is `-0.118 m/s`.
 
 Next required output:
 
-- run robustness checks;
-- continue policy improvement only after preserving the current strict-scan
-  acceptance.
+- preserve the nominal strict-scan acceptance while repairing the robust
+  `cmd=(+0.05,+0.075,0)` mixed-planar counterexample;
+- rescan the next checkpoint under both nominal and robust conditions.

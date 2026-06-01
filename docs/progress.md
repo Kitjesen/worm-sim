@@ -34,8 +34,10 @@ the failure modes exposed by the strict 35-command scan:
 The flat V37 adapter plus V70-best policy first passed the strict scan in a
 no-retrain evaluation. The server-trained V71 best and final checkpoints now
 also pass the strict 35-command scan under the V37 action-adapter contract.
-The V71 HD video set is now recorded; robustness checks are the remaining
-flat-side evidence needed before widening to sand/slope.
+The V71 HD video set is recorded. Robust V71 scans with sensor noise, one-step
+action delay, and `0.90` action saturation are now archived, and they show V71
+is still a nominal flat strict-scan checkpoint rather than a robust continuous
+tracker. The remaining robust failure is a mixed `vx/vy` counterexample.
 
 The flat acceptance targets are:
 
@@ -75,6 +77,21 @@ Current V71 evidence:
   V71 final: `planar_rmse_m_s=0.06150`, `yaw_rmse_rad_s=0.01860`,
   `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
   `fixed_lateral_strict_gate_passed=true`, analyzer `accepted=true`.
+- V71 robust scans are archived in
+  `record/current/flat_omni_v71_server_v37_robust_scan/`. The evaluation
+  condition is `robust_sensor_delay_sat_v1`: encoder-position noise `0.01`,
+  encoder-velocity noise `0.02`, IMU gravity noise `0.01`, IMU gyro noise
+  `0.01`, one action-delay step, and action saturation `0.90`.
+  V71 best robust: analyzer `accepted=false`,
+  `failed_conditions=["wrong_planar_sign_count"]`,
+  `dominant_failure_group=mixed_vx_vy`,
+  `planar_rmse_m_s=0.05816`, `yaw_rmse_rad_s=0.02155`,
+  `wrong_planar_sign_count=1`, `wrong_yaw_sign_count=0`,
+  `fixed_lateral_strict_gate_passed=true`. The concrete wrong-sign command is
+  `cmd=(+0.05,+0.075,0)`, measured as
+  `body_vx=-0.03496 m/s`, `body_vy=-0.00321 m/s`.
+  V71 final robust is also rejected with the same wrong-sign command and
+  additionally loses the fixed lateral-left strict gate.
 - V71 best was recorded on the server under
   `record/current/flat_omni_v71_server_v37_hd20/`. The folder contains six
   20 s fixed-command HD videos, a 24 s continuous sweep video, a `3840x1440`
@@ -87,6 +104,12 @@ Current V71 evidence:
   lateral to about `0.894` in yaw-only commands. Telemetry mean body-frame
   lateral velocity is positive for lateral-left (`+0.053 m/s`) and negative for
   lateral-right (`-0.118 m/s`).
+- V72 server repair training has been started from the V71 best checkpoint
+  with `command_curriculum=feasible_forward_diagonal_repair`, actor/critic
+  `512-256-128`, and unchanged 80D/12D ABI. This is targeting the robust
+  forward-left diagonal failure before any sand/slope expansion. Robust sensor
+  perturbations are currently used for scan evaluation, not silently mixed into
+  a V71-compatible resume contract.
 
 V49 fixed part of the mixed-yaw sign issue, reducing `mixed_vx_yaw` yaw RMSE
 from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and
