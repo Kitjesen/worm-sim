@@ -180,7 +180,7 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V64-V76 Status
+### Latest Flat V64-V77 Status
 
 The active flat baseline is now the V64 best checkpoint evaluated with the
 current V36 feasible-speed adapter. The command envelope is intentionally
@@ -210,8 +210,8 @@ Training has moved off the local Windows machine. The active server checkout is
 `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training`. The original
 `thunder2` environment remains reserved for Isaac Lab; Worm V6 MuJoCo PPO uses
 the cloned `wormv6_np2` environment so NumPy-2 VecNormalize files load
-correctly. The latest server fine-tune is V76,
-`flat_random_v76_server_hardcase_selection_from_v74final_np2`.
+correctly. The latest server fine-tune is V77,
+`flat_random_v77_server_hardcase_gate_from_v76best_np2`.
 
 The first server-side V69c early-best 35-command scan is:
 
@@ -367,24 +367,55 @@ default-off hardcase gate flag,
 server retrain; the default controller remains unchanged until that ablation is
 trained and rescanned.
 
-The current V76 best checkpoint has been recorded as a viewable HD video set
+V77 continued from V76 best with the narrow hardcase gate enabled:
+
+```text
+WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1
+```
+
+The scan artifacts are:
+
+```text
+record/current/flat_omni_v77_server_hardcase_gate_scan/
+```
+
+V77 best robust is the current flat candidate because it fixes the repeated
+robust mixed-planar sign failure while preserving the fixed lateral strict gate:
+`planar_rmse_m_s=0.05967`, `yaw_rmse_rad_s=0.02028`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
+`fixed_lateral_strict_gate_passed=true`, and `planar_error_exceed_count=0`.
+The hardcase now measures
+`cmd=(+0.05,+0.075,0) -> body_vx=-0.03548 m/s, body_vy=+0.02522 m/s`,
+with `planar_sign_ok=true`, mean deployed gate `0.255`, and mean learned gate
+`0.465`. This is a robust sign-gate improvement over V76, not a proof that all
+continuous velocity magnitudes are solved: V77 best nominal still has
+`off_axis_exceed_count=3`, and V77 final robust regresses to
+`wrong_planar_sign_count=1`. Therefore the paper-facing checkpoint for this
+iteration is V77 best, not V77 final.
+
+The current V77 best checkpoint has been recorded as a viewable HD video set
 with visual spring-steel strips and head-speed overlay:
 
 ```text
-record/current/flat_omni_v76_server_hardcase_selection_videos/
+record/current/flat_omni_v77_server_hardcase_gate_videos/
 ```
 
 The set contains six 12 s fixed-command videos, one 12 s hard forward-left
 diagnostic video, a 24 s continuous command sweep, trajectory CSV/PNG files,
 telemetry CSV/PNG files, and a manifest. It is still a flat simulation artifact,
-not a sand/slope or hardware result. Previous V71 HD videos remain preserved in:
+not a sand/slope or hardware result. Previous V76 and V71 HD videos remain
+preserved in:
+
+```text
+record/current/flat_omni_v76_server_hardcase_selection_videos/
+```
 
 ```text
 record/current/flat_omni_v71_server_v37_hd20/
 ```
 
 Detailed server notes are tracked in
-[V70-V76 server training log](docs/omni_v70_v71_server_training_log.md).
+[V70-V77 server training log](docs/omni_v70_v71_server_training_log.md).
 
 Long runs should use the clean Git checkout under
 `/home/bsrl/hongsenpang/codex_runs`; the older
@@ -759,7 +790,19 @@ Interim result tables and figures:
 
 ## Viewable Videos
 
-Current flat V76 videos with visual spring-steel strips and head speed overlay:
+Current flat V77 videos with visual spring-steel strips and head speed overlay:
+
+- [flat V77 continuous command sweep, 24 s](record/current/flat_omni_v77_server_hardcase_gate_videos/continuous_sweep_24s_1080p.mp4)
+- [flat V77 forward, 12 s](record/current/flat_omni_v77_server_hardcase_gate_videos/forward_12s_1080p.mp4)
+- [flat V77 reverse, 12 s](record/current/flat_omni_v77_server_hardcase_gate_videos/reverse_12s_1080p.mp4)
+- [flat V77 lateral left, 12 s](record/current/flat_omni_v77_server_hardcase_gate_videos/lateral_left_12s_1080p.mp4)
+- [flat V77 lateral right, 12 s](record/current/flat_omni_v77_server_hardcase_gate_videos/lateral_right_12s_1080p.mp4)
+- [flat V77 yaw left, 12 s](record/current/flat_omni_v77_server_hardcase_gate_videos/yaw_left_12s_1080p.mp4)
+- [flat V77 yaw right, 12 s](record/current/flat_omni_v77_server_hardcase_gate_videos/yaw_right_12s_1080p.mp4)
+- [flat V77 hard forward-left diagnostic, 12 s](record/current/flat_omni_v77_server_hardcase_gate_videos/hard_forward_left_12s_1080p.mp4)
+- [flat V77 video manifest](record/current/flat_omni_v77_server_hardcase_gate_videos/video_manifest.md)
+
+Previous flat V76 videos with visual spring-steel strips and head speed overlay:
 
 - [flat V76 continuous command sweep, 24 s](record/current/flat_omni_v76_server_hardcase_selection_videos/continuous_sweep_24s_1080p.mp4)
 - [flat V76 forward, 12 s](record/current/flat_omni_v76_server_hardcase_selection_videos/forward_12s_1080p.mp4)

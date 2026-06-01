@@ -1,0 +1,82 @@
+{
+  "title": "V77 Server Hardcase Gate Video Manifest",
+  "run_label": "flat_random_v77_server_hardcase_gate_from_v76best_np2",
+  "model": "best",
+  "hardcase_gate_enabled": true,
+  "visual_steel_strips": true,
+  "head_speed_overlay": true,
+  "videos": [
+    {
+      "case": "continuous_sweep_24s_1080p",
+      "duration_s": 24.0,
+      "frames": 600,
+      "speed_mm_s": -21.22,
+      "yaw_rad_s": -0.001,
+      "mean_deployed_gate": 0.296,
+      "mp4": "continuous_sweep_24s_1080p.mp4"
+    },
+    {
+      "case": "forward_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 73.10,
+      "yaw_rad_s": 0.063,
+      "mean_deployed_gate": 0.397,
+      "mp4": "forward_12s_1080p.mp4"
+    },
+    {
+      "case": "hard_forward_left_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": -7.01,
+      "yaw_rad_s": 0.111,
+      "mean_deployed_gate": 0.247,
+      "mp4": "hard_forward_left_12s_1080p.mp4"
+    },
+    {
+      "case": "lateral_left_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 13.88,
+      "yaw_rad_s": 0.136,
+      "mean_deployed_gate": 0.032,
+      "mp4": "lateral_left_12s_1080p.mp4"
+    },
+    {
+      "case": "lateral_right_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 2.72,
+      "yaw_rad_s": -0.040,
+      "mean_deployed_gate": 0.006,
+      "mp4": "lateral_right_12s_1080p.mp4"
+    },
+    {
+      "case": "reverse_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": -58.33,
+      "yaw_rad_s": 0.039,
+      "mean_deployed_gate": 0.489,
+      "mp4": "reverse_12s_1080p.mp4"
+    },
+    {
+      "case": "yaw_left_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 8.68,
+      "yaw_rad_s": 0.077,
+      "mean_deployed_gate": 0.900,
+      "mp4": "yaw_left_12s_1080p.mp4"
+    },
+    {
+      "case": "yaw_right_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 6.84,
+      "yaw_rad_s": -0.073,
+      "mean_deployed_gate": 0.905,
+      "mp4": "yaw_right_12s_1080p.mp4"
+    }
+  ]
+}

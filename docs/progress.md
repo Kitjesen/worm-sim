@@ -671,14 +671,50 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`, was added for the next server
   retrain. It is not an accepted default result until trained and rescanned.
 
+## 2026-06-02 V77 Server Hardcase Gate Retrain
+
+- V77 was trained on the server only, from the V76 best checkpoint, with
+  `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`.
+- Server-only training is now the active rule for long runs. The verified
+  server checkout is
+  `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training`, using
+  `/home/bsrl/miniconda3/envs/wormv6_np2/bin/python` with Python 3.11.14,
+  NumPy 2.2.6, PyTorch 2.7.0+cu128, CUDA available on 8 GPUs, MuJoCo 3.3.3,
+  Gymnasium 1.2.0, and SB3 2.7.0. Local Windows is reserved for pulling
+  artifacts, documentation, and lightweight validation, not training.
+- Run label:
+  `flat_random_v77_server_hardcase_gate_from_v76best_np2`. It keeps the 80D
+  observation ABI, keeps the 12D residual plus learned-gate action ABI, and
+  uses actor/critic `512-256-128`.
+- Local pulled artifacts:
+  `record/current/flat_omni_v77_server_hardcase_gate_scan/` and
+  `record/current/flat_omni_v77_server_hardcase_gate_videos/`.
+- V77 best nominal scan: `planar_rmse_m_s=0.05513`,
+  `yaw_rmse_rad_s=0.01856`, `wrong_planar_sign_count=0`,
+  `wrong_yaw_sign_count=0`, and `fixed_lateral_strict_gate_passed=true`.
+- V77 best robust scan: `planar_rmse_m_s=0.05967`,
+  `yaw_rmse_rad_s=0.02028`, `wrong_planar_sign_count=0`,
+  `wrong_yaw_sign_count=0`, `planar_error_exceed_count=0`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- The repeated robust hardcase is now fixed for the V77 best checkpoint:
+  `cmd=(+0.05,+0.075,0)` measures `body_vx=-0.03548 m/s`,
+  `body_vy=+0.02522 m/s`, `yaw_rate=+0.03460 rad/s`, and
+  `planar_sign_ok=true`. The deployed gate is no longer near the pure lateral
+  gate: mean deployed gate is `0.255`, desired gate is `0.28`, and learned gate
+  is `0.465`.
+- V77 final is not the accepted candidate. Its robust scan regresses to
+  `wrong_planar_sign_count=1` and `fixed_lateral_strict_gate_passed=false`.
+- Eight server-recorded HD videos were pulled locally: six 12 s fixed-command
+  videos, one 12 s hard forward-left diagnostic, and one 24 s continuous command
+  sweep. They include visual spring-steel strips and head-speed overlay.
+
 ## Not Done
 
-- The current V76 line is an accepted nominal flat strict-scan controller, but
-  it is not an accepted robust continuous tracker yet.
-- The remaining hard blocker is robust mixed-planar composition at
-  `cmd=(+0.05,+0.075,0)`. The controller still collapses toward a lateral
-  primitive and loses the forward component under sensor/delay/saturation
-  perturbation.
+- The current V77 best checkpoint fixes the repeated robust hardcase sign gate,
+  but it is still not a complete arbitrary continuous velocity tracker.
+- Remaining flat limitations are magnitude accuracy and crosstalk, not the
+  repeated robust sign failure: V77 best nominal has `off_axis_exceed_count=3`
+  and `planar_error_exceed_count=1`.
 - Fixed-gate ablations, deploy bundles, final paper summaries, and sand/slope
   transfer must still be regenerated after the robust flat gate is solved.
 - Mixed `vx/vy` commands remain the limiting case for strong continuous
@@ -726,9 +762,10 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 - V39/V40 are not accepted. V39 fixes the lateral reward contract but does not
   produce enough lateral speed; V40's final and best scans still fail fixed
   lateral speed, especially right lateral motion.
-- V41-V76 improve or preserve lateral gates, mixed-yaw sign, feasible command
-  ranges, and server-side nominal strict-scan acceptance. The limiting metric is
-  no longer nominal planar RMSE; it is the repeated robust mixed-vector hardcase.
+- V41-V77 improve or preserve lateral gates, mixed-yaw sign, feasible command
+  ranges, and server-side nominal/robust sign-gate acceptance. The limiting
+  metric is no longer the repeated robust hardcase sign; it is continuous
+  magnitude fidelity and off-axis crosstalk.
 - No formal 1M-step PPO artifacts exist under the current V26/V23 omni
   contract.
 - Fixed-mode eval, robust eval, auto-gated random-policy deploy bundles, and
@@ -744,11 +781,12 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V76 line keeps the deployable ABI fixed, trains only on the server, uses
-actor/critic `512-256-128`, preserves nominal strict 35-command acceptance, and
-provides viewable HD videos with visual spring-steel strips and head-speed
-overlay. The current best result is not "any velocity command can be tracked"
-under perturbation: the nominal scan is clean, but the robust scan still has one
-wrong planar sign at `cmd=(+0.05,+0.075,0)`. The next accepted advance must
-train and evaluate the default-off hardcase gate on the server and pass both
-nominal and robust 35-command scans.
+flat V77 best line keeps the deployable ABI fixed, trains only on the server,
+uses actor/critic `512-256-128`, fixes the repeated robust mixed-planar sign
+failure, and provides viewable HD videos with visual spring-steel strips and
+head-speed overlay. The current best result is still not "any velocity command
+can be tracked" with high fidelity: V77 best robust passes sign gates, but
+nominal off-axis crosstalk and some planar magnitude errors remain. The next
+accepted advance should convert the V77 best sign-gate repair into stronger
+continuous tracking claims only after fixed-gate ablations, deploy bundles, and
+sand/slope transfer are regenerated.

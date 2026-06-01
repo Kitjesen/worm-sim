@@ -431,6 +431,84 @@ viewable videos. It is not a robust continuous tracker yet. The next accepted
 output is V77: train with the narrow hardcase gate enabled on the server, then
 rescan both nominal and robust conditions.
 
+## V77 Narrow Hardcase Gate Scan And HD Videos
+
+Artifacts:
+
+```text
+record/current/flat_omni_v77_server_hardcase_gate_scan/
+record/current/flat_omni_v77_server_hardcase_gate_videos/
+```
+
+V77 continued from the V76 best checkpoint in the same clean server checkout:
+
+```text
+/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training
+```
+
+The run kept the deployable ABI unchanged: 80D observation, 12D
+residual-plus-gate action, and actor/critic `512-256-128`. The only intended
+adapter change was enabling the narrow gate:
+
+```text
+WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1
+```
+
+Nominal scans:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V77 best nominal | true | `0.05513` | `0.01856` | `0` | `0` | true |
+| V77 final nominal | true | `0.06047` | `0.01863` | `0` | `0` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V77 best robust | true | `0.05967` | `0.02028` | `0` | `0` | true |
+| V77 final robust | false | `0.06419` | `0.02037` | `1` | `0` | false |
+
+Repeated hardcase measurements:
+
+| Checkpoint | body vx | body vy | body yaw | Planar sign ok | Mean deployed gate | Mean learned gate |
+| --- | ---: | ---: | ---: | --- | ---: | ---: |
+| V77 best nominal | `-0.02468` | `+0.06090` | `+0.10799` | true | `0.253` | `0.454` |
+| V77 best robust | `-0.03548` | `+0.02522` | `+0.03460` | true | `0.255` | `0.465` |
+| V77 final nominal | `-0.03001` | `+0.05138` | `+0.09517` | true | `0.253` | `0.450` |
+| V77 final robust | `-0.03600` | `+0.01510` | `+0.01205` | false | `0.255` | `0.465` |
+
+V77 best robust fixes the repeated V71-V76 robust sign failure. The mechanism is
+also visible in telemetry: the deployed gate for the hardcase moves from the
+near-lateral V76 value (`~0.025`) to the intended narrow-gate value (`~0.255`,
+target `0.28`), while the learned gate remains around `0.46`.
+
+This is still not a complete arbitrary continuous tracking solution. V77 best
+nominal has `off_axis_exceed_count=3` and `planar_error_exceed_count=1`; V77
+final robust regresses. The paper-facing checkpoint for this iteration is V77
+best, not V77 final.
+
+The V77 video directory contains six 12 s fixed-command `1920x1080` videos, one
+12 s hard forward-left diagnostic video, one 24 s continuous sweep, metrics
+JSON, trajectory CSV/PNG, telemetry CSV/PNG, and `video_manifest.md/json`.
+
+Manifest command-direction summary:
+
+| Case | Speed mm/s | Yaw rad/s | Mean gate |
+| --- | ---: | ---: | ---: |
+| forward | `73.10` | `0.063` | `0.397` |
+| reverse | `-58.33` | `0.039` | `0.489` |
+| lateral_left | `13.88` | `0.136` | `0.032` |
+| lateral_right | `2.72` | `-0.040` | `0.006` |
+| yaw_left | `8.68` | `0.077` | `0.900` |
+| yaw_right | `6.84` | `-0.073` | `0.905` |
+| hard_forward_left | `-7.01` | `0.111` | `0.247` |
+| continuous_sweep | `-21.22` | `-0.001` | `0.296` |
+
+Conclusion: V77 best is the current flat robust sign-gate candidate with
+viewable videos. The next work is to run fixed-gate ablations and deploy-bundle
+generation for V77 best, then transfer the same ABI to sand and slope while
+tracking magnitude error and off-axis crosstalk.
+
 ## V71 HD Video Evidence
 
 Artifact:
@@ -469,9 +547,8 @@ lateral-left is `+0.053 m/s`, and lateral-right is `-0.118 m/s`.
 
 Next required output:
 
-- run V77 on the server with
-  `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`;
-- preserve V76 nominal strict-scan acceptance while repairing the robust
-  `cmd=(+0.05,+0.075,0)` mixed-planar counterexample;
-- rescan the next checkpoint under both nominal and robust conditions and
-  regenerate videos only after the scan improves.
+- run fixed-gate and residual/prior ablations on V77 best to support the learned
+  latent gate claim;
+- generate a deploy bundle for V77 best under the unchanged 80D/12D ABI;
+- transfer the V77 best ABI and hardcase-gate setting to sand and slope after
+  flat ablations are recorded.
