@@ -582,15 +582,18 @@ def comparable_training_fields(config):
 
 def training_config_compatible(
         existing, expected, allow_command_curriculum_mismatch=False,
-        allow_experimental_contract_mismatch=False):
+        allow_experimental_contract_mismatch=False,
+        allow_sensor_robustness_mismatch=False):
     if not isinstance(existing, dict):
         return False, ["missing training_config.json"]
     reasons = []
     if comparable_training_fields(existing) != comparable_training_fields(expected):
         reasons.append("training fields")
-    if not dict_float_match(
-            existing.get("sensor_robustness"),
-            expected.get("sensor_robustness", {})):
+    sensor_match = dict_float_match(
+        existing.get("sensor_robustness"),
+        expected.get("sensor_robustness", {}),
+    )
+    if not sensor_match and not allow_sensor_robustness_mismatch:
         reasons.append("sensor_robustness")
     if not dict_float_match(
             existing.get("control_timing"),
@@ -637,7 +640,8 @@ def run_dir_for_model(model_path):
 
 def resume_model_compatible(
         model_path, expected_config, allow_command_curriculum_mismatch=False,
-        allow_experimental_contract_mismatch=False):
+        allow_experimental_contract_mismatch=False,
+        allow_sensor_robustness_mismatch=False):
     config = read_json(os.path.join(
         run_dir_for_model(model_path), "training_config.json"))
     return training_config_compatible(
@@ -646,6 +650,8 @@ def resume_model_compatible(
         allow_command_curriculum_mismatch=allow_command_curriculum_mismatch,
         allow_experimental_contract_mismatch=(
             allow_experimental_contract_mismatch),
+        allow_sensor_robustness_mismatch=(
+            allow_sensor_robustness_mismatch),
     )
 
 
@@ -1220,6 +1226,8 @@ def train(args):
                 args.allow_curriculum_resume),
             allow_experimental_contract_mismatch=(
                 args.allow_contract_resume),
+            allow_sensor_robustness_mismatch=(
+                args.allow_sensor_robustness_resume),
         )
         if not resume_ok:
             print(
@@ -1557,6 +1565,11 @@ if __name__ == "__main__":
                          "research iterations while keeping the hard "
                          "deployable ABI, timing, sensor, actuator, and "
                          "observation checks")
+    ap.add_argument("--allow-sensor-robustness-resume", action="store_true",
+                    help="Allow --resume into a deliberately changed sensor "
+                         "robustness training condition, such as encoder/IMU "
+                         "noise, action delay, or action saturation, while "
+                         "keeping the deployable observation/action ABI fixed")
     ap.add_argument("--test", action="store_true",
                     help="Quick test run (10k steps, 1 env)")
     args = ap.parse_args()

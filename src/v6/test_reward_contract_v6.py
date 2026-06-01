@@ -1207,6 +1207,27 @@ def main():
         config_stub(contract), config_stub(contract))
     assert ok, reasons
 
+    nominal_sensor = config_stub(contract)
+    robust_sensor = config_stub(contract)
+    robust_sensor["sensor_robustness"] = {
+        "encoder_pos_noise_std": 0.01,
+        "encoder_vel_noise_std": 0.02,
+        "imu_gravity_noise_std": 0.01,
+        "imu_gyro_noise_std": 0.01,
+        "action_delay_steps": 1,
+        "action_saturation": 0.9,
+    }
+    ok, reasons = training_config_compatible(
+        nominal_sensor, robust_sensor)
+    assert not ok
+    assert "sensor_robustness" in reasons
+    ok, reasons = training_config_compatible(
+        nominal_sensor,
+        robust_sensor,
+        allow_sensor_robustness_mismatch=True,
+    )
+    assert ok, reasons
+
     omni_curriculum = config_stub(contract)
     omni_curriculum["command_curriculum"] = "omni"
     planar_curriculum = config_stub(contract)
