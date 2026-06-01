@@ -248,6 +248,49 @@ improvement over V71 but still has the wrong projected planar sign. The next
 iteration should repair this specific diagonal without sacrificing the nominal
 strict-scan acceptance or fixed lateral gates.
 
+## V73 Robust Resume Scan
+
+Artifact:
+
+```text
+record/current/flat_omni_v73_server_robust_forward_left_scan/
+```
+
+V73 continued from the V72 final checkpoint in the clean server checkout:
+
+```text
+/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-v71-clean
+```
+
+The run used `wormv6_np2` with Python `3.11`, NumPy `2.2.6`, PyTorch
+`2.7.0+cu128`, SB3 `2.7.0`, MuJoCo `3.3.3`, and Gymnasium `1.2.0`.
+Training used the robust sensor/delay/saturation condition directly:
+encoder-position noise `0.01`, encoder-velocity noise `0.02`, IMU gravity
+noise `0.01`, IMU gyro noise `0.01`, one action-delay step, and action
+saturation `0.90`. The actor and critic remained `512-256-128`, and the 80D
+observation plus 12D residual-plus-gate action ABI did not change.
+
+Nominal scans:
+
+| Checkpoint | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V73 best nominal | true | `0.06052` | `0.02059` | `0` | `0` | true |
+| V73 final nominal | true | `0.05662` | `0.02059` | `0` | `0` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V73 best robust | false | `0.06293` | `0.02084` | `1` | `0` | true |
+| V73 final robust | false | `0.05837` | `0.02132` | `1` | `0` | true |
+
+V73 improves robust planar RMSE relative to V72 final and preserves the fixed
+lateral strict gate, but it still does not pass the robust acceptance gate. The
+remaining robust counterexample is still the slow forward-left diagonal
+`cmd=(+0.05,+0.075,0)`. V73 final robust measures
+`body_vx=-0.03165 m/s`, `body_vy=+0.01286 m/s`, so the policy still reverses
+the forward component under the robust perturbation.
+
 ## V71 HD Video Evidence
 
 Artifact:

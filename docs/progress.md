@@ -32,10 +32,10 @@ the failure modes exposed by the strict 35-command scan:
   acceptance certificate, not video appearance alone.
 
 The flat V37 adapter plus V70-best policy first passed the strict scan in a
-no-retrain evaluation. The server-trained V71 best and final checkpoints now
-also pass the strict 35-command scan under the V37 action-adapter contract.
-The V71 HD video set is recorded. Robust V71 scans with sensor noise, one-step
-action delay, and `0.90` action saturation are now archived, and they show V71
+no-retrain evaluation. Server-trained V71, V72, and V73 nominal checkpoints now
+also pass the strict 35-command scan under the same deployable ABI. The V71 HD
+video set is recorded. Robust scans with sensor noise, one-step action delay,
+and `0.90` action saturation are archived through V73, and they show the policy
 is still a nominal flat strict-scan checkpoint rather than a robust continuous
 tracker. The remaining robust failure is a mixed `vx/vy` counterexample.
 
@@ -48,15 +48,15 @@ The flat acceptance targets are:
 - `mixed_vx_vy` planar exceed below `8/16`;
 - `mixed_vx_yaw` yaw exceed below `3/6`.
 
-Current V71 evidence:
+Current V73 evidence:
 
-- The server is the only active training machine. Current tmux session:
-  `worm_v71_v37_np2_lowlr`.
+- The server is the only active training machine. The V73 train and scan jobs
+  completed on the server; no local Windows training was used for this run.
 - Server checkout:
-  `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-omni`.
+  `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-v71-clean`.
 - Server environment: `wormv6_np2`, cloned from `thunder2`, with NumPy `2.2.6`,
-  PyTorch `2.7.0+cu128`, and `cma` installed for prior search. `thunder2`
-  remains unchanged for Isaac Lab.
+  PyTorch `2.7.0+cu128`, CUDA available, SB3 `2.7.0`, MuJoCo `3.3.3`, and
+  Gymnasium `1.2.0`. `thunder2` remains unchanged for Isaac Lab.
 - V70 failed because low-speed right lateral used the full-speed right-lateral
   prior at reduced command activity. A zero-residual server probe showed
   `cmd_vy=-0.0375 m/s` produced the wrong sign with the old reduced-amplitude
@@ -125,6 +125,27 @@ Current V71 evidence:
   `mixed_vx_vy` group. V72 final robust keeps the fixed lateral strict gate but
   still fails `cmd=(+0.05,+0.075,0)`, measured as
   `body_vx=-0.03233 m/s`, `body_vy=+0.00594 m/s`.
+- V73 server robust fine-tune continued from V72 final with robust sensor
+  noise, one action-delay step, action saturation `0.90`, and the explicit
+  robust-resume override. The scan artifacts are archived in
+  `record/current/flat_omni_v73_server_robust_forward_left_scan/`.
+  V73 best and final nominal scans are accepted:
+  - V73 best nominal: `planar_rmse_m_s=0.06052`,
+    `yaw_rmse_rad_s=0.02059`, `wrong_planar_sign_count=0`,
+    `wrong_yaw_sign_count=0`, `fixed_lateral_strict_gate_passed=true`;
+  - V73 final nominal: `planar_rmse_m_s=0.05662`,
+    `yaw_rmse_rad_s=0.02059`, `wrong_planar_sign_count=0`,
+    `wrong_yaw_sign_count=0`, `fixed_lateral_strict_gate_passed=true`.
+  Robust scans still fail `wrong_planar_sign_count=1` in `mixed_vx_vy`:
+  - V73 best robust: `planar_rmse_m_s=0.06293`,
+    `yaw_rmse_rad_s=0.02084`, `wrong_yaw_sign_count=0`,
+    `fixed_lateral_strict_gate_passed=true`;
+  - V73 final robust: `planar_rmse_m_s=0.05837`,
+    `yaw_rmse_rad_s=0.02132`, `wrong_yaw_sign_count=0`,
+    `fixed_lateral_strict_gate_passed=true`.
+  The remaining robust wrong-sign command is still `cmd=(+0.05,+0.075,0)`,
+  measured in V73 final robust as `body_vx=-0.03165 m/s`,
+  `body_vy=+0.01286 m/s`.
 
 V49 fixed part of the mixed-yaw sign issue, reducing `mixed_vx_yaw` yaw RMSE
 from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and
