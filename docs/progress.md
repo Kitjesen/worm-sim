@@ -101,6 +101,15 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   `planar_sign_rate=1.00`, `yaw_sign_rate=0.33`,
   `planar_rmse_m_s=0.054`, `yaw_rmse_rad_s=0.063`, with
   `wrong_planar=0` and `wrong_yaw=1`.
+- A preliminary server-side V69c early-best 35-command scan was run while the
+  long run continued. Artifacts are in
+  `record/current/flat_omni_v69c_server_early_scan/`. It is not accepted:
+  `num_commands=35`, `planar_rmse_m_s=0.06289`,
+  `yaw_rmse_rad_s=0.01856`, `wrong_planar_sign_count=1`,
+  `wrong_yaw_sign_count=0`, `planar_error_exceed_count=2`, and the dominant
+  failure group is still `mixed_vx_vy`. This confirms the low-learning-rate
+  server resume is stable but has not solved the remaining mixed planar sign
+  failure yet.
 - Previous flat/random PPO diagnostics reached about 311k steps, but are stale
   under the new auto-gated contract.
 - Flat V6 omnidirectional training has been pushed through yaw, planar repair,

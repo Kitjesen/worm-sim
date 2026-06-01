@@ -180,7 +180,7 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V64-V68 Status
+### Latest Flat V64-V69 Status
 
 The active flat baseline is now the V64 best checkpoint evaluated with the
 current V36 feasible-speed adapter. The command envelope is intentionally
@@ -206,9 +206,26 @@ with `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1` on the same checkpoint gives
 `planar_rmse_m_s=0.10105` and `wrong_planar_sign_count=6`, so it is still an
 ablation result rather than the accepted controller.
 
-Training is being moved off the local Windows machine. The 3090 server has a
-working `thunder2` environment with CUDA-visible PyTorch, MuJoCo, Gymnasium,
-and Stable-Baselines3. New long runs should use a clean Git checkout under
+Training has moved off the local Windows machine. The active server checkout is
+`/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-omni`. The original `thunder2`
+environment remains reserved for Isaac Lab; Worm V6 MuJoCo PPO uses a cloned
+`wormv6_np2` environment so V64/V67 VecNormalize files saved with NumPy 2 load
+correctly. The current long run is V69c,
+`flat_random_v69c_server_mixed_planar_yaw_preserve_lowlr_from_v67final_np2`,
+in tmux session `worm_v69c_omni_np2_lowlr`.
+
+The first server-side V69c early-best 35-command scan is:
+
+```text
+record/current/flat_omni_v69c_server_early_scan/v69c_early_35cmd_scan_6s.json
+```
+
+It is stable but not accepted: `planar_rmse_m_s=0.06289`,
+`yaw_rmse_rad_s=0.01856`, `wrong_planar_sign_count=1`, and
+`wrong_yaw_sign_count=0`. The remaining failure group is still `mixed_vx_vy`,
+so V69c should continue training and must be rescanned at later checkpoints.
+
+Long runs should use the clean Git checkout under
 `/home/bsrl/hongsenpang/codex_runs`; the older
 `/home/bsrl/hongsenpang/worm_project` directory is a manual copy and should not
 be treated as the authoritative training checkout.

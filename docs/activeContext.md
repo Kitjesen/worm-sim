@@ -38,7 +38,7 @@ intended fine-tuning rate `5e-6`.
 
 ## Immediate Priorities
 
-1. Monitor V69b on the 3090 server and run the corrected 35-command scan when
+1. Monitor V69c on the 3090 server and run the corrected 35-command scan when
    it reaches candidate checkpoints. Do not run long training on the local
    Windows machine.
 2. Keep V50 mixed-command composition behind
