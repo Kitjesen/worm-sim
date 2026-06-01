@@ -333,6 +333,104 @@ forward-left diagonal `cmd=(+0.05,+0.075,0)`. V74 best robust measures
 regresses the fixed lateral-left strict speed gate under robust perturbation,
 so V74 best is the better robust candidate but is still rejected.
 
+## V75 Mixed-Planar Continuous Gate Rejection
+
+V75 tested a stronger mixed-planar gate idea after the repeated robust
+`cmd=(+0.05,+0.075,0)` failure, but it is not accepted as a default controller.
+
+The no-retrain V75 gate on the V74 final checkpoint regressed scan quality:
+
+| Scan | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | ---: | ---: | ---: | ---: | --- |
+| V75 no-retrain nominal | `0.06939` | `0.01955` | `1` | `0` | true |
+| V75 no-retrain robust | `0.07895` | `0.01935` | `4` | `0` | true |
+
+An early retrain around `2.57M` total steps also did not recover the gate:
+the best directional summary reported `planar_success=0.913`,
+`yaw_success=0.696`, `wrong_planar=1`, `wrong_yaw=1`, and
+`straight_violation=6`; the last summary regressed to `planar_success=0.826`,
+`yaw_success=0.609`, `wrong_planar=3`, `wrong_yaw=2`, and
+`straight_violation=7`.
+
+Conclusion: the broad V75 gate is rejected. Future hardcase gate experiments
+must stay narrow and default-off until trained and rescanned.
+
+## V76 Hardcase Selection Scan And HD Videos
+
+Artifacts:
+
+```text
+record/current/flat_omni_v76_server_hardcase_selection_scan/
+record/current/flat_omni_v76_server_hardcase_selection_videos/
+```
+
+V76 continued from the V74 final checkpoint in the clean server checkout:
+
+```text
+/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training
+```
+
+The run used the server `wormv6_np2` environment and kept the deployable ABI
+unchanged: 80D observation, 12D residual-plus-gate action, and actor/critic
+`512-256-128`. Training used the `robust_forward_left_diagonal_repair`
+curriculum with robust sensor noise, one action-delay step, and action
+saturation `0.90`. The best-eval schedule also includes the repeated
+mixed-planar hardcases.
+
+Nominal scans:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V76 best nominal | true | `0.05713` | `0.01889` | `0` | `0` | true |
+| V76 final nominal | false | `0.05699` | `0.01858` | `1` | `0` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V76 best robust | false | `0.05680` | `0.02052` | `1` | `0` | true |
+| V76 final robust | false | `0.05900` | `0.02040` | `1` | `0` | true |
+
+Repeated hardcase measurements:
+
+| Checkpoint | body vx | body vy | body yaw | Planar sign ok | Mean deployed gate | Mean learned gate |
+| --- | ---: | ---: | ---: | --- | ---: | ---: |
+| V76 best nominal | `-0.02105` | `+0.05937` | `+0.11899` | true | `0.032` | `0.454` |
+| V76 best robust | `-0.03818` | `-0.00377` | `+0.00683` | false | `0.025` | `0.469` |
+| V76 final nominal | `-0.03298` | `+0.04879` | `+0.08741` | true | `0.031` | `0.453` |
+| V76 final robust | `-0.03647` | `+0.01880` | `+0.02311` | false | `0.025` | `0.467` |
+
+The learned latent gate is around `0.45-0.47`, but the deployed gate stays near
+the lateral primitive (`0.025-0.032`) for the hardcase. This explains why the
+policy still loses the forward component under robust perturbation. A narrow,
+default-off hardcase gate flag was added for the next server retrain:
+
+```text
+WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1
+```
+
+The V76 video directory contains six 12 s fixed-command `1920x1080` videos, one
+12 s hard forward-left diagnostic video, one 24 s continuous sweep, metrics
+JSON, trajectory CSV/PNG, telemetry CSV/PNG, and `video_manifest.md/json`.
+
+Manifest command-direction summary:
+
+| Case | Speed mm/s | Yaw rad/s | Mean gate |
+| --- | ---: | ---: | ---: |
+| forward | `75.77` | `0.083` | `0.400` |
+| reverse | `-66.91` | `0.037` | `0.490` |
+| lateral_left | `12.30` | `0.134` | `0.031` |
+| lateral_right | `-22.74` | `-0.014` | `0.005` |
+| yaw_left | `8.32` | `0.076` | `0.900` |
+| yaw_right | `7.31` | `-0.075` | `0.904` |
+| hard_forward_left | `-5.80` | `0.115` | `0.032` |
+| continuous_sweep | `-19.41` | `0.031` | `0.296` |
+
+Conclusion: V76 best nominal is the current flat strict-scan candidate with
+viewable videos. It is not a robust continuous tracker yet. The next accepted
+output is V77: train with the narrow hardcase gate enabled on the server, then
+rescan both nominal and robust conditions.
+
 ## V71 HD Video Evidence
 
 Artifact:
@@ -371,6 +469,9 @@ lateral-left is `+0.053 m/s`, and lateral-right is `-0.118 m/s`.
 
 Next required output:
 
-- preserve the nominal strict-scan acceptance while repairing the robust
+- run V77 on the server with
+  `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`;
+- preserve V76 nominal strict-scan acceptance while repairing the robust
   `cmd=(+0.05,+0.075,0)` mixed-planar counterexample;
-- rescan the next checkpoint under both nominal and robust conditions.
+- rescan the next checkpoint under both nominal and robust conditions and
+  regenerate videos only after the scan improves.

@@ -638,16 +638,52 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   under `/home/bsrl/hongsenpang/codex_runs` instead of the older manually
   copied `/home/bsrl/hongsenpang/worm_project` directory.
 
+## 2026-06-02 V76 Server Hardcase Selection
+
+- Training and post-evaluation were run on the server clean checkout, not on
+  the local Windows machine:
+  `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training`.
+- MuJoCo PPO used the server `wormv6_np2` environment: Python `3.11`, NumPy
+  `2.2.6`, PyTorch `2.7.0+cu128`, SB3 `2.7.0`, MuJoCo `3.3.3`, and Gymnasium
+  `1.2.0`. The 8x RTX 3090 host is available, but this SB3/MuJoCo setup remains
+  largely CPU-step limited.
+- Run label:
+  `flat_random_v76_server_hardcase_selection_from_v74final_np2`. It continues
+  from V74 final, keeps the 80D observation ABI, keeps the 12D residual plus
+  learned-gate action ABI, and uses actor/critic `512-256-128`.
+- Local pulled artifacts:
+  `record/current/flat_omni_v76_server_hardcase_selection_scan/` and
+  `record/current/flat_omni_v76_server_hardcase_selection_videos/`.
+- V76 best nominal scan: `planar_rmse_m_s=0.05713`,
+  `yaw_rmse_rad_s=0.01889`, `wrong_planar_sign_count=0`,
+  `wrong_yaw_sign_count=0`, and `fixed_lateral_strict_gate_passed=true`.
+- V76 best robust scan: `planar_rmse_m_s=0.05680`,
+  `yaw_rmse_rad_s=0.02052`, `wrong_planar_sign_count=1`,
+  `wrong_yaw_sign_count=0`, and `fixed_lateral_strict_gate_passed=true`.
+- The remaining robust counterexample is still the slow forward-left diagonal
+  `cmd=(+0.05,+0.075,0)`. Under V76 best robust it measures
+  `body_vx=-0.03818 m/s`, `body_vy=-0.00377 m/s`, so the projected planar sign
+  is still wrong.
+- Eight server-recorded HD videos were pulled locally: six 12 s fixed-command
+  videos, one 12 s hard forward-left diagnostic, and one 24 s continuous command
+  sweep. They include visual spring-steel strips and head-speed overlay.
+- A narrow, default-off hardcase gate flag,
+  `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`, was added for the next server
+  retrain. It is not an accepted default result until trained and rescanned.
+
 ## Not Done
 
-- The current V41-V59 line is not an accepted continuous tracker yet. It is a
-  weak omnidirectional prototype with correct signs and fixed-lateral gate
-  repair.
-- Robust flat eval, fixed-gate ablations, deploy bundles, and final paper
-  summaries must still be regenerated under the current V26/V23 line.
-- Mixed `vx/vy` commands under-track lateral components, reverse remains weak,
-  and yaw-only commands still translate while turning; these are limitations to
-  address before making strong omnidirectional-tracking claims.
+- The current V76 line is an accepted nominal flat strict-scan controller, but
+  it is not an accepted robust continuous tracker yet.
+- The remaining hard blocker is robust mixed-planar composition at
+  `cmd=(+0.05,+0.075,0)`. The controller still collapses toward a lateral
+  primitive and loses the forward component under sensor/delay/saturation
+  perturbation.
+- Fixed-gate ablations, deploy bundles, final paper summaries, and sand/slope
+  transfer must still be regenerated after the robust flat gate is solved.
+- Mixed `vx/vy` commands remain the limiting case for strong continuous
+  tracking claims; yaw-only and fixed lateral signs are much more stable than in
+  the early V13-V29 line.
 - Arbitrary continuous velocity tracking is not solved yet. V13 stops cleanly
   at zero command, but the 35-command scan still has
   `planar_rmse_m_s=0.1628` and `yaw_rmse_rad_s=0.3189`.
@@ -690,11 +726,9 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 - V39/V40 are not accepted. V39 fixes the lateral reward contract but does not
   produce enough lateral speed; V40's final and best scans still fail fixed
   lateral speed, especially right lateral motion.
-- V41/V42/V44/V46/V49 improve or preserve the lateral gate or mixed-yaw sign,
-  and V50 rejects the stronger componentwise mixed-prior ablation, but flat
-  continuous velocity tracking
-  is still not accepted. The limiting metrics remain planar RMSE above `0.10`,
-  weak reverse speed, and weak mixed vector tracking, especially `mixed_vx_vy`.
+- V41-V76 improve or preserve lateral gates, mixed-yaw sign, feasible command
+  ranges, and server-side nominal strict-scan acceptance. The limiting metric is
+  no longer nominal planar RMSE; it is the repeated robust mixed-vector hardcase.
 - No formal 1M-step PPO artifacts exist under the current V26/V23 omni
   contract.
 - Fixed-mode eval, robust eval, auto-gated random-policy deploy bundles, and
@@ -710,16 +744,11 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 ## Current Verdict
 
 The project framework is substantial, but the paper is not complete. The latest
-flat V41-V59 line keeps the deployable ABI fixed, restores fixed left/right
-lateral authority through searched lateral primitives, tests axial
-prior-preservation for visible worm-like actuation, partially fixes the
-mixed-yaw sign path, rejects the V50 componentwise-prior hypothesis, and tests
-V51/V52 residual/reward repairs plus V53/V54 curriculum/authority ablations,
-V55 split-prior ablation, V56 strict-diagonal selection coverage, V57
-full-diagonal reward pressure, V58 residual/prior scale diagnostics plus
-open-loop mixed-planar primitive search, and V59 yaw-preserving hardcase
-repair.
-The project is not yet at "any velocity command can be tracked": planar RMSE
-remains around `0.15 m/s`, reverse is weak, and mixed planar commands do not
-track both components reliably. The next accepted advance must pass the strict
-35-command scan rather than a visually plausible video.
+flat V76 line keeps the deployable ABI fixed, trains only on the server, uses
+actor/critic `512-256-128`, preserves nominal strict 35-command acceptance, and
+provides viewable HD videos with visual spring-steel strips and head-speed
+overlay. The current best result is not "any velocity command can be tracked"
+under perturbation: the nominal scan is clean, but the robust scan still has one
+wrong planar sign at `cmd=(+0.05,+0.075,0)`. The next accepted advance must
+train and evaluate the default-off hardcase gate on the server and pass both
+nominal and robust 35-command scans.
