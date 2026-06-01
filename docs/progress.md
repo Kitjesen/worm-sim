@@ -87,12 +87,17 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   `thunder2` and upgrading NumPy to `2.2.6`, because tracked V64/V67
   VecNormalize pickle files require NumPy 2 module names. The original
   `thunder2` environment remains unchanged for Isaac Lab.
-- V69b server training is running in tmux session `worm_v69b_omni_np2` with
-  run label `flat_random_v69b_server_mixed_planar_yaw_preserve_from_v67final_np2`.
+- V69b was stopped immediately after startup because it accidentally used the
+  training script default learning rate (`3e-4`) instead of the V67 fine-tuning
+  rate (`5e-6`).
+- V69c server training is running in tmux session `worm_v69c_omni_np2_lowlr`
+  with run label
+  `flat_random_v69c_server_mixed_planar_yaw_preserve_lowlr_from_v67final_np2`.
   It resumes from V67 final at `1,705,696` steps and targets `2,400,000`
-  steps using `mixed_planar_yaw_preserve_repair`, `n_envs=8`, CUDA device
-  mapped from physical GPU 1, and actor/critic `512-256-128`.
-- First V69b directional eval is only a startup sanity point, not a result:
+  steps using `mixed_planar_yaw_preserve_repair`, `learning_rate=5e-6`,
+  `n_envs=8`, CUDA device mapped from physical GPU 1, and actor/critic
+  `512-256-128`.
+- First V69c directional eval is only a startup sanity point, not a result:
   `planar_sign_rate=1.00`, `yaw_sign_rate=0.33`,
   `planar_rmse_m_s=0.054`, `yaw_rmse_rad_s=0.063`, with
   `wrong_planar=0` and `wrong_yaw=1`.

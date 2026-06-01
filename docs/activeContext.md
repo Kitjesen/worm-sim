@@ -27,12 +27,14 @@ mixed `vx/vy` composition without losing the visible worm-like axial actuation
 and without changing the 80D observation / 12D action ABI.
 
 Long training has moved to the 3090 server. The active run is
-`flat_random_v69b_server_mixed_planar_yaw_preserve_from_v67final_np2` in tmux
-session `worm_v69b_omni_np2` under the clean server checkout
+`flat_random_v69c_server_mixed_planar_yaw_preserve_lowlr_from_v67final_np2` in
+tmux session `worm_v69c_omni_np2_lowlr` under the clean server checkout
 `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-omni`. It uses the
 Worm-only `wormv6_np2` Conda environment, because the V64/V67 VecNormalize
 files need NumPy 2 to load correctly. The original `thunder2` environment is
-left unchanged for Isaac Lab.
+left unchanged for Isaac Lab. The aborted V69b startup is retained only as a
+diagnostic because it used the default `3e-4` learning rate instead of the
+intended fine-tuning rate `5e-6`.
 
 ## Immediate Priorities
 
