@@ -417,6 +417,42 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 - Latest detailed movement table and artifact list:
   `docs/omni_v41_v46_motion_summary.md`.
 
+## 2026-06-01 V68 35-Command Scan and Server Migration
+
+- The scan tool default now matches the documented 35-command acceptance
+  surface. With `--include-forward-yaw`, the default grid is 25 planar
+  `vx/vy` commands, 4 nonzero pure-yaw commands plus the zero yaw row already
+  present in the planar grid, and 6 forward-yaw commands. A regression check in
+  `src/v6/test_omni_eval_metrics_v6.py` asserts that the default scan command
+  count is `35`.
+- Re-scanning the V64 best checkpoint under the current V36 adapter and the
+  feasible command range gives:
+  `record/current/flat_omni_v68_v50_default_guard_35cmd_scan/scan_35_commands_default_guard_6s.json`.
+  Summary: `num_commands=35`, `planar_rmse_m_s=0.05985`,
+  `yaw_rmse_rad_s=0.01880`, `wrong_planar_sign_count=1`,
+  `wrong_yaw_sign_count=0`, `zero_command_mean_speed_m_s=0.000048`,
+  `yaw_only_mean_planar_speed_m_s=0.02850`, and fixed left/right lateral strict
+  gates pass. Strict analysis rejects it only on `wrong_planar_sign_count`;
+  the dominant failure group remains `mixed_vx_vy`.
+- Enabling the V50 componentwise mixed-command prior on the same checkpoint
+  still regresses the full scan:
+  `record/current/flat_omni_v68_v50_mixed_composition_35cmd_scan/scan_35_commands_mixed_composition_6s.json`.
+  Summary: `planar_rmse_m_s=0.10105`, `yaw_rmse_rad_s=0.01880`,
+  `wrong_planar_sign_count=6`, `wrong_yaw_sign_count=0`, and
+  `planar_error_exceed_count=8`. Strict analysis rejects it on
+  `planar_rmse_m_s` and `wrong_planar_sign_count`. Therefore V50 mixed-command
+  componentwise composition remains an ablation behind
+  `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1`, not the default controller.
+- Tests rerun after the scan fix:
+  `test_reward_contract_v6.py`, `test_deployable_obs_v6.py`,
+  `test_omni_eval_metrics_v6.py`, and `test_command_scan_analysis_v6.py`.
+- Training should now move off the local Windows machine. The 3090 server is
+  reachable over SSH, sees 8 CUDA devices in the `thunder2` Conda environment,
+  and has `torch 2.7.0+cu128`, `mujoco 3.3.3`, `gymnasium 1.2.0`, and
+  `stable_baselines3 2.7.0`. A clean Git-based training checkout should be used
+  under `/home/bsrl/hongsenpang/codex_runs` instead of the older manually
+  copied `/home/bsrl/hongsenpang/worm_project` directory.
+
 ## Not Done
 
 - The current V41-V59 line is not an accepted continuous tracker yet. It is a

@@ -415,7 +415,7 @@ def main():
     ap.add_argument("--time", type=float, default=4.0)
     ap.add_argument("--seed", type=int, default=7000)
     ap.add_argument("--vx-values", default="-0.10,-0.05,0,0.05,0.10")
-    ap.add_argument("--vy-values", default="-0.075,0,0.075")
+    ap.add_argument("--vy-values", default="-0.075,-0.0375,0,0.0375,0.075")
     ap.add_argument("--yaw-values", default="-0.125,-0.10,0,0.10,0.125")
     ap.add_argument("--include-forward-yaw", action="store_true")
     ap.add_argument("--forward-yaw-vx-values", default="-0.10,0.05,0.10")

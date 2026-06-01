@@ -9,12 +9,14 @@ commands.
 import os
 import sys
 import tempfile
+from argparse import Namespace
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
 from eval_v6 import command_tracking_metrics, find_vecnormalize  # noqa: E402
 from scan_command_tracking_v6 import (  # noqa: E402
+    build_commands,
     evaluate_command,
     summarize,
     summarize_step_infos,
@@ -73,6 +75,16 @@ def main():
         assert find_vecnormalize(checkpoint) == vecnorm
 
     assert "policy_residual_scale" in evaluate_command.__code__.co_varnames
+
+    default_scan_args = Namespace(
+        vx_values="-0.10,-0.05,0,0.05,0.10",
+        vy_values="-0.075,-0.0375,0,0.0375,0.075",
+        yaw_values="-0.125,-0.10,0,0.10,0.125",
+        include_forward_yaw=True,
+        forward_yaw_vx_values="-0.10,0.05,0.10",
+        forward_yaw_values="-0.10,0.10",
+    )
+    assert len(build_commands(default_scan_args)) == 35
 
     rows = [
         {

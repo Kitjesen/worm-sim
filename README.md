@@ -180,7 +180,40 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V41-V59 Status
+### Latest Flat V64-V68 Status
+
+The active flat baseline is now the V64 best checkpoint evaluated with the
+current V36 feasible-speed adapter. The command envelope is intentionally
+narrowed to a physical first-stage target: `vx in [-0.10, 0.10] m/s`,
+`vy in [-0.075, 0.075] m/s`, and `yaw in [-0.125, 0.125] rad/s`.
+
+The scan tool's default grid now matches the documented 35-command acceptance
+surface when `--include-forward-yaw` is used. The latest default-guard scan is:
+
+```text
+record/current/flat_omni_v68_v50_default_guard_35cmd_scan/scan_35_commands_default_guard_6s.json
+```
+
+Key metrics: `num_commands=35`, `planar_rmse_m_s=0.05985`,
+`yaw_rmse_rad_s=0.01880`, `wrong_planar_sign_count=1`,
+`wrong_yaw_sign_count=0`, `zero_command_mean_speed_m_s=0.000048`, and
+fixed left/right lateral strict gates pass. Strict analysis still rejects this
+as a completed continuous tracker because the remaining wrong planar sign is in
+the `mixed_vx_vy` group.
+
+V50 componentwise mixed-command composition remains default-off. Re-enabling it
+with `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1` on the same checkpoint gives
+`planar_rmse_m_s=0.10105` and `wrong_planar_sign_count=6`, so it is still an
+ablation result rather than the accepted controller.
+
+Training is being moved off the local Windows machine. The 3090 server has a
+working `thunder2` environment with CUDA-visible PyTorch, MuJoCo, Gymnasium,
+and Stable-Baselines3. New long runs should use a clean Git checkout under
+`/home/bsrl/hongsenpang/codex_runs`; the older
+`/home/bsrl/hongsenpang/worm_project` directory is a manual copy and should not
+be treated as the authoritative training checkout.
+
+### Historical Flat V41-V59 Status
 
 The newest flat line is V41-V59. It keeps the deployable ABI fixed:
 
