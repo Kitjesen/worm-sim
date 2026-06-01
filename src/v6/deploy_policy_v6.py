@@ -72,6 +72,7 @@ from action_adapter_v6 import (  # noqa: E402
     MIXED_YAW_YAW_GAIN,
     POLICY_ACTION_DIM,
     REVERSE_PRIOR_SCALE_FLOOR,
+    SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX,
     USE_CONTINUOUS_VECTOR_PRIOR_BLEND,
     YAW_ONLY_PRIOR_SCALE_FLOOR,
     YAW_ONLY_RESIDUAL_SCALE_MULT,
@@ -134,6 +135,10 @@ class DeployablePPOActor(torch.nn.Module):
         self.register_buffer(
             "lateral_right_params",
             torch.tensor(LATERAL_PRIMITIVE_ANCHORS["right"]["params"],
+                         dtype=torch.float32))
+        self.register_buffer(
+            "lateral_right_slow_params",
+            torch.tensor(LATERAL_PRIMITIVE_ANCHORS["right_slow"]["params"],
                          dtype=torch.float32))
         yaw_center = max(0.5 * (NUM_YAWS - 1), 1.0)
         self.register_buffer(
@@ -245,6 +250,14 @@ class DeployablePPOActor(torch.nn.Module):
             phase, self.lateral_left_params, 1.0)
         right_prior = self._lateral_prior_from_params(
             phase, self.lateral_right_params, -1.0)
+        slow_right_prior = self._lateral_prior_from_params(
+            phase, self.lateral_right_slow_params, -1.0)
+        right_slow_mask = (
+            (cmd_vy < 0.0)
+            & (torch.abs(cmd_vy)
+               <= float(SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX)))
+        right_prior = torch.where(right_slow_mask, slow_right_prior,
+                                  right_prior)
         return torch.where(cmd_vy >= 0.0, left_prior, right_prior)
 
     def _dominant_directional_prior(

@@ -180,7 +180,7 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V64-V69 Status
+### Latest Flat V64-V71 Status
 
 The active flat baseline is now the V64 best checkpoint evaluated with the
 current V36 feasible-speed adapter. The command envelope is intentionally
@@ -210,9 +210,9 @@ Training has moved off the local Windows machine. The active server checkout is
 `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-omni`. The original `thunder2`
 environment remains reserved for Isaac Lab; Worm V6 MuJoCo PPO uses a cloned
 `wormv6_np2` environment so V64/V67 VecNormalize files saved with NumPy 2 load
-correctly. The current long run is V69c,
-`flat_random_v69c_server_mixed_planar_yaw_preserve_lowlr_from_v67final_np2`,
-in tmux session `worm_v69c_omni_np2_lowlr`.
+correctly. The current active server fine-tune is V71,
+`flat_random_v71_server_v37_slow_right_prior_lowlr_from_v70best_np2`, in tmux
+session `worm_v71_v37_np2_lowlr`.
 
 The first server-side V69c early-best 35-command scan is:
 
@@ -231,6 +231,31 @@ V69c later-best and final scans were also not accepted. The final scan has
 right-lateral command `cmd=(0, -0.0375, 0)`, which moves left instead of right.
 V70 therefore adds slow lateral commands to best-model selection and introduces
 a focused `slow_lateral_right_repair` curriculum.
+
+V70 confirmed that oversampling the slow-right command alone was not enough:
+the remaining failure was caused by the full-speed right-lateral open-loop
+primitive flipping direction when command activity scaled it down for
+`cmd_vy=-0.0375 m/s`. V71/V37 adds a separately searched slow-right lateral
+primitive for dominant negative-`vy` commands with normalized magnitude up to
+`0.65`, without changing the 80D observation ABI or the 12D policy action ABI.
+
+The V37 no-retrain 35-command scan, using the V70 best model plus the new
+adapter, is accepted by the strict analyzer:
+
+```text
+record/current/flat_omni_v71_v37_noretrain_scan/v71_v37_noretrain_35cmd_scan_6s.json
+record/current/flat_omni_v71_v37_noretrain_scan/v71_v37_noretrain_35cmd_scan_analysis.md
+```
+
+Key metrics: `planar_rmse_m_s=0.05689`, `yaw_rmse_rad_s=0.01885`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and
+`planar_error_exceed_count=0`. This is the first flat random controller
+combination in this line that passes the strict 35-command scan. The V71 server
+fine-tune is still running to produce a formally trained checkpoint under the
+V37 action-adapter contract.
+
+Detailed server notes are tracked in
+[V70-V71 server training log](docs/omni_v70_v71_server_training_log.md).
 
 Long runs should use the clean Git checkout under
 `/home/bsrl/hongsenpang/codex_runs`; the older

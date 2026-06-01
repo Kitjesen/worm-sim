@@ -25,7 +25,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v36"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v37"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 
 
@@ -81,6 +81,7 @@ MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM = True
 LATERAL_PHASE_OFFSET_RAD = -0.5 * math.pi
 LATERAL_LEFT_PRIMITIVE_SCALE = 1.00
 LATERAL_RIGHT_PRIMITIVE_SCALE = 0.75
+SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX = 0.65
 ZERO_YAW_FORWARD_PHASE_OFFSET_RAD = math.pi
 ZERO_YAW_REVERSE_PHASE_OFFSET_RAD = math.pi
 ZERO_YAW_FORWARD_YAW_PRIOR_SCALE = 1.15
@@ -180,6 +181,32 @@ LATERAL_PRIMITIVE_ANCHORS = {
             -0.688387111640751,
             0.008020713598054452,
             -0.3785763291478317,
+        ),
+    },
+    "right_slow": {
+        "source": "flat_omni_v71_slow_right_prior_search_multiseed",
+        "validation": {
+            "target_m_s": 0.0375,
+            "activity_scale": 0.60,
+            "mean_signed_lateral_m_s": 0.03710144785075189,
+            "min_signed_lateral_m_s": 0.027842330059581446,
+            "mean_abs_body_vx_m_s": 0.004838955215654884,
+            "mean_abs_yaw_rate_rad_s": 0.10735149045257755,
+            "validation_seed_count": 10,
+            "accepted_seed_count": 8,
+        },
+        "params": (
+            -0.8887450885461599,
+            0.04387732204684349,
+            1.166506059967546,
+            1.7177987000592116,
+            -0.3871971664770437,
+            0.5051193932806227,
+            0.810264361188886,
+            -2.974397331956491,
+            0.0896514070847898,
+            0.3636877072067817,
+            -0.246068835251783,
         ),
     },
 }
@@ -458,6 +485,7 @@ def action_adapter_contract(
                     "left": LATERAL_LEFT_PRIMITIVE_SCALE,
                     "right": LATERAL_RIGHT_PRIMITIVE_SCALE,
                 },
+                "slow_right_norm_max": SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX,
                 "param_names": list(LATERAL_PRIMITIVE_PARAM_NAMES),
                 "anchors": {
                     side: {
@@ -612,6 +640,14 @@ def action_adapter_contract(
                 "the right lateral primitive, reducing overshoot without "
                 "removing the signed right-lateral contact pattern before "
                 "PPO continuation."),
+            "v37_reason": (
+                "V70 strict scans isolated the remaining counterexample to "
+                "cmd=(0,-0.0375,0): the full-speed right-lateral primitive "
+                "moves right at full authority but flips left when command "
+                "activity scales it to the slow-command amplitude. V37 adds a "
+                "separately searched slow-right lateral primitive for "
+                "dominant negative-vy commands with normalized magnitude up "
+                f"to {SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX:.2f}."),
         },
         "phase_source": "deployable phase_clock observation",
         "gait_blend_source": "policy action gate",
@@ -763,11 +799,22 @@ def inplace_yaw_prior_from_phase(phase, cmd_yaw_norm):
     return np.clip(action, -1.0, 1.0).astype(np.float32)
 
 
+def lateral_primitive_side_for_command(cmd_vy_norm):
+    """Select the lateral primitive for a normalized lateral command."""
+    cmd_vy_norm = float(cmd_vy_norm)
+    if cmd_vy_norm >= 0.0:
+        return "left"
+    if abs(cmd_vy_norm) <= SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX:
+        return "right_slow"
+    return "right"
+
+
 def lateral_primitive_action_from_phase(side, phase):
     """Normalized open-loop primitive for dominant lateral commands."""
     if side not in LATERAL_PRIMITIVE_ANCHORS:
         raise ValueError(
-            f"Unknown lateral primitive side {side!r}; expected left/right")
+            f"Unknown lateral primitive side {side!r}; expected one of "
+            f"{tuple(LATERAL_PRIMITIVE_ANCHORS)}")
     direction_sign = 1.0 if side == "left" else -1.0
     p = LATERAL_PRIMITIVE_ANCHORS[side]["params"]
     t = _phase_cycle_seconds(phase)
@@ -890,7 +937,7 @@ def _dominant_directional_gait_prior_from_phase(phase, gait_blend, command):
         return gait_prior_from_phase(phase, gait_blend)
     transform = command_directional_prior_transform(*command)
     if transform["uses_lateral_primitive"]:
-        side = "left" if command[1] >= 0.0 else "right"
+        side = lateral_primitive_side_for_command(command[1])
         return lateral_primitive_action_from_phase(side, phase)
     if transform["uses_inplace_yaw_prior"]:
         prior = inplace_yaw_prior_from_phase(phase, command[2])
@@ -1002,7 +1049,7 @@ def split_channel_mixed_planar_gait_prior_from_phase(
 
     axial_prior = _dominant_directional_gait_prior_from_phase(
         phase, gait_blend, (np.sign(cmd_vx), 0.0, 0.0))
-    side = "left" if cmd_vy >= 0.0 else "right"
+    side = lateral_primitive_side_for_command(cmd_vy)
     lateral_prior = lateral_primitive_action_from_phase(side, phase)
 
     prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)

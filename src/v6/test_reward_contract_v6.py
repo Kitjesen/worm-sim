@@ -47,6 +47,7 @@ from action_adapter_v6 import (  # noqa: E402
     gait_prior_from_phase,
     inplace_yaw_prior_from_phase,
     lateral_primitive_action_from_phase,
+    lateral_primitive_side_for_command,
     policy_action_to_residual_and_gait_blend,
     split_channel_mixed_planar_gait_prior_from_phase,
 )
@@ -78,6 +79,7 @@ from action_adapter_v6 import (  # noqa: E402
     MIXED_PLANAR_SPLIT_PRIOR_ENABLED,
     MIXED_YAW_RESIDUAL_SCALE_MULT,
     MIXED_YAW_PRIOR_SCALE_FLOOR,
+    SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX,
     YAW_ONLY_RESIDUAL_SCALE_MULT,
     YAW_ONLY_SLIDE_PRIOR_SCALE,
     YAW_ONLY_YAW_PRIOR_SCALE,
@@ -571,7 +573,7 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v36")
+    assert adapter_contract["version"].endswith("_v37")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     assert "|cmd_yaw_norm|" in adapter_contract[
@@ -617,6 +619,9 @@ def main():
         "lateral_primitives"]["runtime_scales"]["left"] == 1.0
     assert adapter_contract["command_directional_prior_transform"][
         "lateral_primitives"]["runtime_scales"]["right"] == 0.75
+    assert adapter_contract["command_directional_prior_transform"][
+        "lateral_primitives"]["slow_right_norm_max"] == (
+            SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX)
     mixed_composition_contract = adapter_contract[
         "command_directional_prior_transform"][
         "mixed_command_component_composition"]
@@ -681,11 +686,20 @@ def main():
         0.3, gait_blend=0.0, command=(0.0, 1.0, 0.0))
     lateral_right_prior = directional_gait_prior_from_phase(
         0.3, gait_blend=0.0, command=(0.0, -1.0, 0.0))
+    lateral_slow_right_prior = directional_gait_prior_from_phase(
+        0.3, gait_blend=0.0, command=(0.0, -0.5, 0.0))
     assert np.allclose(
         lateral_left_prior, lateral_primitive_action_from_phase("left", 0.3))
     assert np.allclose(
         lateral_right_prior, lateral_primitive_action_from_phase("right", 0.3))
+    assert np.allclose(
+        lateral_slow_right_prior,
+        lateral_primitive_action_from_phase("right_slow", 0.3))
+    assert lateral_primitive_side_for_command(-0.5) == "right_slow"
+    assert lateral_primitive_side_for_command(
+        -(SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX + 0.01)) == "right"
     assert not np.allclose(lateral_left_prior, lateral_right_prior)
+    assert not np.allclose(lateral_right_prior, lateral_slow_right_prior)
     yaw_left_prior = directional_gait_prior_from_phase(
         0.3, gait_blend=0.5, command=(0.0, 0.0, 1.0))
     yaw_right_prior = directional_gait_prior_from_phase(
