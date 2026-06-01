@@ -1,0 +1,376 @@
+{
+  "format_version": 1,
+  "policy": "V71 best, V37 slow-right adapter",
+  "terrain": "flat",
+  "model": "runs/worm_v6_ppo_flat_random_v71_server_v37_slow_right_prior_lowlr_from_v70best_np2/best_model.zip",
+  "recording": {
+    "fixed_duration_s": 20.0,
+    "continuous_sweep_duration_s": 24.0,
+    "fps": 15.0,
+    "width": 1920,
+    "height": 1080,
+    "visual_steel_strips": true,
+    "head_speed_overlay": true
+  },
+  "records": [
+    {
+      "case": "forward",
+      "label": "Forward vx=+0.10",
+      "video": "record/current/flat_omni_v71_server_v37_hd20/forward_20s_1080p.mp4",
+      "video_size_bytes": 17927084,
+      "video_frame_count_probe": 334,
+      "video_fps_probe": 16.667,
+      "sample_frame_mean_bgr": 162.94725180041152,
+      "time_s": 20.0,
+      "frames": 334,
+      "visual_steel_strips": true,
+      "head_speed_overlay": true,
+      "cmd": {
+        "cmd_vx_m_s": 0.1,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0,
+        "dynamic_command_schedule": "fixed",
+        "dynamic_yaw_scale": 1.0,
+        "command_resample_prob": 0.0
+      },
+      "speed_mm_s": 66.05858992353778,
+      "lateral_drift_mm": 349.7222613640822,
+      "yaw_rate_rad_s": 0.0651229270899081,
+      "trajectory_csv": "record/current/flat_omni_v71_server_v37_hd20/forward_20s_trajectory.csv",
+      "trajectory_plot": "record/current/flat_omni_v71_server_v37_hd20/forward_20s_trajectory.png",
+      "telemetry_csv": "record/current/flat_omni_v71_server_v37_hd20/forward_20s_telemetry.csv",
+      "telemetry_plot": "record/current/flat_omni_v71_server_v37_hd20/forward_20s_telemetry.png",
+      "gait_gate_telemetry": {
+        "mean_raw_gait_gate_action": -0.09230700638191774,
+        "raw_gait_gate_action_range": [
+          -0.2090793401002884,
+          0.14077231287956238
+        ],
+        "mean_learned_gait_blend": 0.36153949042712336,
+        "learned_gait_blend_range": [
+          0.1863809898495674,
+          0.7111584693193436
+        ],
+        "mean_deployed_gait_blend": 0.4030776432989864,
+        "deployed_gait_blend_range": [
+          0.28046669289469717,
+          0.6478109285235405
+        ],
+        "mean_desired_gait_blend": 0.5,
+        "mean_gait_gate_error": 0.09852432122316676,
+        "mean_prior_component_l2": 1.969031513929367,
+        "mean_residual_component_l2": 0.07796148631535471,
+        "mean_applied_action_l2": 1.9545274603366851
+      }
+    },
+    {
+      "case": "reverse",
+      "label": "Reverse vx=-0.10",
+      "video": "record/current/flat_omni_v71_server_v37_hd20/reverse_20s_1080p.mp4",
+      "video_size_bytes": 19130363,
+      "video_frame_count_probe": 334,
+      "video_fps_probe": 16.667,
+      "sample_frame_mean_bgr": 162.89968733924897,
+      "time_s": 20.0,
+      "frames": 334,
+      "visual_steel_strips": true,
+      "head_speed_overlay": true,
+      "cmd": {
+        "cmd_vx_m_s": -0.1,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0,
+        "dynamic_command_schedule": "fixed",
+        "dynamic_yaw_scale": 1.0,
+        "command_resample_prob": 0.0
+      },
+      "speed_mm_s": -53.53395097649919,
+      "lateral_drift_mm": 1232.3493876738776,
+      "yaw_rate_rad_s": 0.03410243834129443,
+      "trajectory_csv": "record/current/flat_omni_v71_server_v37_hd20/reverse_20s_trajectory.csv",
+      "trajectory_plot": "record/current/flat_omni_v71_server_v37_hd20/reverse_20s_trajectory.png",
+      "telemetry_csv": "record/current/flat_omni_v71_server_v37_hd20/reverse_20s_telemetry.csv",
+      "telemetry_plot": "record/current/flat_omni_v71_server_v37_hd20/reverse_20s_telemetry.png",
+      "gait_gate_telemetry": {
+        "mean_raw_gait_gate_action": -0.01706874784687534,
+        "raw_gait_gate_action_range": [
+          -0.17396262288093567,
+          0.15606603026390076
+        ],
+        "mean_learned_gait_blend": 0.474396878229687,
+        "learned_gait_blend_range": [
+          0.2390560656785965,
+          0.7340990453958511
+        ],
+        "mean_deployed_gait_blend": 0.4820778147607808,
+        "deployed_gait_blend_range": [
+          0.31733924597501756,
+          0.6638693317770958
+        ],
+        "mean_desired_gait_blend": 0.5,
+        "mean_gait_gate_error": 0.07321967243032997,
+        "mean_prior_component_l2": 0.7997849332690239,
+        "mean_residual_component_l2": 0.04677434041723609,
+        "mean_applied_action_l2": 0.7910006133913994
+      }
+    },
+    {
+      "case": "lateral_left",
+      "label": "Left vy=+0.075",
+      "video": "record/current/flat_omni_v71_server_v37_hd20/lateral_left_20s_1080p.mp4",
+      "video_size_bytes": 17576359,
+      "video_frame_count_probe": 334,
+      "video_fps_probe": 16.667,
+      "sample_frame_mean_bgr": 163.02928948045266,
+      "time_s": 20.0,
+      "frames": 334,
+      "visual_steel_strips": true,
+      "head_speed_overlay": true,
+      "cmd": {
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.075,
+        "cmd_yaw_rad_s": 0.0,
+        "dynamic_command_schedule": "fixed",
+        "dynamic_yaw_scale": 1.0,
+        "command_resample_prob": 0.0
+      },
+      "speed_mm_s": 31.94809593474177,
+      "lateral_drift_mm": 905.9154696934266,
+      "yaw_rate_rad_s": 0.13025980254177535,
+      "trajectory_csv": "record/current/flat_omni_v71_server_v37_hd20/lateral_left_20s_trajectory.csv",
+      "trajectory_plot": "record/current/flat_omni_v71_server_v37_hd20/lateral_left_20s_trajectory.png",
+      "telemetry_csv": "record/current/flat_omni_v71_server_v37_hd20/lateral_left_20s_telemetry.csv",
+      "telemetry_plot": "record/current/flat_omni_v71_server_v37_hd20/lateral_left_20s_telemetry.png",
+      "gait_gate_telemetry": {
+        "mean_raw_gait_gate_action": -0.03398608474479988,
+        "raw_gait_gate_action_range": [
+          -0.17624668776988983,
+          0.16649015247821808
+        ],
+        "mean_learned_gait_blend": 0.4490208728828002,
+        "learned_gait_blend_range": [
+          0.23562996834516525,
+          0.7497352287173271
+        ],
+        "mean_deployed_gait_blend": 0.02834332221318036,
+        "deployed_gait_blend_range": [
+          0.0,
+          0.17481466010212898
+        ],
+        "mean_desired_gait_blend": 0.0,
+        "mean_gait_gate_error": 0.02834332221318036,
+        "mean_prior_component_l2": 0.9214434580802917,
+        "mean_residual_component_l2": 0.05960636173002422,
+        "mean_applied_action_l2": 0.9288523578047753
+      }
+    },
+    {
+      "case": "lateral_right",
+      "label": "Right vy=-0.075",
+      "video": "record/current/flat_omni_v71_server_v37_hd20/lateral_right_20s_1080p.mp4",
+      "video_size_bytes": 15816977,
+      "video_frame_count_probe": 334,
+      "video_fps_probe": 16.667,
+      "sample_frame_mean_bgr": 163.09853845164608,
+      "time_s": 20.0,
+      "frames": 334,
+      "visual_steel_strips": true,
+      "head_speed_overlay": true,
+      "cmd": {
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": -0.075,
+        "cmd_yaw_rad_s": 0.0,
+        "dynamic_command_schedule": "fixed",
+        "dynamic_yaw_scale": 1.0,
+        "command_resample_prob": 0.0
+      },
+      "speed_mm_s": 37.344930286192245,
+      "lateral_drift_mm": 2290.455781508096,
+      "yaw_rate_rad_s": -0.0647693067185636,
+      "trajectory_csv": "record/current/flat_omni_v71_server_v37_hd20/lateral_right_20s_trajectory.csv",
+      "trajectory_plot": "record/current/flat_omni_v71_server_v37_hd20/lateral_right_20s_trajectory.png",
+      "telemetry_csv": "record/current/flat_omni_v71_server_v37_hd20/lateral_right_20s_telemetry.csv",
+      "telemetry_plot": "record/current/flat_omni_v71_server_v37_hd20/lateral_right_20s_telemetry.png",
+      "gait_gate_telemetry": {
+        "mean_raw_gait_gate_action": -0.06238489583041519,
+        "raw_gait_gate_action_range": [
+          -0.21184395253658295,
+          0.09431305527687073
+        ],
+        "mean_learned_gait_blend": 0.40642265625437723,
+        "learned_gait_blend_range": [
+          0.18223407119512558,
+          0.6414695829153061
+        ],
+        "mean_deployed_gait_blend": 0.004978691539401188,
+        "deployed_gait_blend_range": [
+          0.0,
+          0.09902870804071426
+        ],
+        "mean_desired_gait_blend": 0.0,
+        "mean_gait_gate_error": 0.004978691539401188,
+        "mean_prior_component_l2": 1.270885083913803,
+        "mean_residual_component_l2": 0.06295287693478167,
+        "mean_applied_action_l2": 1.2769479326605797
+      }
+    },
+    {
+      "case": "yaw_left",
+      "label": "Yaw left +0.125",
+      "video": "record/current/flat_omni_v71_server_v37_hd20/yaw_left_20s_1080p.mp4",
+      "video_size_bytes": 10828933,
+      "video_frame_count_probe": 334,
+      "video_fps_probe": 16.667,
+      "sample_frame_mean_bgr": 163.05342608667695,
+      "time_s": 20.0,
+      "frames": 334,
+      "visual_steel_strips": true,
+      "head_speed_overlay": true,
+      "cmd": {
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.125,
+        "dynamic_command_schedule": "fixed",
+        "dynamic_yaw_scale": 1.0,
+        "command_resample_prob": 0.0
+      },
+      "speed_mm_s": 4.693836858818097,
+      "lateral_drift_mm": 192.73017997117086,
+      "yaw_rate_rad_s": 0.04687243624776096,
+      "trajectory_csv": "record/current/flat_omni_v71_server_v37_hd20/yaw_left_20s_trajectory.csv",
+      "trajectory_plot": "record/current/flat_omni_v71_server_v37_hd20/yaw_left_20s_trajectory.png",
+      "telemetry_csv": "record/current/flat_omni_v71_server_v37_hd20/yaw_left_20s_telemetry.csv",
+      "telemetry_plot": "record/current/flat_omni_v71_server_v37_hd20/yaw_left_20s_telemetry.png",
+      "gait_gate_telemetry": {
+        "mean_raw_gait_gate_action": 0.04236726584192366,
+        "raw_gait_gate_action_range": [
+          -0.014567063190042973,
+          0.10742093622684479
+        ],
+        "mean_learned_gait_blend": 0.5635508987628854,
+        "learned_gait_blend_range": [
+          0.47814940521493554,
+          0.6611314043402672
+        ],
+        "mean_deployed_gait_blend": 0.8944856291340197,
+        "deployed_gait_blend_range": [
+          0.8347045836504549,
+          0.962791983038187
+        ],
+        "mean_desired_gait_blend": 0.8499999999999998,
+        "mean_gait_gate_error": 0.04451621996671892,
+        "mean_prior_component_l2": 0.6787510344982147,
+        "mean_residual_component_l2": 0.019939353188034147,
+        "mean_applied_action_l2": 0.6869079878926277
+      }
+    },
+    {
+      "case": "yaw_right",
+      "label": "Yaw right -0.125",
+      "video": "record/current/flat_omni_v71_server_v37_hd20/yaw_right_20s_1080p.mp4",
+      "video_size_bytes": 10695104,
+      "video_frame_count_probe": 334,
+      "video_fps_probe": 16.667,
+      "sample_frame_mean_bgr": 163.03850806970163,
+      "time_s": 20.0,
+      "frames": 334,
+      "visual_steel_strips": true,
+      "head_speed_overlay": true,
+      "cmd": {
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": -0.125,
+        "dynamic_command_schedule": "fixed",
+        "dynamic_yaw_scale": 1.0,
+        "command_resample_prob": 0.0
+      },
+      "speed_mm_s": 4.422427303780607,
+      "lateral_drift_mm": 193.5359734569074,
+      "yaw_rate_rad_s": -0.04666056868587461,
+      "trajectory_csv": "record/current/flat_omni_v71_server_v37_hd20/yaw_right_20s_trajectory.csv",
+      "trajectory_plot": "record/current/flat_omni_v71_server_v37_hd20/yaw_right_20s_trajectory.png",
+      "telemetry_csv": "record/current/flat_omni_v71_server_v37_hd20/yaw_right_20s_telemetry.csv",
+      "telemetry_plot": "record/current/flat_omni_v71_server_v37_hd20/yaw_right_20s_telemetry.png",
+      "gait_gate_telemetry": {
+        "mean_raw_gait_gate_action": 0.0405617580153048,
+        "raw_gait_gate_action_range": [
+          -0.05890941619873047,
+          0.09310278296470642
+        ],
+        "mean_learned_gait_blend": 0.5608426370229572,
+        "learned_gait_blend_range": [
+          0.4116358757019043,
+          0.6396541744470596
+        ],
+        "mean_deployed_gait_blend": 0.89258984591607,
+        "deployed_gait_blend_range": [
+          0.7881451129913329,
+          0.9477579221129417
+        ],
+        "mean_desired_gait_blend": 0.8499999999999998,
+        "mean_gait_gate_error": 0.0451836509104818,
+        "mean_prior_component_l2": 0.6787510344982147,
+        "mean_residual_component_l2": 0.014554555733688176,
+        "mean_applied_action_l2": 0.6827838192582131
+      }
+    },
+    {
+      "case": "continuous_sweep",
+      "label": "Continuous sweep",
+      "video": "record/current/flat_omni_v71_server_v37_hd20/continuous_sweep_24s_1080p.mp4",
+      "video_size_bytes": 22326812,
+      "video_frame_count_probe": 400,
+      "video_fps_probe": 16.667,
+      "sample_frame_mean_bgr": 163.16611930941357,
+      "time_s": 24.0,
+      "frames": 400,
+      "visual_steel_strips": true,
+      "head_speed_overlay": true,
+      "cmd": {
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0,
+        "dynamic_command_schedule": "continuous_sweep",
+        "dynamic_yaw_scale": 0.75,
+        "command_resample_prob": 0.0
+      },
+      "speed_mm_s": -23.093457880475043,
+      "lateral_drift_mm": 56.578764468013965,
+      "yaw_rate_rad_s": 0.002687439328782293,
+      "trajectory_csv": "record/current/flat_omni_v71_server_v37_hd20/continuous_sweep_24s_trajectory.csv",
+      "trajectory_plot": "record/current/flat_omni_v71_server_v37_hd20/continuous_sweep_24s_trajectory.png",
+      "telemetry_csv": "record/current/flat_omni_v71_server_v37_hd20/continuous_sweep_24s_telemetry.csv",
+      "telemetry_plot": "record/current/flat_omni_v71_server_v37_hd20/continuous_sweep_24s_telemetry.png",
+      "gait_gate_telemetry": {
+        "mean_raw_gait_gate_action": -0.03577577867739213,
+        "raw_gait_gate_action_range": [
+          -0.21487939357757568,
+          0.16730310022830963
+        ],
+        "mean_learned_gait_blend": 0.4463363319839118,
+        "learned_gait_blend_range": [
+          0.17768090963363647,
+          0.7509546503424644
+        ],
+        "mean_deployed_gait_blend": 0.29296398437598375,
+        "deployed_gait_blend_range": [
+          0.0,
+          0.6606058903038502
+        ],
+        "mean_desired_gait_blend": 0.310539286993841,
+        "mean_gait_gate_error": 0.04891799456137233,
+        "mean_prior_component_l2": 0.9810740110650659,
+        "mean_residual_component_l2": 0.07599974148441106,
+        "mean_applied_action_l2": 0.9822604655722778
+      }
+    }
+  ],
+  "comparison_video": "record/current/flat_omni_v71_server_v37_hd20/gait_comparison_3x2_20s_3840x1440.mp4",
+  "comparison_video_size_bytes": 41332674,
+  "comparison_video_probe": {
+    "frame_count": 334,
+    "fps": 16.667,
+    "width": 3840,
+    "height": 1440,
+    "sample_frame_mean_bgr": 160.3825274281443
+  }
+}

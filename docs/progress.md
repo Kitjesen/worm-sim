@@ -34,8 +34,8 @@ the failure modes exposed by the strict 35-command scan:
 The flat V37 adapter plus V70-best policy first passed the strict scan in a
 no-retrain evaluation. The server-trained V71 best and final checkpoints now
 also pass the strict 35-command scan under the V37 action-adapter contract.
-The remaining requirement is to record videos and robustness checks before
-widening to sand/slope.
+The V71 HD video set is now recorded; robustness checks are the remaining
+flat-side evidence needed before widening to sand/slope.
 
 The flat acceptance targets are:
 
@@ -75,6 +75,18 @@ Current V71 evidence:
   V71 final: `planar_rmse_m_s=0.06150`, `yaw_rmse_rad_s=0.01860`,
   `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
   `fixed_lateral_strict_gate_passed=true`, analyzer `accepted=true`.
+- V71 best was recorded on the server under
+  `record/current/flat_omni_v71_server_v37_hd20/`. The folder contains six
+  20 s fixed-command HD videos, a 24 s continuous sweep video, a `3840x1440`
+  3x2 comparison video, trajectory CSV/PNG files, telemetry CSV/PNG files, and
+  `video_manifest.md`. Videos use the visual spring-steel strip renderer and
+  head-speed overlay. Manifest command-direction summary: forward
+  `66.06 mm/s`, reverse `-53.53 mm/s`, lateral-left `31.95 mm/s`,
+  lateral-right `37.34 mm/s`, yaw-left `0.047 rad/s`, yaw-right
+  `-0.047 rad/s`, and mean gait gate ranges from about `0.005` in right
+  lateral to about `0.894` in yaw-only commands. Telemetry mean body-frame
+  lateral velocity is positive for lateral-left (`+0.053 m/s`) and negative for
+  lateral-right (`-0.118 m/s`).
 
 V49 fixed part of the mixed-yaw sign issue, reducing `mixed_vx_yaw` yaw RMSE
 from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and

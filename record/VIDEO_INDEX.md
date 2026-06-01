@@ -1,6 +1,6 @@
 # Worm Video Index
 
-Date: 2026-05-31
+Date: 2026-06-01
 
 This file is the canonical entry point for current robot videos. Current
 paper-facing videos are kept under `record/current/` instead of a code-version
@@ -9,43 +9,44 @@ folder such as `record/v6/`.
 ## Current Videos To Show
 
 Use these videos when demonstrating the current flat policy. They are from the
-V29 policy:
+V71 best checkpoint with the V37 slow-right action adapter:
 
 ```text
-runs/worm_v6_ppo_flat_random_continuous_tracking_v29_v22actor_critic512_speed_gate/best_model.zip
+runs/worm_v6_ppo_flat_random_v71_server_v37_slow_right_prior_lowlr_from_v70best_np2/best_model.zip
 ```
 
-Primary long-duration video directory:
+Primary current video directory:
 
 ```text
-record/current/flat_omni_v29_long15
+record/current/flat_omni_v71_server_v37_hd20
 ```
 
-Short HD video directory:
-
-```text
-record/current/flat_omni_v29_hd
-```
+All videos in this set use visual spring-steel strips and the head-speed
+overlay.
 
 | Purpose | File | Resolution | Duration | Notes |
 | --- | --- | ---: | ---: | --- |
-| Long six-direction comparison | `record/current/flat_omni_v29_long15/gait_comparison_3x2_15s_4k_uhd.mp4` | `3840x2160` | `15 s` | Best single file to show first |
-| Long wide six-direction comparison | `record/current/flat_omni_v29_long15/gait_comparison_3x2_15s_3840x1440.mp4` | `3840x1440` | `15 s` | Less vertical padding |
-| Long forward | `record/current/flat_omni_v29_long15/forward_15s_1080p.mp4` | `1920x1080` | `15 s` | Shows long-run drift |
-| Long reverse | `record/current/flat_omni_v29_long15/reverse_15s_1080p.mp4` | `1920x1080` | `15 s` | Shows long-run drift |
-| Long lateral left | `record/current/flat_omni_v29_long15/lateral_left_15s_1080p.mp4` | `1920x1080` | `15 s` | Correct primitive but high forward off-axis |
-| Long lateral right | `record/current/flat_omni_v29_long15/lateral_right_15s_1080p.mp4` | `1920x1080` | `15 s` | Weak/right contaminated by forward motion |
-| Long yaw left | `record/current/flat_omni_v29_long15/yaw_left_15s_1080p.mp4` | `1920x1080` | `15 s` | Correct yaw sign, translates |
-| Long yaw right | `record/current/flat_omni_v29_long15/yaw_right_15s_1080p.mp4` | `1920x1080` | `15 s` | Correct yaw sign, translates |
+| V71 six-direction comparison | `record/current/flat_omni_v71_server_v37_hd20/gait_comparison_3x2_20s_3840x1440.mp4` | `3840x1440` | `20 s` | Best single file to show first |
+| V71 continuous speed sweep | `record/current/flat_omni_v71_server_v37_hd20/continuous_sweep_24s_1080p.mp4` | `1920x1080` | `24 s` | Shows changing command input |
+| V71 forward | `record/current/flat_omni_v71_server_v37_hd20/forward_20s_1080p.mp4` | `1920x1080` | `20 s` | `66.06 mm/s` forward in the manifest |
+| V71 reverse | `record/current/flat_omni_v71_server_v37_hd20/reverse_20s_1080p.mp4` | `1920x1080` | `20 s` | `-53.53 mm/s` reverse in the manifest |
+| V71 lateral left | `record/current/flat_omni_v71_server_v37_hd20/lateral_left_20s_1080p.mp4` | `1920x1080` | `20 s` | `31.95 mm/s` command-direction speed, mean `body_vy=+0.053 m/s` |
+| V71 lateral right | `record/current/flat_omni_v71_server_v37_hd20/lateral_right_20s_1080p.mp4` | `1920x1080` | `20 s` | `37.34 mm/s` command-direction speed, mean `body_vy=-0.118 m/s` |
+| V71 yaw left | `record/current/flat_omni_v71_server_v37_hd20/yaw_left_20s_1080p.mp4` | `1920x1080` | `20 s` | `0.047 rad/s`, high gait-gate blend |
+| V71 yaw right | `record/current/flat_omni_v71_server_v37_hd20/yaw_right_20s_1080p.mp4` | `1920x1080` | `20 s` | `-0.047 rad/s`, high gait-gate blend |
 
-The long-duration directory also contains:
+The current directory also contains:
 
-- `*_15s_1080p.json`: rollout metrics for each video;
-- `*_15s_trajectory.csv`: head and segment trajectories;
-- `*_15s_trajectory.png`: trajectory/time plots;
-- `gait_comparison_*_mid.png`: thumbnail frames for quick preview.
+- `*_metrics.json`: rollout metrics for each video;
+- `*_trajectory.csv`: head and segment trajectories;
+- `*_trajectory.png`: trajectory/time plots;
+- `*_telemetry.csv` and `*_telemetry.png`: commanded/measured velocity,
+  gait-gate/blend, prior/residual/action heatmaps;
+- `video_manifest.md` and `video_manifest.json`: video inventory and summary
+  metrics.
 
-The shorter 6 s HD set remains available in `record/current/flat_omni_v29_hd/`.
+The V71 videos are evidence for the current flat simulation checkpoint only.
+They do not prove sand/slope transfer or hardware deployment.
 
 ## Latest Diagnostic Videos
 
@@ -89,18 +90,21 @@ record/current/flat_omni_v37_lateral_wormcenter_long30
 
 ## Current Interpretation
 
-The V29 videos should be described as:
+The V71 videos should be described as:
 
 ```text
-six-direction primitive controller / weak omnidirectional prototype
+flat strict-scan accepted simulation checkpoint with six fixed commands and a continuous command sweep
 ```
 
-Do not describe them as final continuous `vx/vy/yaw` tracking. The videos show:
+Do not describe them as sand/slope or hardware results. The videos show:
 
-- forward and reverse motion are usable;
-- left/right yaw signs are separated;
-- lateral commands still contain large forward off-axis motion;
-- yaw-only commands still translate while turning.
+- the current V71 best checkpoint keeps zero wrong planar/yaw signs on the
+  strict 35-command flat scan;
+- lateral-left/right now have the intended signs in the strict scan and
+  telemetry;
+- yaw-only commands have the intended signs and high gait-gate blend;
+- a continuous changing-command sweep has been recorded, but robustness and
+  sand/slope transfer are still open.
 
 ## Historical Diagnostic Video Directories
 
@@ -109,8 +113,10 @@ paper-facing policy:
 
 | Directory | Use |
 | --- | --- |
+| `record/current/flat_omni_v71_server_v37_hd20` | Current V71 HD videos with steel strips, speed overlay, trajectories, and telemetry |
 | `record/current/flat_omni_v37_lateral_wormcenter_long30` | Latest V37 diagnostic long videos; not accepted policy |
 | `record/current/flat_omni_v35_axis_sep_long20` | Latest V35 diagnostic long videos; not accepted policy |
+| `record/current/flat_omni_v29_long15` | Earlier V29 long videos |
 | `record/v6/omni_v29_speed_gate_videos` | Lower-resolution V29 fixed-command videos and 35-command scan artifacts |
 | `record/current/flat_omni_v29_hd` | Short 6 s HD V29 videos |
 | `record/v6/omni_v16_tracking_artifacts` | Older yaw-prior repair attempt |
@@ -128,4 +134,5 @@ paper-facing policy:
 - `docs/omni_v35_v36_axis_separation_log.md`
 - `docs/omni_v37_v38_lateral_repair_log.md`
 - `docs/omni_v30_v33_repair_log.md`
+- `docs/omni_v70_v71_server_training_log.md`
 - `record/v6/paper_results/current_progress.md`

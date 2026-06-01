@@ -266,6 +266,19 @@ V71 final: `planar_rmse_m_s=0.06150`, `yaw_rmse_rad_s=0.01860`,
 `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
 `fixed_lateral_strict_gate_passed=true`, analyzer `accepted=true`.
 
+The current V71 best checkpoint has also been recorded as a viewable HD video
+set with visual spring-steel strips and head-speed overlay:
+
+```text
+record/current/flat_omni_v71_server_v37_hd20/
+```
+
+The set contains six 20 s fixed-command videos, a 24 s continuous command sweep,
+a `3840x1440` 3x2 comparison video, trajectory CSV/PNG files, telemetry
+CSV/PNG files, and a manifest. The video manifest reports correct fixed-command
+yaw signs, visible gait-gate separation, and non-empty videos. It is still a
+flat simulation artifact, not a sand/slope or hardware result.
+
 Detailed server notes are tracked in
 [V70-V71 server training log](docs/omni_v70_v71_server_training_log.md).
 
@@ -641,6 +654,18 @@ Interim result tables and figures:
 - [paper claim analysis](record/v6/paper_results/paper_claims.md)
 
 ## Viewable Videos
+
+Current flat V71 videos with visual spring-steel strips and head speed overlay:
+
+- [flat V71 20 s 3x2 comparison, 3840x1440](record/current/flat_omni_v71_server_v37_hd20/gait_comparison_3x2_20s_3840x1440.mp4)
+- [flat V71 continuous command sweep, 24 s](record/current/flat_omni_v71_server_v37_hd20/continuous_sweep_24s_1080p.mp4)
+- [flat V71 forward, 20 s](record/current/flat_omni_v71_server_v37_hd20/forward_20s_1080p.mp4)
+- [flat V71 reverse, 20 s](record/current/flat_omni_v71_server_v37_hd20/reverse_20s_1080p.mp4)
+- [flat V71 lateral left, 20 s](record/current/flat_omni_v71_server_v37_hd20/lateral_left_20s_1080p.mp4)
+- [flat V71 lateral right, 20 s](record/current/flat_omni_v71_server_v37_hd20/lateral_right_20s_1080p.mp4)
+- [flat V71 yaw left, 20 s](record/current/flat_omni_v71_server_v37_hd20/yaw_left_20s_1080p.mp4)
+- [flat V71 yaw right, 20 s](record/current/flat_omni_v71_server_v37_hd20/yaw_right_20s_1080p.mp4)
+- [flat V71 video manifest](record/current/flat_omni_v71_server_v37_hd20/video_manifest.md)
 
 Current flat V29 videos with visual spring-steel strips and head speed overlay:
 

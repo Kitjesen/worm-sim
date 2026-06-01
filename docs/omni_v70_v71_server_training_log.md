@@ -157,11 +157,47 @@ V71 final:
 
 The directional best-model summary still marks `direction_gate_passed=false`
 for some yaw/straight-yaw cases, so the result should be stated narrowly:
-V71 passes the current strict 35-command scan on flat terrain, while videos and
-robustness checks are still pending.
+V71 passes the current strict 35-command scan on flat terrain, while robustness
+checks are still pending.
+
+## V71 HD Video Evidence
+
+Artifact:
+
+```text
+record/current/flat_omni_v71_server_v37_hd20/
+```
+
+The V71 best checkpoint was recorded on the server with visual spring-steel
+strips and head-speed overlay. The directory contains:
+
+- six 20 s fixed-command `1920x1080` videos;
+- one 24 s continuous command sweep `1920x1080` video;
+- one `3840x1440` 3x2 comparison video;
+- metrics JSON, trajectory CSV/PNG, telemetry CSV/PNG, and stdout logs for each
+  command;
+- `video_manifest.json` and `video_manifest.md`.
+
+Manifest command-direction summary:
+
+| Case | Duration | Frames | Speed mm/s | Yaw rad/s | Mean gate |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| forward | 20.0 | 334 | 66.06 | 0.065 | 0.403 |
+| reverse | 20.0 | 334 | -53.53 | 0.034 | 0.482 |
+| lateral_left | 20.0 | 334 | 31.95 | 0.130 | 0.028 |
+| lateral_right | 20.0 | 334 | 37.34 | -0.065 | 0.005 |
+| yaw_left | 20.0 | 334 | 4.69 | 0.047 | 0.894 |
+| yaw_right | 20.0 | 334 | 4.42 | -0.047 | 0.893 |
+| continuous_sweep | 24.0 | 400 | -23.09 | 0.003 | 0.293 |
+
+The comparison video probes as `3840x1440`, `334` frames, `16.67 fps`, with a
+non-black sample-frame mean of `160.38`.
+
+Telemetry mean body-frame lateral velocity has the intended fixed-command sign:
+lateral-left is `+0.053 m/s`, and lateral-right is `-0.118 m/s`.
 
 Next required output:
 
-- record six fixed-command videos and a continuous sweep video;
 - run robustness checks;
-- update README/progress only with verified metrics.
+- continue policy improvement only after preserving the current strict-scan
+  acceptance.
