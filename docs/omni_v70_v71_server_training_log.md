@@ -208,6 +208,46 @@ Conclusion: V71 should be cited as the current nominal flat strict-scan
 checkpoint, not as a robust continuous tracker. The next repair target is the
 low-speed forward-left diagonal under the feasible command envelope.
 
+## V72 Forward-Left Repair Scan
+
+Training:
+
+```text
+runs/worm_v6_ppo_flat_random_v72_server_forward_left_repair_from_v71best_np2/
+```
+
+Artifacts:
+
+```text
+record/current/flat_omni_v72_server_forward_left_repair_scan/
+```
+
+V72 continued from the V71 best checkpoint with
+`command_curriculum=feasible_forward_diagonal_repair`, actor/critic
+`512-256-128`, unchanged 80D observation ABI, and unchanged 12D
+residual-plus-gate action ABI. The chunk saved the final checkpoint at
+`2,211,768` total steps.
+
+Nominal scans:
+
+| Checkpoint | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V72 best nominal | true | `0.05555` | `0.01943` | `0` | `0` | true |
+| V72 final nominal | true | `0.06127` | `0.01922` | `0` | `0` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| V72 best robust | false | `0.06319` | `0.01990` | `1` | `0` | false |
+| V72 final robust | false | `0.06425` | `0.01985` | `1` | `0` | true |
+
+The robust counterexample remains `cmd=(+0.05,+0.075,0)`. V72 final robust
+measures `body_vx=-0.03233 m/s`, `body_vy=+0.00594 m/s`, which is a slight
+improvement over V71 but still has the wrong projected planar sign. The next
+iteration should repair this specific diagonal without sacrificing the nominal
+strict-scan acceptance or fixed lateral gates.
+
 ## V71 HD Video Evidence
 
 Artifact:

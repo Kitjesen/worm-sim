@@ -283,6 +283,24 @@ one mixed `vx/vy` wrong-sign case: `cmd=(+0.05,+0.075,0)`. V71 best robust has
 the current nominal flat strict-scan checkpoint, not a robust continuous
 tracker yet.
 
+V72 continued from V71 best with the focused
+`feasible_forward_diagonal_repair` curriculum. The scan artifacts are:
+
+```text
+record/current/flat_omni_v72_server_forward_left_repair_scan/
+```
+
+V72 preserves nominal strict-scan acceptance: best nominal has
+`planar_rmse_m_s=0.05555`, `yaw_rmse_rad_s=0.01943`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`; final nominal has
+`planar_rmse_m_s=0.06127`, `yaw_rmse_rad_s=0.01922`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`. Robust scans are still
+rejected: V72 final robust has `planar_rmse_m_s=0.06425`,
+`yaw_rmse_rad_s=0.01985`, `wrong_planar_sign_count=1`, and
+`wrong_yaw_sign_count=0`. The remaining robust counterexample is still
+`cmd=(+0.05,+0.075,0)`, now measured as `body_vx=-0.03233 m/s`,
+`body_vy=+0.00594 m/s`.
+
 The current V71 best checkpoint has also been recorded as a viewable HD video
 set with visual spring-steel strips and head-speed overlay:
 

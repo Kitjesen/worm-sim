@@ -110,6 +110,21 @@ Current V71 evidence:
   forward-left diagonal failure before any sand/slope expansion. Robust sensor
   perturbations are currently used for scan evaluation, not silently mixed into
   a V71-compatible resume contract.
+- V72 server repair training completed at `2,211,768` total steps. The scan
+  artifacts are archived in
+  `record/current/flat_omni_v72_server_forward_left_repair_scan/`. V72 best
+  nominal and V72 final nominal are both accepted by the strict 35-command
+  analyzer:
+  - V72 best nominal: `planar_rmse_m_s=0.05555`,
+    `yaw_rmse_rad_s=0.01943`, `wrong_planar_sign_count=0`,
+    `wrong_yaw_sign_count=0`, `fixed_lateral_strict_gate_passed=true`;
+  - V72 final nominal: `planar_rmse_m_s=0.06127`,
+    `yaw_rmse_rad_s=0.01922`, `wrong_planar_sign_count=0`,
+    `wrong_yaw_sign_count=0`, `fixed_lateral_strict_gate_passed=true`.
+  The robust scan is still rejected for `wrong_planar_sign_count` in the
+  `mixed_vx_vy` group. V72 final robust keeps the fixed lateral strict gate but
+  still fails `cmd=(+0.05,+0.075,0)`, measured as
+  `body_vx=-0.03233 m/s`, `body_vy=+0.00594 m/s`.
 
 V49 fixed part of the mixed-yaw sign issue, reducing `mixed_vx_yaw` yaw RMSE
 from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and
