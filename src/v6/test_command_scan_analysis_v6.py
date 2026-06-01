@@ -48,6 +48,15 @@ def main():
             "zero_command_mean_speed_m_s": 0.0,
             "yaw_only_mean_planar_speed_m_s": 0.01,
         },
+        "eval_condition": "robust",
+        "sensor_noise": {
+            "encoder_pos_noise_std": 0.01,
+            "encoder_vel_noise_std": 0.02,
+            "imu_gravity_noise_std": 0.01,
+            "imu_gyro_noise_std": 0.01,
+        },
+        "action_delay_steps": 1,
+        "action_saturation": 0.90,
         "commands": [
             row(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             row(0.25, 0.0, 0.0, 0.18, 0.0, 0.0),
@@ -67,6 +76,10 @@ def main():
         "mean_gait_blend"] == 0.5
     assert analysis["groups"]["mixed_vx_yaw"]["telemetry_means"][
         "mean_residual_component_l2"] == 0.1
+    assert analysis["source_scan"]["eval_condition"] == "robust"
+    assert analysis["source_scan"]["action_delay_steps"] == 1
+    assert analysis["source_scan"]["action_saturation"] == 0.90
+    assert analysis["source_scan"]["sensor_noise"]["encoder_pos_noise_std"] == 0.01
     assert analysis["dominant_failure_group"] == "mixed_vx_yaw"
     assert analysis["worst_commands"][0]["class"] == "mixed_vx_yaw"
 

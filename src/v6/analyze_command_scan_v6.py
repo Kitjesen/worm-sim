@@ -271,6 +271,10 @@ def analyze_scan_payload(payload: Dict, top_k: int = 8) -> Dict:
             "gait_mode": payload.get("gait_mode"),
             "time_s": payload.get("time_s"),
             "model_path": payload.get("model_path"),
+            "eval_condition": payload.get("eval_condition"),
+            "sensor_noise": payload.get("sensor_noise"),
+            "action_delay_steps": payload.get("action_delay_steps"),
+            "action_saturation": payload.get("action_saturation"),
             "reward_contract": payload.get("reward_contract"),
             "action_adapter_version": (
                 payload.get("action_adapter", {}).get("version")
@@ -302,6 +306,19 @@ def render_markdown(analysis: Dict) -> str:
         "stop, and yaw-only drift gates. One failed command class is a "
         "constructive counterexample to the continuous-tracking claim.",
         "",
+    ]
+    source = analysis.get("source_scan", {})
+    if source.get("eval_condition"):
+        lines += [
+            "## Evaluation condition",
+            "",
+            f"- condition: `{source.get('eval_condition')}`",
+            f"- sensor_noise: `{source.get('sensor_noise')}`",
+            f"- action_delay_steps: `{source.get('action_delay_steps')}`",
+            f"- action_saturation: `{source.get('action_saturation')}`",
+            "",
+        ]
+    lines += [
         "## Acceptance gate",
         "",
         "| Condition | Measured | Target | Status |",
