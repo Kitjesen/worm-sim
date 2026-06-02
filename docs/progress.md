@@ -708,10 +708,99 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   videos, one 12 s hard forward-left diagnostic, and one 24 s continuous command
   sweep. They include visual spring-steel strips and head-speed overlay.
 
+## 2026-06-02 V85b Server Mixed-Planar Hardcase Diagnostic
+
+- V85b was trained on the server only, from the V77 best checkpoint, with
+  `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1` and the
+  `mixed_planar_hardcase_repair` curriculum. The Windows machine was used only
+  for pulling artifacts and documentation.
+- Run label:
+  `flat_random_v85b_server_mixed_planar_hardcase_from_v77best_np2`. It keeps
+  the 80D observation ABI, keeps the 12D residual plus learned-gate action ABI,
+  and uses actor/critic `512-256-128`.
+- Local pulled artifacts:
+  `record/current/flat_omni_v85b_server_mixed_planar_hardcase_scan/` and
+  `record/current/flat_omni_v85b_server_mixed_planar_hardcase_videos/`.
+- V85b best nominal scan: `planar_rmse_m_s=0.05620`,
+  `yaw_rmse_rad_s=0.01861`, `wrong_planar_sign_count=0`,
+  `wrong_yaw_sign_count=0`, `off_axis_exceed_count=2`,
+  `planar_error_exceed_count=1`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- V85b best robust scan: `planar_rmse_m_s=0.06144`,
+  `yaw_rmse_rad_s=0.02042`, `wrong_planar_sign_count=2`,
+  `wrong_yaw_sign_count=0`, `planar_error_exceed_count=2`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- V85b final robust scan improves the robust sign count but still fails:
+  `planar_rmse_m_s=0.06254`, `yaw_rmse_rad_s=0.02027`,
+  `wrong_planar_sign_count=1`, `wrong_yaw_sign_count=0`,
+  `off_axis_exceed_count=1`, and `planar_error_exceed_count=5`.
+- The remaining V85b final robust sign counterexample is
+  `cmd=(+0.05,+0.075,0)`, which measures
+  `body_vx=-0.03670 m/s`, `body_vy=+0.01979 m/s`,
+  `yaw_rate=+0.01997 rad/s`, and mean deployed gate `0.256`.
+- Nine server-recorded HD videos were pulled locally: six 12 s fixed-command
+  videos, two 12 s hard diagonal diagnostics, and one 24 s continuous command
+  sweep. They include visual spring-steel strips and head-speed overlay.
+- V85b is not the accepted flat checkpoint. It is useful evidence that the
+  mixed-planar hardcase curriculum preserves nominal signs but still does not
+  make robust slow forward-left diagonal tracking reliable.
+
+## 2026-06-02 V86b Server Robust Forward-Left Repair
+
+- V86b was trained and post-evaluated on the server only, from the V85b final
+  checkpoint, with the `robust_forward_left_diagonal_repair` curriculum. The
+  Windows machine was used only to pull artifacts and update documentation.
+- The verified server checkout remains
+  `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training`, currently at
+  Git commit `49ab85b`. The training/evaluation Python is
+  `/home/bsrl/miniconda3/envs/wormv6_np2/bin/python`, with Python `3.11.14`,
+  NumPy `2.2.6`, PyTorch `2.7.0+cu128`, CUDA available on 8 RTX 3090 GPUs,
+  MuJoCo `3.3.3`, Gymnasium `1.2.0`, and SB3 `2.7.0`.
+- Run label:
+  `flat_random_v86b_server_robust_forward_left_from_v85bfinal_np2`. It keeps
+  the 80D observation ABI, keeps the 12D residual plus learned-gate action ABI,
+  and uses actor/critic `512-256-128`.
+- Local pulled artifacts:
+  `record/current/flat_omni_v86b_server_robust_forward_left_scan/` and
+  `record/current/flat_omni_v86b_server_robust_forward_left_videos/`.
+- Server environment verification passed:
+  `test_reward_contract_v6.py`, `test_deployable_obs_v6.py`,
+  `test_omni_eval_metrics_v6.py`, and
+  `test_visual_steel_strip_geometry_v6.py`.
+- V86b best nominal scan: `planar_rmse_m_s=0.05702`,
+  `yaw_rmse_rad_s=0.01897`, `wrong_planar_sign_count=0`,
+  `wrong_yaw_sign_count=0`, `off_axis_exceed_count=3`, and
+  `planar_error_exceed_count=2`.
+- V86b best robust scan: `planar_rmse_m_s=0.05855`,
+  `yaw_rmse_rad_s=0.02027`, `wrong_planar_sign_count=0`,
+  `wrong_yaw_sign_count=0`, `off_axis_exceed_count=1`,
+  `planar_error_exceed_count=2`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- V86b final robust scan is not the candidate because it regresses to
+  `wrong_planar_sign_count=1`, even though it reduces
+  `planar_error_exceed_count` to `1`.
+- The V86b best robust remaining hard failures are no longer the V85b
+  `(+0.05,+0.075,0)` sign failure. They are magnitude/crosstalk cases:
+  `cmd=(-0.10,+0.075,0)` has `planar_error_m_s=0.10286`, and
+  `cmd=(+0.05,-0.075,0)` has `planar_error_m_s=0.10707` with
+  `off_axis_speed_m_s=0.09834`.
+- Nine server-recorded HD videos were pulled locally: six 12 s fixed-command
+  videos, two 12 s hard diagonal diagnostics, and one 24 s continuous command
+  sweep. They include visual spring-steel strips and head-speed overlay.
+- V86b is a useful robust sign repair result, but it is not yet a complete
+  continuous velocity tracker because magnitude fidelity and off-axis crosstalk
+  still exceed the current scan thresholds.
+
 ## Not Done
 
 - The current V77 best checkpoint fixes the repeated robust hardcase sign gate,
   but it is still not a complete arbitrary continuous velocity tracker.
+- V85b does not supersede V77 as the accepted robust sign-gate candidate:
+  V85b final robust still has one planar sign failure and five planar magnitude
+  errors over threshold.
+- V86b best robust removes those planar sign failures, but it still does not
+  supersede V77 as the paper-facing checkpoint because it has
+  `planar_error_exceed_count=2` and `off_axis_exceed_count=1`.
 - Remaining flat limitations are magnitude accuracy and crosstalk, not the
   repeated robust sign failure: V77 best nominal has `off_axis_exceed_count=3`
   and `planar_error_exceed_count=1`.
@@ -784,9 +873,10 @@ The project framework is substantial, but the paper is not complete. The latest
 flat V77 best line keeps the deployable ABI fixed, trains only on the server,
 uses actor/critic `512-256-128`, fixes the repeated robust mixed-planar sign
 failure, and provides viewable HD videos with visual spring-steel strips and
-head-speed overlay. The current best result is still not "any velocity command
-can be tracked" with high fidelity: V77 best robust passes sign gates, but
-nominal off-axis crosstalk and some planar magnitude errors remain. The next
-accepted advance should convert the V77 best sign-gate repair into stronger
-continuous tracking claims only after fixed-gate ablations, deploy bundles, and
-sand/slope transfer are regenerated.
+head-speed overlay. V85b adds a complete diagnostic video/scan set but does not
+supersede V77 because robust slow forward-left still fails. V86b fixes the V85b
+robust planar sign failures in the best robust checkpoint, but still leaves
+planar magnitude and off-axis exceedances. The current best result is still not
+"any velocity command can be tracked" with high fidelity: V77 best robust
+passes the cleanest sign-gate line, while V86b identifies the next failure mode
+as robust diagonal magnitude/crosstalk rather than pure sign confusion.

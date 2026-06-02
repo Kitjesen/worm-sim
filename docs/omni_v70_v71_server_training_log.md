@@ -1,4 +1,4 @@
-# V70-V71 Server Training Log
+# V70-V86b Server Training Log
 
 Date: 2026-06-01
 
@@ -505,9 +505,152 @@ Manifest command-direction summary:
 | continuous_sweep | `-21.22` | `-0.001` | `0.296` |
 
 Conclusion: V77 best is the current flat robust sign-gate candidate with
-viewable videos. The next work is to run fixed-gate ablations and deploy-bundle
-generation for V77 best, then transfer the same ABI to sand and slope while
-tracking magnitude error and off-axis crosstalk.
+viewable videos. The next work is to verify whether additional mixed-planar
+hardcase repair can improve magnitude and diagonal robustness without losing
+V77's robust sign gate.
+
+## V85b Mixed-Planar Hardcase Diagnostic And HD Videos
+
+Artifacts:
+
+```text
+record/current/flat_omni_v85b_server_mixed_planar_hardcase_scan/
+record/current/flat_omni_v85b_server_mixed_planar_hardcase_videos/
+```
+
+V85b continued from the V77 best checkpoint on the clean server checkout with
+the narrow hardcase gate enabled:
+
+```text
+WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1
+```
+
+The run used `mixed_planar_hardcase_repair`, preserved the 80D observation ABI,
+preserved the 12D residual-plus-gate action ABI, and used actor/critic
+`512-256-128`.
+
+Nominal scans:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V85b best nominal | true | `0.05620` | `0.01861` | `0` | `0` | `2` | `1` | true |
+| V85b final nominal | true | `0.05675` | `0.01881` | `0` | `0` | `2` | `1` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V85b best robust | false | `0.06144` | `0.02042` | `2` | `0` | `0` | `2` | true |
+| V85b final robust | false | `0.06254` | `0.02027` | `1` | `0` | `1` | `5` | true |
+
+Remaining robust diagonal failures:
+
+| Checkpoint | Command | body vx | body vy | body yaw | Planar sign ok | Mean deployed gate |
+| --- | --- | ---: | ---: | ---: | --- | ---: |
+| V85b best robust | `(+0.05,-0.075,0)` | `-0.06787` | `-0.03134` | `+0.06050` | false | `0.223` |
+| V85b best robust | `(+0.05,+0.075,0)` | `-0.03492` | `+0.01553` | `+0.02562` | false | `0.256` |
+| V85b final robust | `(+0.05,+0.075,0)` | `-0.03670` | `+0.01979` | `+0.01997` | false | `0.256` |
+
+The final checkpoint fixes the right-diagonal robust sign failure that appears
+in the best checkpoint, but it still fails the slow forward-left diagonal and
+has more planar magnitude errors. V85b is therefore a diagnostic result, not a
+new accepted flat checkpoint.
+
+The V85b video directory contains six 12 s fixed-command `1920x1080` videos,
+two 12 s hard diagonal diagnostic videos, one 24 s continuous sweep, metrics
+JSON, trajectory CSV/PNG, telemetry CSV/PNG, and `video_manifest.md/json`.
+
+Manifest command-direction summary:
+
+| Case | Speed mm/s | Yaw rad/s | Mean gate |
+| --- | ---: | ---: | ---: |
+| forward | `64.38` | `0.083` | `0.399` |
+| reverse | `-55.19` | `0.050` | `0.490` |
+| lateral_left | `1.92` | `0.126` | `0.032` |
+| lateral_right | `-10.34` | `-0.043` | `0.005` |
+| yaw_left | `7.62` | `0.077` | `0.901` |
+| yaw_right | `7.46` | `-0.075` | `0.905` |
+| hard_forward_left | `-0.37` | `0.125` | `0.248` |
+| hard_forward_right | `21.62` | `-0.079` | `0.212` |
+| continuous_sweep | `-21.86` | `0.007` | `0.295` |
+
+Conclusion: V85b shows that broad mixed-planar hardcase training preserves the
+nominal sign gate, but the robust diagonal controller is still not reliable.
+The next server run is V86b: resume from V85b final with
+`robust_forward_left_diagonal_repair` and accept it only if both nominal and
+robust 35-command scans pass.
+
+## V86b Robust Forward-Left Repair And HD Videos
+
+Artifacts:
+
+```text
+record/current/flat_omni_v86b_server_robust_forward_left_scan/
+record/current/flat_omni_v86b_server_robust_forward_left_videos/
+```
+
+V86b continued from the V85b final checkpoint on the clean server checkout with
+the same deployable interfaces: 80D observation ABI, 12D residual-plus-gate
+action ABI, actor/critic `512-256-128`, and
+`WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`.
+
+The server environment was verified after the run with the `wormv6_np2`
+interpreter:
+
+```text
+/home/bsrl/miniconda3/envs/wormv6_np2/bin/python
+Python 3.11.14, NumPy 2.2.6, PyTorch 2.7.0+cu128, MuJoCo 3.3.3,
+Gymnasium 1.2.0, SB3 2.7.0, CUDA available on 8 RTX 3090 GPUs
+```
+
+The server test set passed:
+
+```text
+test_reward_contract_v6.py
+test_deployable_obs_v6.py
+test_omni_eval_metrics_v6.py
+test_visual_steel_strip_geometry_v6.py
+```
+
+Nominal scans:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V86b best nominal | true | `0.05702` | `0.01897` | `0` | `0` | `3` | `2` | true |
+| V86b final nominal | true | `0.05730` | `0.01909` | `0` | `0` | `3` | `2` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V86b best robust | true | `0.05855` | `0.02027` | `0` | `0` | `1` | `2` | true |
+| V86b final robust | false | `0.05765` | `0.02012` | `1` | `0` | `1` | `1` | true |
+
+Remaining V86b best-robust hard failures:
+
+| Command | body vx | body vy | body yaw | Planar error | Off-axis | Mean deployed gate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `(-0.10,+0.075,0)` | `-0.05537` | `-0.01768` | `-0.07050` | `0.10286` | `0.04736` | `0.495` |
+| `(+0.05,-0.075,0)` | `-0.05531` | `-0.09431` | `-0.00548` | `0.10707` | `0.09834` | `0.222` |
+
+Manifest command-direction summary:
+
+| Case | Speed mm/s | Yaw rad/s | Mean gate |
+| --- | ---: | ---: | ---: |
+| forward | `69.55` | `0.038` | `0.396` |
+| reverse | `-24.98` | `0.066` | `0.491` |
+| lateral_left | `5.28` | `0.127` | `0.032` |
+| lateral_right | `-37.63` | `-0.025` | `0.005` |
+| yaw_left | `8.65` | `0.077` | `0.901` |
+| yaw_right | `6.25` | `-0.075` | `0.906` |
+| hard_forward_left | `-1.47` | `0.116` | `0.247` |
+| hard_forward_right | `-55.70` | `-0.026` | `0.212` |
+| continuous_sweep | `-18.51` | `0.011` | `0.295` |
+
+Conclusion: V86b fixes the V85b robust sign failures in the best checkpoint but
+does not yet meet the continuous-tracking target because planar magnitude and
+off-axis errors remain above threshold. It is a server-verified diagnostic
+candidate, not the final accepted flat policy.
 
 ## V71 HD Video Evidence
 
