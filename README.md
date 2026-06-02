@@ -180,7 +180,7 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V64-V77 Status
+### Latest Flat V64-V88 Status
 
 The active flat baseline is now the V64 best checkpoint evaluated with the
 current V36 feasible-speed adapter. The command envelope is intentionally
@@ -210,13 +210,36 @@ Training has moved off the local Windows machine. The active server checkout is
 `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training`. The original
 `thunder2` environment remains reserved for Isaac Lab; Worm V6 MuJoCo PPO uses
 the cloned `wormv6_np2` environment so NumPy-2 VecNormalize files load
-correctly. The latest accepted server candidate is still V77 best,
-`flat_random_v77_server_hardcase_gate_from_v76best_np2`. V85b has complete scan
-and video artifacts, but it is a diagnostic result because robust slow
-forward-left remains wrong. V86b has now completed on the server from V85b final
-with `robust_forward_left_diagonal_repair`; its best robust scan fixes the V85b
-robust planar sign failures, but it still has planar magnitude and off-axis
-exceedances, so it is not yet the paper-facing continuous tracker.
+correctly. The latest accepted server sign-gate candidate is still V77 best,
+`flat_random_v77_server_hardcase_gate_from_v76best_np2`. V85b and V86b have
+complete scan and video artifacts, but they are diagnostic results rather than
+the final continuous tracker.
+
+V87 directly tested the V50 mixed-command composition repair by enabling
+`WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1` from the V86b best checkpoint:
+
+```text
+record/current/flat_omni_v87_server_v50_mixed_composition_scan/
+```
+
+It is rejected as a regression. V87 best robust has
+`planar_rmse_m_s=0.09867`, `yaw_rmse_rad_s=0.02018`,
+`wrong_planar_sign_count=3`, `off_axis_exceed_count=6`, and
+`planar_error_exceed_count=8`.
+
+V88 kept the same `mixed_composition_repair` curriculum but returned to the
+default hardcase-gated adapter, leaving mixed-command composition disabled:
+
+```text
+record/current/flat_omni_v88_server_mixed_composition_default_scan/
+```
+
+V88 final nominal is the strongest clean scan in this branch so far:
+`planar_rmse_m_s=0.05331`, `yaw_rmse_rad_s=0.01880`,
+`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and both fixed lateral
+strict gates pass. The robust scan still rejects it with
+`wrong_planar_sign_count=1` and `planar_error_exceed_count=2`, so the result is
+not yet a paper-facing continuous `vx/vy/yaw` tracker.
 
 The first server-side V69c early-best 35-command scan is:
 
@@ -451,7 +474,7 @@ record/current/flat_omni_v71_server_v37_hd20/
 ```
 
 Detailed server notes are tracked in
-[V70-V86b server training log](docs/omni_v70_v71_server_training_log.md).
+[V70-V88 server training log](docs/omni_v70_v71_server_training_log.md).
 
 Long runs should use the clean Git checkout under
 `/home/bsrl/hongsenpang/codex_runs`; the older

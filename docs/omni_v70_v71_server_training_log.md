@@ -1,4 +1,4 @@
-# V70-V86b Server Training Log
+# V70-V88 Server Training Log
 
 Date: 2026-06-01
 
@@ -652,6 +652,112 @@ does not yet meet the continuous-tracking target because planar magnitude and
 off-axis errors remain above threshold. It is a server-verified diagnostic
 candidate, not the final accepted flat policy.
 
+## V87 V50 Mixed-Command Composition Server Scan
+
+Artifacts:
+
+```text
+record/current/flat_omni_v87_server_v50_mixed_composition_scan/
+```
+
+V87 continued from the V86b best checkpoint on the server checkout and directly
+tested the V50 mixed-command composition branch:
+
+```text
+WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1
+WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1
+```
+
+The run label was
+`flat_random_v87_server_v50_mixed_composition_from_v86bbest_np2`. It preserved
+the deployable interfaces: 80D observation ABI, 12D residual-plus-gate action
+ABI, and actor/critic `512-256-128`.
+
+Nominal scans:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V87 best nominal | false | `0.09427` | `0.01897` | `3` | `0` | `4` | `7` | true |
+| V87 final nominal | false | `0.10410` | `0.01918` | `4` | `0` | `5` | `8` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V87 best robust | false | `0.09867` | `0.02018` | `3` | `0` | `6` | `8` | true |
+| V87 final robust | false | `0.09861` | `0.02019` | `4` | `0` | `5` | `6` | true |
+
+Representative robust regressions:
+
+| Checkpoint | Command | body vx | body vy | body yaw | Planar error | Off-axis |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| V87 best robust | `(-0.10,-0.075,0)` | `+0.099` | `-0.139` | `-0.236` | `0.209` | `0.171` |
+| V87 best robust | `(-0.05,-0.075,0)` | `+0.164` | `-0.117` | `-0.292` | `0.218` | `0.201` |
+| V87 best robust | `(+0.10,+0.075,0)` | `-0.012` | `-0.032` | `-0.049` | `0.155` | `0.019` |
+
+Conclusion: V87 is a negative V50 ablation. Enabling componentwise
+mixed-command composition preserves the fixed lateral strict gates, but it
+regresses planar sign reliability and mixed-planar magnitude/crosstalk. It
+should not be promoted as the default control path.
+
+## V88 Default Adapter Mixed-Composition Repair Server Scan
+
+Artifacts:
+
+```text
+record/current/flat_omni_v88_server_mixed_composition_default_scan/
+```
+
+V88 used the same `mixed_composition_repair` curriculum as V87 but returned to
+the default hardcase-gated adapter. It kept:
+
+```text
+WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1
+```
+
+and did not enable `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION`. The run label
+was `flat_random_v88_server_mixed_composition_default_from_v86bbest_np2`. The
+80D observation ABI, 12D residual-plus-gate action ABI, and actor/critic
+`512-256-128` were unchanged.
+
+The server test set passed after the run with
+`/home/bsrl/miniconda3/envs/wormv6_np2/bin/python`:
+
+```text
+test_reward_contract_v6.py
+test_deployable_obs_v6.py
+test_omni_eval_metrics_v6.py
+test_visual_steel_strip_geometry_v6.py
+```
+
+Nominal scans:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V88 best nominal | true | `0.05777` | `0.01888` | `0` | `0` | `2` | `2` | true |
+| V88 final nominal | true | `0.05331` | `0.01880` | `0` | `0` | `3` | `2` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted sign gate | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V88 best robust | false | `0.05743` | `0.02015` | `1` | `0` | `1` | `1` | true |
+| V88 final robust | false | `0.05911` | `0.01977` | `1` | `0` | `0` | `2` | true |
+
+Remaining V88 final-robust hard failures:
+
+| Command | body vx | body vy | body yaw | Planar error | Planar sign ok |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `(+0.05,+0.075,0)` | `-0.032` | `+0.017` | `+0.032` | `0.100` | false |
+| `(+0.10,-0.075,0)` | `+0.042` | `+0.007` | `+0.041` | `0.100` | true |
+
+Conclusion: V88 confirms that the default hardcase-gated adapter is the better
+path than the V50 componentwise composition flag. V88 final nominal is the
+strongest clean scan in this branch, but robust evaluation still has one
+mixed-planar sign failure and two planar-error exceedances. The current flat
+controller is therefore still a strong diagnostic prototype, not a final
+continuous `vx/vy/yaw` tracker.
+
 ## V71 HD Video Evidence
 
 Artifact:
@@ -688,10 +794,13 @@ non-black sample-frame mean of `160.38`.
 Telemetry mean body-frame lateral velocity has the intended fixed-command sign:
 lateral-left is `+0.053 m/s`, and lateral-right is `-0.118 m/s`.
 
-Next required output:
+Next required output after V88:
 
-- run fixed-gate and residual/prior ablations on V77 best to support the learned
-  latent gate claim;
-- generate a deploy bundle for V77 best under the unchanged 80D/12D ABI;
-- transfer the V77 best ABI and hardcase-gate setting to sand and slope after
-  flat ablations are recorded.
+- keep the V50 componentwise mixed-command composition flag default-off;
+- continue from the V88/V86b default-adapter line with a robust mixed-planar
+  magnitude/sign repair target, not a broader hand-composed prior;
+- accept the next flat checkpoint only if nominal and robust 35-command scans
+  have zero planar/yaw sign failures and reduce mixed-planar magnitude/off-axis
+  exceedances;
+- regenerate videos, deploy bundle, learned-gate ablations, and sand/slope
+  transfer only after the robust flat gate is solved.

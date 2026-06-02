@@ -3,7 +3,8 @@
 ## Current Target (2026-06-01)
 
 V50 mixed-command composition repair has been implemented and rejected as the
-default control path. V51/V52 then tested the safer follow-up: keep the
+default control path, and V87 has now confirmed this rejection in a server-side
+continuation from V86b best. V51/V52 then tested the safer follow-up: keep the
 V49/V41 prior path, increase mixed-command residual authority, and add a
 mixed-planar component/sign reward. V53 then continued with a mixed-planar
 curriculum, V54 tested a more aggressive prior/residual authority rebalance,
@@ -48,7 +49,7 @@ The flat acceptance targets are:
 - `mixed_vx_vy` planar exceed below `8/16`;
 - `mixed_vx_yaw` yaw exceed below `3/6`.
 
-Current V74 evidence:
+Current server evidence summary:
 
 - The server is the only active training machine. The V74 train and scan jobs
   completed on the server; no local Windows training was used for this run.
@@ -171,6 +172,21 @@ Current V74 evidence:
   `body_vx=-0.03531 m/s`, `body_vy=+0.01460 m/s`. This targeted curriculum did
   not solve the robust diagonal failure and slightly regressed robust lateral
   left in the final checkpoint.
+- V87 is the current server-side V50 mixed-command composition ablation. It
+  resumed from the V86b best checkpoint with
+  `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1` and the
+  `mixed_composition_repair` curriculum. It is rejected: V87 best robust has
+  `planar_rmse_m_s=0.09867`, `yaw_rmse_rad_s=0.02018`,
+  `wrong_planar_sign_count=3`, `off_axis_exceed_count=6`, and
+  `planar_error_exceed_count=8`.
+- V88 is the matched control run: same V86b-best resume and same
+  `mixed_composition_repair` curriculum, but with mixed-command composition
+  disabled and the default hardcase-gated adapter kept. V88 final nominal has
+  `planar_rmse_m_s=0.05331`, `yaw_rmse_rad_s=0.01880`,
+  `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and
+  `fixed_lateral_strict_gate_passed=true`. V88 final robust still fails with
+  `wrong_planar_sign_count=1` and `planar_error_exceed_count=2`, so the branch
+  is not accepted as a robust continuous tracker.
 
 V49 fixed part of the mixed-yaw sign issue, reducing `mixed_vx_yaw` yaw RMSE
 from `0.2884` to `0.2145`, but overall planar RMSE stayed at `0.1515` and
@@ -791,6 +807,73 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   continuous velocity tracker because magnitude fidelity and off-axis crosstalk
   still exceed the current scan thresholds.
 
+## 2026-06-02 V87 Server V50 Mixed-Command Composition Ablation
+
+- V87 was trained and post-evaluated on the server only. The Windows machine
+  was used only to pull artifacts and update documentation.
+- Run label:
+  `flat_random_v87_server_v50_mixed_composition_from_v86bbest_np2`.
+- It resumed from
+  `runs/worm_v6_ppo_flat_random_v86b_server_robust_forward_left_from_v85bfinal_np2/best_model.zip`.
+- It kept the 80D observation ABI, kept the 12D residual plus learned-gate
+  action ABI, used actor/critic `512-256-128`, enabled
+  `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`, and additionally enabled the
+  V50 ablation flag `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1`.
+- Local pulled artifacts:
+  `record/current/flat_omni_v87_server_v50_mixed_composition_scan/`.
+- V87 best nominal scan: `planar_rmse_m_s=0.09427`,
+  `yaw_rmse_rad_s=0.01897`, `wrong_planar_sign_count=3`,
+  `wrong_yaw_sign_count=0`, `off_axis_exceed_count=4`, and
+  `planar_error_exceed_count=7`.
+- V87 best robust scan: `planar_rmse_m_s=0.09867`,
+  `yaw_rmse_rad_s=0.02018`, `wrong_planar_sign_count=3`,
+  `wrong_yaw_sign_count=0`, `off_axis_exceed_count=6`, and
+  `planar_error_exceed_count=8`.
+- V87 final robust scan is also rejected: `planar_rmse_m_s=0.09861`,
+  `yaw_rmse_rad_s=0.02019`, `wrong_planar_sign_count=4`,
+  `wrong_yaw_sign_count=0`, `off_axis_exceed_count=5`, and
+  `planar_error_exceed_count=6`.
+- V87 is a negative ablation. The componentwise mixed-command composition flag
+  preserves the fixed lateral strict gates, but it regresses planar sign
+  reliability and mixed-planar magnitude/crosstalk. It should remain
+  default-off.
+
+## 2026-06-02 V88 Server Default Adapter Mixed-Composition Repair
+
+- V88 was trained and post-evaluated on the server only, as the matched control
+  for V87. The Windows machine was used only to pull artifacts and update
+  documentation.
+- Run label:
+  `flat_random_v88_server_mixed_composition_default_from_v86bbest_np2`.
+- It resumed from the V86b best checkpoint and used the same
+  `mixed_composition_repair` curriculum as V87, but did not enable
+  `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION`. The only adapter flag kept was
+  `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`.
+- It preserved the 80D observation ABI, preserved the 12D residual plus
+  learned-gate action ABI, and used actor/critic `512-256-128`.
+- Local pulled artifacts:
+  `record/current/flat_omni_v88_server_mixed_composition_default_scan/`.
+- Server environment verification passed after the run:
+  `test_reward_contract_v6.py`, `test_deployable_obs_v6.py`,
+  `test_omni_eval_metrics_v6.py`, and
+  `test_visual_steel_strip_geometry_v6.py`.
+- V88 final nominal scan is the strongest clean scan in this branch:
+  `planar_rmse_m_s=0.05331`, `yaw_rmse_rad_s=0.01880`,
+  `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
+  `off_axis_exceed_count=3`, `planar_error_exceed_count=2`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- V88 final robust scan still fails the robust acceptance gate:
+  `planar_rmse_m_s=0.05911`, `yaw_rmse_rad_s=0.01977`,
+  `wrong_planar_sign_count=1`, `wrong_yaw_sign_count=0`,
+  `off_axis_exceed_count=0`, `planar_error_exceed_count=2`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- The V88 final robust sign counterexample is still a mixed planar command:
+  `cmd=(+0.05,+0.075,0)`, measured as `body_vx=-0.032 m/s`,
+  `body_vy=+0.017 m/s`, and `yaw_rate=+0.032 rad/s`.
+- V88 confirms the next technical direction: keep the default hardcase-gated
+  adapter, reject the V50 componentwise composition flag, and repair robust
+  mixed-planar magnitude/sign behavior without changing the 80D/12D ABI.
+
 ## Not Done
 
 - The current V77 best checkpoint fixes the repeated robust hardcase sign gate,
@@ -801,6 +884,12 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 - V86b best robust removes those planar sign failures, but it still does not
   supersede V77 as the paper-facing checkpoint because it has
   `planar_error_exceed_count=2` and `off_axis_exceed_count=1`.
+- V87 confirms that enabling `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=1` is
+  the wrong default direction for this branch: it regresses to
+  `wrong_planar_sign_count=3` in best robust and `4` in final robust.
+- V88 is the best default-adapter continuation after V86b, and its final
+  nominal scan improves planar RMSE to `0.05331`, but the robust scan still has
+  `wrong_planar_sign_count=1` and `planar_error_exceed_count=2`.
 - Remaining flat limitations are magnitude accuracy and crosstalk, not the
   repeated robust sign failure: V77 best nominal has `off_axis_exceed_count=3`
   and `planar_error_exceed_count=1`.
@@ -876,7 +965,11 @@ failure, and provides viewable HD videos with visual spring-steel strips and
 head-speed overlay. V85b adds a complete diagnostic video/scan set but does not
 supersede V77 because robust slow forward-left still fails. V86b fixes the V85b
 robust planar sign failures in the best robust checkpoint, but still leaves
-planar magnitude and off-axis exceedances. The current best result is still not
-"any velocity command can be tracked" with high fidelity: V77 best robust
-passes the cleanest sign-gate line, while V86b identifies the next failure mode
-as robust diagonal magnitude/crosstalk rather than pure sign confusion.
+planar magnitude and off-axis exceedances. V87 rejects the V50 componentwise
+mixed-command composition flag as a default control path. V88 shows that the
+default hardcase-gated adapter plus the same mixed-composition curriculum is
+the better direction and improves the nominal scan, but robust evaluation still
+has one mixed-planar sign failure and two planar-error exceedances. The current
+best result is still not "any velocity command can be tracked" with high
+fidelity: the remaining flat problem is robust mixed `vx/vy` sign plus
+magnitude/crosstalk under sensor noise, delay, and action saturation.
