@@ -1,4 +1,4 @@
-# V70-V88 Server Training Log
+# V70-V89a Server Training Log
 
 Date: 2026-06-01
 
@@ -758,6 +758,62 @@ mixed-planar sign failure and two planar-error exceedances. The current flat
 controller is therefore still a strong diagnostic prototype, not a final
 continuous `vx/vy/yaw` tracker.
 
+## V89a Robust Forward-Diagonal Repair Server Scan
+
+Artifacts:
+
+```text
+record/current/flat_omni_v89a_server_robust_forward_diag_scan/
+```
+
+V89a continued from the V88 final checkpoint:
+
+```text
+runs/worm_v6_ppo_flat_random_v88_server_mixed_composition_default_from_v86bbest_np2/final_model.zip
+```
+
+The first V89 launch used a formal target below the resumed checkpoint's
+`3,007,128` accumulated steps, so it did not train and is excluded from the
+experimental result. V89a corrected the target to `3,107,128` and ran an
+actual continuation under `robust_forward_left_diagonal_repair` with robust
+sensor noise, one action-delay step, and `0.90` action saturation. It kept:
+
+```text
+WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1
+WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=0
+```
+
+The 80D observation ABI, 12D residual-plus-gate action ABI, and actor/critic
+`512-256-128` were unchanged.
+
+Nominal scans:
+
+| Checkpoint | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V89a best nominal | true | `0.06092` | `0.01886` | `0` | `0` | `4` | `2` | true |
+| V89a final nominal | true | `0.05324` | `0.01922` | `0` | `0` | `2` | `0` | true |
+
+Robust scans under `robust_sensor_delay_sat_v1`:
+
+| Checkpoint | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Off-axis exceed | Planar-error exceed | Lateral strict |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| V89a best robust | false | `0.06180` | `0.01985` | `1` | `0` | `1` | `2` | true |
+| V89a final robust | false | `0.06322` | `0.02015` | `1` | `0` | `1` | `3` | true |
+
+Remaining V89a final-robust hard failures:
+
+| Command | body vx | body vy | body yaw | Planar error | Planar sign ok |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `(+0.05,+0.075,0)` | `-0.041` | `+0.005` | `+0.016` | `0.115` | false |
+| `(+0.10,-0.075,0)` | `+0.049` | `+0.030` | `+0.108` | `0.117` | true |
+| `(-0.10,+0.075,0)` | `-0.056` | `-0.028` | `-0.105` | `0.112` | true |
+
+Conclusion: V89a final nominal is now the cleanest nominal flat scan because it
+removes all nominal planar-error exceedances while preserving zero planar/yaw
+sign failures. Robust evaluation still fails on mixed `vx/vy` commands. The
+next run should keep the V50 componentwise composition flag disabled and use a
+robust mixed-planar repair that also preserves yaw-only and forward-yaw cases.
+
 ## V71 HD Video Evidence
 
 Artifact:
@@ -794,11 +850,11 @@ non-black sample-frame mean of `160.38`.
 Telemetry mean body-frame lateral velocity has the intended fixed-command sign:
 lateral-left is `+0.053 m/s`, and lateral-right is `-0.118 m/s`.
 
-Next required output after V88:
+Next required output after V89a:
 
 - keep the V50 componentwise mixed-command composition flag default-off;
-- continue from the V88/V86b default-adapter line with a robust mixed-planar
-  magnitude/sign repair target, not a broader hand-composed prior;
+- continue from the V89a/V88 default-adapter line with a robust mixed-planar
+  magnitude/sign repair target that preserves yaw-only and forward-yaw cases;
 - accept the next flat checkpoint only if nominal and robust 35-command scans
   have zero planar/yaw sign failures and reduce mixed-planar magnitude/off-axis
   exceedances;

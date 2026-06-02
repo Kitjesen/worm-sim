@@ -180,7 +180,7 @@ The migration plan is tracked in
 
 ## Current Progress
 
-### Latest Flat V64-V88 Status
+### Latest Flat V64-V89a Status
 
 The active flat baseline is now the V64 best checkpoint evaluated with the
 current V36 feasible-speed adapter. The command envelope is intentionally
@@ -234,11 +234,22 @@ default hardcase-gated adapter, leaving mixed-command composition disabled:
 record/current/flat_omni_v88_server_mixed_composition_default_scan/
 ```
 
-V88 final nominal is the strongest clean scan in this branch so far:
-`planar_rmse_m_s=0.05331`, `yaw_rmse_rad_s=0.01880`,
-`wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, and both fixed lateral
-strict gates pass. The robust scan still rejects it with
-`wrong_planar_sign_count=1` and `planar_error_exceed_count=2`, so the result is
+V89a continued from V88 final with
+`robust_forward_left_diagonal_repair`, robust encoder/IMU noise, one action
+delay step, `0.90` action saturation, and the default hardcase-gated adapter:
+
+```text
+record/current/flat_omni_v89a_server_robust_forward_diag_scan/
+```
+
+The first V89 launch used a formal target below the resumed checkpoint's
+`3,007,128` accumulated steps and therefore did not train; V89a corrected the
+target and ran an actual 100k-step continuation. V89a final nominal is now the
+strongest clean scan in this branch: `planar_rmse_m_s=0.05324`,
+`yaw_rmse_rad_s=0.01922`, `wrong_planar_sign_count=0`,
+`wrong_yaw_sign_count=0`, `planar_error_exceed_count=0`, and both fixed
+lateral strict gates pass. Robust evaluation still rejects it with
+`wrong_planar_sign_count=1` and `planar_error_exceed_count=3`, so the result is
 not yet a paper-facing continuous `vx/vy/yaw` tracker.
 
 The first server-side V69c early-best 35-command scan is:
@@ -474,7 +485,7 @@ record/current/flat_omni_v71_server_v37_hd20/
 ```
 
 Detailed server notes are tracked in
-[V70-V88 server training log](docs/omni_v70_v71_server_training_log.md).
+[V70-V89a server training log](docs/omni_v70_v71_server_training_log.md).
 
 Long runs should use the clean Git checkout under
 `/home/bsrl/hongsenpang/codex_runs`; the older

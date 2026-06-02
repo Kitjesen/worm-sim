@@ -874,6 +874,59 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   adapter, reject the V50 componentwise composition flag, and repair robust
   mixed-planar magnitude/sign behavior without changing the 80D/12D ABI.
 
+## 2026-06-02 V89a Server Robust Forward-Diagonal Repair
+
+- V89 was first launched from V88 final with
+  `robust_forward_left_diagonal_repair`, but the formal `--timesteps` target
+  was below the resumed checkpoint's accumulated `3,007,128` steps. The trainer
+  correctly treated that as already reached and only saved current artifacts.
+  This non-training launch is not used as an experimental result.
+- V89a corrected the target to `3,107,128`, ran on the server only, and used
+  the same deployable ABI: 80D observation, 12D residual plus learned gait-gate
+  action, actor/critic `512-256-128`.
+- Run label:
+  `flat_random_v89a_server_robust_forward_diag_from_v88final_np2`.
+- Resume checkpoint:
+  `runs/worm_v6_ppo_flat_random_v88_server_mixed_composition_default_from_v86bbest_np2/final_model.zip`.
+- Training condition:
+  `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`,
+  `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION=0`,
+  `encoder_pos_noise=0.01`, `encoder_vel_noise=0.02`,
+  `imu_gravity_noise=0.01`, `imu_gyro_noise=0.01`,
+  `action_delay_steps=1`, `action_saturation=0.90`,
+  `learning_rate=2e-6`, `ent_coef=0.005`, `log_std_init=-2.5`,
+  `n_envs=8`, and `device=cuda`.
+- Pulled artifacts:
+  `record/current/flat_omni_v89a_server_robust_forward_diag_scan/`.
+- V89a final nominal is the current strongest clean 35-command scan:
+  `planar_rmse_m_s=0.05324`, `yaw_rmse_rad_s=0.01922`,
+  `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
+  `off_axis_exceed_count=2`, `planar_error_exceed_count=0`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- V89a best nominal also passes strict analysis but is weaker:
+  `planar_rmse_m_s=0.06092`, `yaw_rmse_rad_s=0.01886`,
+  `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`,
+  `off_axis_exceed_count=4`, and `planar_error_exceed_count=2`.
+- V89a robust evaluation is still rejected. Best robust:
+  `planar_rmse_m_s=0.06180`, `yaw_rmse_rad_s=0.01985`,
+  `wrong_planar_sign_count=1`, `wrong_yaw_sign_count=0`,
+  `off_axis_exceed_count=1`, `planar_error_exceed_count=2`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- V89a final robust:
+  `planar_rmse_m_s=0.06322`, `yaw_rmse_rad_s=0.02015`,
+  `wrong_planar_sign_count=1`, `wrong_yaw_sign_count=0`,
+  `off_axis_exceed_count=1`, `planar_error_exceed_count=3`, and
+  `fixed_lateral_strict_gate_passed=true`.
+- The final-robust constructive counterexample remains in the mixed `vx/vy`
+  class: `cmd=(+0.05,+0.075,0)`, measured as
+  `body_vx=-0.0405 m/s`, `body_vy=+0.0046 m/s`,
+  `yaw_rate=+0.0163 rad/s`, `planar_error_m_s=0.1146`, and
+  `planar_sign_ok=false`.
+- Conclusion: V89a improves nominal magnitude accuracy and removes nominal
+  planar-error exceedances, but it does not solve robust continuous tracking.
+  The next server run should preserve yaw cases while repairing all four mixed
+  `vx/vy` quadrants under robust noise/delay/saturation.
+
 ## Not Done
 
 - The current V77 best checkpoint fixes the repeated robust hardcase sign gate,
@@ -890,6 +943,9 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
 - V88 is the best default-adapter continuation after V86b, and its final
   nominal scan improves planar RMSE to `0.05331`, but the robust scan still has
   `wrong_planar_sign_count=1` and `planar_error_exceed_count=2`.
+- V89a supersedes V88 as the clean nominal flat scan because final nominal has
+  `planar_error_exceed_count=0`, but it still fails robust acceptance with one
+  mixed `vx/vy` wrong-planar-sign case and three planar-error exceedances.
 - Remaining flat limitations are magnitude accuracy and crosstalk, not the
   repeated robust sign failure: V77 best nominal has `off_axis_exceed_count=3`
   and `planar_error_exceed_count=1`.
