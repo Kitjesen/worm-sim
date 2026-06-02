@@ -24,6 +24,7 @@ ASSET_DIR = OUT_DIR / "assets"
 V90_SCAN_DIR = ROOT / "record" / "current" / "flat_omni_v90_server_mixed_planar_yaw_preserve_scan"
 V92B_SCAN_DIR = ROOT / "record" / "current" / "flat_omni_v92b_server_low_yaw_envelope_scan"
 V93B_SCAN_DIR = ROOT / "record" / "current" / "flat_omni_v93b_server_mixed_sign_repair_scan"
+V94_SCAN_DIR = ROOT / "record" / "current" / "flat_omni_v94_server_robust_forward_left_scan"
 V86_VIDEO_DIR = ROOT / "record" / "current" / "flat_omni_v86b_server_robust_forward_left_videos"
 V85_VIDEO_DIR = ROOT / "record" / "current" / "flat_omni_v85b_server_mixed_planar_hardcase_videos"
 
@@ -229,6 +230,30 @@ def v93b_status_bullets() -> list[str]:
     return bullets
 
 
+def v94_status_bullets() -> list[str]:
+    rows = load_optional_acceptance(V94_SCAN_DIR)
+    if not rows:
+        return [
+            "V94 robust-forward-left targeted scan 尚未拉取/汇总。",
+        ]
+    final_robust = next(
+        (row for row in rows if row["label"] == "v94_final_robust"), None)
+    bullets = [
+        "V94 已完成 targeted hardcase 训练和 scan：nominal 过，robust best/final 仍失败。",
+        "结论：继续同类 hardcase 课程不足以修复 forward-left mixed sign，需要改先验/奖励结构或做分阶段残差约束。",
+    ]
+    if final_robust:
+        bullets.append(
+            "V94 final_robust: planar RMSE "
+            f"{final_robust['planar_rmse_m_s']:.3f} m/s, yaw RMSE "
+            f"{final_robust['yaw_rmse_rad_s']:.3f} rad/s, selected cmd "
+            f"({final_robust['counter_cmd_vx_m_s']:.2f}, "
+            f"{final_robust['counter_cmd_vy_m_s']:.2f}, "
+            f"{final_robust['counter_cmd_yaw_rad_s']:.1f})."
+        )
+    return bullets
+
+
 def load_video_manifest(path: Path) -> list[dict]:
     p = path / "video_manifest.md"
     rows = []
@@ -389,6 +414,7 @@ def build_deck() -> Path:
     v90 = load_v90_summary()
     v92b_notes = v92b_status_bullets()
     v93b_notes = v93b_status_bullets()
+    v94_notes = v94_status_bullets()
     videos = load_video_manifest(V86_VIDEO_DIR)
     prs = Presentation()
     prs.slide_width = Inches(13.333)
@@ -408,7 +434,7 @@ def build_deck() -> Path:
         "仍不宣称无限制全向：mixed vx/vy 幅值误差与串扰仍需继续训练",
     ], 1.0, 2.52, 5.1, 1.55, size=15)
     add_image(s, assets["contact_sheet"], 6.75, 2.0, 5.7, 3.65)
-    add_textbox(s, "V93b nominal 通过但 robust mixed vx/vy 仍错号；V90/V92b 仍是当前汇报基线", 0.75, 6.65, 9.8, 0.32, size=12, color=COLORS["blue"], bold=True)
+    add_textbox(s, "V94 targeted 加训仍未修复 robust mixed vx/vy 错号；V90/V92b 仍是当前汇报基线", 0.75, 6.65, 9.8, 0.32, size=12, color=COLORS["blue"], bold=True)
 
     # 2
     s = prs.slides.add_slide(blank)
@@ -508,7 +534,7 @@ def build_deck() -> Path:
         "robust 条件包含 encoder/IMU noise、1 step action delay、0.90 action saturation。",
         "限制：accepted 不代表每个命令都无误差；仍有 planar exceed / off-axis exceed。",
     ], 0.9, 5.15, 11.6, 1.1, size=13)
-    add_bullets(s, v92b_notes[:3] + v93b_notes[:2], 7.85, 4.35, 4.7, 1.35, size=8, color=COLORS["muted"])
+    add_bullets(s, v92b_notes[:2] + v93b_notes[:1] + v94_notes[:2], 7.85, 4.30, 4.7, 1.45, size=7, color=COLORS["muted"])
 
     # 6
     s = prs.slides.add_slide(blank)
@@ -594,6 +620,7 @@ def build_deck() -> Path:
         "V91 延续同一课程后退化，说明继续堆训练步数不一定带来更好策略。",
         "纯 yaw 命令容易诱发平移漂移或身体收缩成团；V92b/V93b 低 yaw 包络已把 yaw RMSE 降低到约 0.02 rad/s。",
         "V93b 证明当前剩余核心不是 yaw RMSE，而是 robust mixed vx/vy 的方向符号。",
+        "V94 targeted robust-forward-left 加训仍失败，说明下一步不能只靠同类课程继续堆步数。",
         "V50 componentwise mixed-command composition 不是默认方向，实验显示会增加 planar sign failure。",
         "正式论文还需要 fixed-gate/no-gate ablation、能耗/稳定性、sand/slope、实机数据。",
     ], 0.9, 1.55, 11.6, 4.3, size=16)
@@ -605,7 +632,7 @@ def build_deck() -> Path:
     rows = [
         ["Priority", "Action", "Acceptance evidence"],
         ["1", "用 V90 与 V92b final 录制正式高清视频", "forward/reverse/lateral/yaw + continuous sweep"],
-        ["2", "继续 mixed sign repair / gate ablation", "修 V92b/V93b robust 的 cmd=(0.05,0.075,0) 反向 vx"],
+        ["2", "改 mixed sign repair 机制 / gate ablation", "V92b-V94 都指向 cmd=(0.05,0.075,0) 反向 vx"],
         ["3", "gate ablation", "fixed worm/mixed/snake, no-gate, learned gate, gate sweep"],
         ["4", "钢片/单向拉绳参数采集", "力-位移、阶跃响应、IMU、摩擦、质量几何 CSV"],
         ["5", "sand/slope 迁移", "flat 通过后再正式启动，增加 slip/contact 指标"],
@@ -643,6 +670,7 @@ def write_manifest(pptx_path: Path):
             "v90_scan_dir": str(V90_SCAN_DIR),
             "v92b_scan_dir": str(V92B_SCAN_DIR),
             "v93b_scan_dir": str(V93B_SCAN_DIR),
+            "v94_scan_dir": str(V94_SCAN_DIR),
             "video_dir": str(V86_VIDEO_DIR),
             "fallback_video_dir": str(V85_VIDEO_DIR),
         },
@@ -656,11 +684,17 @@ def write_manifest(pptx_path: Path):
                 "completed from V92b final; nominal best/final accepted; "
                 "robust best/final failed one mixed_vx_vy planar sign command"
             ),
+            "v94": (
+                "completed from V92b final with robust sensor/delay/saturation "
+                "training; nominal accepted but robust best/final still failed "
+                "one mixed_vx_vy planar sign command"
+            ),
         },
         "limitations": [
             "PPT uses V90 as the safest all-checkpoint strict baseline.",
             "V92b final is a candidate improvement, but V92b best_robust failed one planar sign command.",
             "V93b did not supersede V90/V92b because robust scans still fail one mixed_vx_vy sign command.",
+            "V94 targeted hardcase training also did not supersede V90/V92b.",
             "PPT uses V86b videos because V90/V92b formal videos are not yet recorded locally.",
             "Video files are linked by local path rather than embedded to keep deck size manageable.",
         ],
@@ -679,6 +713,7 @@ def write_manifest(pptx_path: Path):
         f"- V90 scan: `{V90_SCAN_DIR}`",
         f"- V92b scan: `{V92B_SCAN_DIR}`",
         f"- V93b scan: `{V93B_SCAN_DIR}`",
+        f"- V94 scan: `{V94_SCAN_DIR}`",
         f"- Video directory: `{V86_VIDEO_DIR}`",
         "- Runtime note: generated as editable python-pptx because artifact-tool presentation-jsx is unavailable here.",
         "",

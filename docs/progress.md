@@ -1132,3 +1132,38 @@ magnitude/crosstalk under sensor noise, delay, and action saturation.
 - The PPT is generated as editable `python-pptx` because the expected
   `@oai/artifact-tool/presentation-jsx` runtime is unavailable in this
   workspace.
+
+## 2026-06-03 V94 Robust Forward-Left Targeted Training
+
+- V94 was launched after V93b because the repeated strict-scan counterexample
+  remained `cmd=(0.05, 0.075, 0)` under robust evaluation.
+- V94 resumed from the safer V92b final checkpoint, not the V93b final
+  checkpoint:
+  `runs/worm_v6_ppo_flat_random_v92b_server_low_yaw_envelope_from_v90best_np2/final_model.zip`.
+- V94 used `command_curriculum=robust_forward_left_diagonal_repair` and trained
+  directly with robust sensor/action conditions:
+  encoder position noise `0.01`, encoder velocity noise `0.02`, IMU gravity
+  noise `0.01`, IMU gyro noise `0.01`, action delay `1`, action saturation
+  `0.9`.
+- The run label is
+  `flat_random_v94_server_robust_forward_left_from_v92bfinal_np2`.
+- The formal scan was pulled to:
+  `record/current/flat_omni_v94_server_robust_forward_left_scan/`.
+
+| Checkpoint | Condition | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Counterexample |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| best | nominal | true | 0.0547 | 0.0217 | 0 | 0 | worst command only |
+| best | robust | false | 0.0570 | 0.0201 | 1 | 0 | `cmd=(0.05, 0.075, 0) -> measured=(-0.0345, 0.0059, 0.0113)` |
+| final | nominal | true | 0.0534 | 0.0218 | 0 | 0 | worst command only |
+| final | robust | false | 0.0553 | 0.0201 | 1 | 0 | `cmd=(0.05, 0.075, 0) -> measured=(-0.0344, 0.0157, 0.0333)` |
+
+- Interpretation:
+  - V94 did not solve the robust forward-left mixed sign failure.
+  - The repeated counterexample across V92b/V93b/V94 means the next step should
+    not be simply more timesteps on the same curriculum.
+  - The likely next technical change is to alter the mixed `vx/vy` mechanism:
+    either add a more explicit forward-left prior branch, constrain residual
+    cancellation of axial slide authority, or use a staged curriculum that first
+    locks positive projected speed before reintroducing lateral magnitude.
+- The advisor PPT was regenerated again after V94 so that the latest negative
+  result is visible in the report.

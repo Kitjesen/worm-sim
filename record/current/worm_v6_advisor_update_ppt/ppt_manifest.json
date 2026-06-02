@@ -4,18 +4,21 @@
     "v90_scan_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v90_server_mixed_planar_yaw_preserve_scan",
     "v92b_scan_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v92b_server_low_yaw_envelope_scan",
     "v93b_scan_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v93b_server_mixed_sign_repair_scan",
+    "v94_scan_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v94_server_robust_forward_left_scan",
     "video_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v86b_server_robust_forward_left_videos",
     "fallback_video_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v85b_server_mixed_planar_hardcase_videos"
   },
   "server_training_status": {
     "v91": "completed; callback metrics regressed relative to V90",
     "v92b": "completed; final_nominal/final_robust accepted; best_robust failed one planar sign command",
-    "v93b": "completed from V92b final; nominal best/final accepted; robust best/final failed one mixed_vx_vy planar sign command"
+    "v93b": "completed from V92b final; nominal best/final accepted; robust best/final failed one mixed_vx_vy planar sign command",
+    "v94": "completed from V92b final with robust sensor/delay/saturation training; nominal accepted but robust best/final still failed one mixed_vx_vy planar sign command"
   },
   "limitations": [
     "PPT uses V90 as the safest all-checkpoint strict baseline.",
     "V92b final is a candidate improvement, but V92b best_robust failed one planar sign command.",
     "V93b did not supersede V90/V92b because robust scans still fail one mixed_vx_vy sign command.",
+    "V94 targeted hardcase training also did not supersede V90/V92b.",
     "PPT uses V86b videos because V90/V92b formal videos are not yet recorded locally.",
     "Video files are linked by local path rather than embedded to keep deck size manageable."
   ],

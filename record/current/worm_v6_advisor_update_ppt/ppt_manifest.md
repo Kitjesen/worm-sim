@@ -4,6 +4,7 @@
 - V90 scan: `D:\inovxio\thirdparty\simulation\worm_project\record\current\flat_omni_v90_server_mixed_planar_yaw_preserve_scan`
 - V92b scan: `D:\inovxio\thirdparty\simulation\worm_project\record\current\flat_omni_v92b_server_low_yaw_envelope_scan`
 - V93b scan: `D:\inovxio\thirdparty\simulation\worm_project\record\current\flat_omni_v93b_server_mixed_sign_repair_scan`
+- V94 scan: `D:\inovxio\thirdparty\simulation\worm_project\record\current\flat_omni_v94_server_robust_forward_left_scan`
 - Video directory: `D:\inovxio\thirdparty\simulation\worm_project\record\current\flat_omni_v86b_server_robust_forward_left_videos`
 - Runtime note: generated as editable python-pptx because artifact-tool presentation-jsx is unavailable here.
 
