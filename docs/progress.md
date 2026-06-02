@@ -927,6 +927,67 @@ mixed `vx/vy` composition still fails the strict planar RMSE gate.
   The next server run should preserve yaw cases while repairing all four mixed
   `vx/vy` quadrants under robust noise/delay/saturation.
 
+## 2026-06-03 V90-V93b Flat Mixed-Command Server Training
+
+- V90 is the current safest all-checkpoint flat strict-scan baseline under the
+  default `cmaes_tri_anchor_auto_gate_directional_v37` adapter. Pulled
+  artifacts:
+  `record/current/flat_omni_v90_server_mixed_planar_yaw_preserve_scan/`.
+- V90 best/final, nominal/robust all pass the 35-command strict scan. The four
+  rows have `wrong_planar_sign_count=0`, `wrong_yaw_sign_count=0`, yaw RMSE
+  around `0.019-0.020 rad/s`, and planar RMSE around `0.054-0.063 m/s`.
+  Remaining limitations are planar magnitude exceedances and off-axis crosstalk,
+  not basic sign separation.
+- V91 continued from V90 best with the same mixed-planar yaw-preserve repair
+  family but regressed by callback metrics. It is not used as a paper-facing
+  result.
+- V92b continued from V90 best with the `low_yaw_envelope` curriculum to reduce
+  pure-yaw overdrive and curling. Pulled artifacts:
+  `record/current/flat_omni_v92b_server_low_yaw_envelope_scan/`.
+- V92b final nominal and final robust both pass strict analysis. V92b
+  final_robust reports `planar_rmse_m_s=0.0610`,
+  `yaw_rmse_rad_s=0.0203`, `wrong_planar_sign_count=0`,
+  `wrong_yaw_sign_count=0`, `planar_error_exceed_count=1`,
+  `off_axis_exceed_count=1`, and `fixed_lateral_strict_gate_passed=true`.
+- V92b does not fully supersede V90 because `v92b_best_robust` fails one mixed
+  planar sign command: `cmd=(+0.05,+0.075,0)`, measured as
+  `body_vx=-0.0384 m/s`, `body_vy=+0.0108 m/s`,
+  `yaw_rate=+0.0211 rad/s`, and `planar_sign_ok=false`.
+- A first V93 launch was stopped immediately because the trainer warned that
+  the V92b final checkpoint was incompatible and ignored the resume checkpoint.
+  That run is not valid and must not be used as a result.
+- V93b was relaunched correctly from
+  `runs/worm_v6_ppo_flat_random_v92b_server_low_yaw_envelope_from_v90best_np2/final_model.zip`
+  with `--allow-curriculum-resume`, `--allow-contract-resume`, and
+  `--allow-sensor-robustness-resume`. The server log confirms
+  `resume_start_timesteps=3,369,272`, actor/critic `512-256-128`, `n_envs=8`,
+  `learning_rate=1e-6`, and a remaining chunk of `98,928` steps.
+- V93b run label:
+  `flat_random_v93b_server_mixed_sign_repair_from_v92bfinal_np2`. Its target is
+  to repair the V92b best_robust counterexample without changing the 80D
+  observation or 12D residual-plus-gait-gate action ABI. It is still running on
+  the server and is not yet an accepted result.
+
+## 2026-06-03 Advisor Update PPT
+
+- Built a 15-slide editable PowerPoint for advisor reporting:
+  `record/current/worm_v6_advisor_update_ppt/worm_v6_advisor_update_20260603.pptx`.
+- The deck includes the current boundary claim, 80D observation contract, 12D
+  residual-plus-learned-gait-gate action, control structure, V90/V92b strict
+  scan metrics, video contact sheet, continuous-sweep trajectory and telemetry,
+  training-version evolution, spring-steel/cable modeling plan, literature
+  comparison, innovation points, current blockers, and next-step plan.
+- Video material is linked rather than embedded. Current video source directory:
+  `record/current/flat_omni_v86b_server_robust_forward_left_videos/`.
+- Literature sources in the deck include CPG+RL soft snake work, contact-aware
+  CPG, snake DRL gait generation, peristaltic Actor-Critic crawling, sand
+  sidewinding, velocity-command curriculum RL, latent gait representations, and
+  snake target tracking. Source links are recorded in
+  `record/current/worm_v6_advisor_update_ppt/ppt_manifest.md`.
+- The official artifact-tool presentation runtime is unavailable in this
+  workspace, so the deck is generated through `python-pptx` as editable
+  PowerPoint rather than as a raster-only deck.
+
 ## Not Done
 
 - The current V77 best checkpoint fixes the repeated robust hardcase sign gate,
@@ -1029,3 +1090,45 @@ has one mixed-planar sign failure and two planar-error exceedances. The current
 best result is still not "any velocity command can be tracked" with high
 fidelity: the remaining flat problem is robust mixed `vx/vy` sign plus
 magnitude/crosstalk under sensor noise, delay, and action saturation.
+
+## 2026-06-03 V93b Server Strict Scan
+
+- V93b was trained on the remote server only, from the V92b final checkpoint:
+  `runs/worm_v6_ppo_flat_random_v92b_server_low_yaw_envelope_from_v90best_np2/final_model.zip`.
+- The run label is
+  `flat_random_v93b_server_mixed_sign_repair_from_v92bfinal_np2`.
+- The continuation preserved the deployable ABI: 80D observation and 12D action
+  (`11D residual + 1D learned gait gate`), with actor and critic both using
+  `512-256-128`.
+- The formal strict scan was pulled to:
+  `record/current/flat_omni_v93b_server_mixed_sign_repair_scan/`.
+- V93b nominal scans passed, but robust scans did not supersede V90/V92b:
+
+| Checkpoint | Condition | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Counterexample |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| best | nominal | true | 0.0541 | 0.0217 | 0 | 0 | worst command only |
+| best | robust | false | 0.0592 | 0.0201 | 1 | 0 | `cmd=(0.05, 0.075, 0) -> measured=(-0.0342, 0.0200, 0.0446)` |
+| final | nominal | true | 0.0571 | 0.0216 | 0 | 0 | worst command only |
+| final | robust | false | 0.0569 | 0.0200 | 1 | 0 | `cmd=(0.05, 0.075, 0) -> measured=(-0.0316, 0.0152, 0.0221)` |
+
+- Interpretation:
+  - The yaw-only problem is much better than earlier versions; yaw RMSE is now
+    about `0.02 rad/s` in the low-yaw envelope.
+  - The remaining blocker is not average tracking error but the robust mixed
+    `vx/vy` sign counterexample under sensor noise, one-step action delay, and
+    `0.9` action saturation.
+  - V93b should be reported as a negative/diagnostic continuation, not as the
+    final accepted policy.
+
+## 2026-06-03 Advisor PPT Updated After V93b
+
+- The advisor-report PPT was regenerated after pulling V93b strict scan data:
+  `record/current/worm_v6_advisor_update_ppt/worm_v6_advisor_update_20260603.pptx`.
+- The deck now reports V93b as complete: nominal best/final passed, robust
+  best/final failed one mixed `vx/vy` planar sign command.
+- The linked video set remains the existing V86b HD material because formal
+  V90/V92b/V93b videos have not yet been regenerated:
+  `record/current/flat_omni_v86b_server_robust_forward_left_videos/`.
+- The PPT is generated as editable `python-pptx` because the expected
+  `@oai/artifact-tool/presentation-jsx` runtime is unavailable in this
+  workspace.
