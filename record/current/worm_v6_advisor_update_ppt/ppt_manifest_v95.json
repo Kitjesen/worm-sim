@@ -1,0 +1,78 @@
+{
+  "pptx": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\worm_v6_advisor_update_ppt\\worm_v6_advisor_update_20260603_v95.pptx",
+  "slides": 18,
+  "created_from_base_script": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\scripts\\create_worm_v6_advisor_update_ppt.py",
+  "v95_server_training": {
+    "status": "started",
+    "run_label": "flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2",
+    "run_dir": "/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2",
+    "log_dir": "/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/server_logs",
+    "resume": "V92b final",
+    "curriculum": "robust_forward_left_diagonal_repair",
+    "train_chunk_steps": 100000,
+    "reward_change": "mixed_positive_vx_full_lateral_deficit_penalty"
+  },
+  "video_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v86b_server_robust_forward_left_videos",
+  "scan_dirs": {
+    "v90": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v90_server_mixed_planar_yaw_preserve_scan",
+    "v92b": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v92b_server_low_yaw_envelope_scan",
+    "v93b": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v93b_server_mixed_sign_repair_scan",
+    "v94": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v94_server_robust_forward_left_scan"
+  },
+  "literature_rows": [
+    [
+      "Liu et al. 2023",
+      "Soft snake CPG-RL",
+      "RL outputs CPG tonic input; CPG keeps rhythmic form",
+      "Use prior/CPG to constrain exploration; RL learns modulation"
+    ],
+    [
+      "Liu et al. 2021/2023",
+      "Contact-aware soft snake",
+      "Goal controller plus contact/reflex controller around CPG",
+      "Sand/slope should add contact/slip feedback, not only larger MLP"
+    ],
+    [
+      "Shi et al. 2020",
+      "Snake DRL gait discovery",
+      "Direct DRL can discover gaits in simulation",
+      "Useful ablation: end-to-end RL is harder than prior + residual"
+    ],
+    [
+      "Bing et al. 2020",
+      "Snake target tracking",
+      "PPO controls joint positions for visual target tracking",
+      "Good for task reward design, but less deployable gait structure"
+    ],
+    [
+      "Liu et al. 2022",
+      "Camera path following",
+      "Hierarchical RL outputs gait offsets over a gait equation",
+      "Closest path-tracking analogy: RL modifies gait parameters"
+    ],
+    [
+      "Sartoretti et al. 2019",
+      "Decentralized articulated robots",
+      "Distributed local policies for articulated locomotion",
+      "Future option for many segments: shared local segment policy"
+    ],
+    [
+      "Bellegarda & Ijspeert 2022",
+      "CPG-RL velocity tracking",
+      "RL modulates oscillator setpoints for omnidirectional commands",
+      "Strong support for command-conditioned prior modulation"
+    ],
+    [
+      "Kim et al. 2021",
+      "Hierarchical multi-gait RL",
+      "Velocity commands induce multiple gait regimes",
+      "Supports learned latent gait gate and fixed-gate ablation"
+    ]
+  ],
+  "limitations": [
+    "V95 is still running; it is reported as in-progress, not as a verified result.",
+    "V90 remains the safest fully accepted flat strict-scan baseline.",
+    "V86b videos are visual evidence; formal claims use scan JSON/CSV.",
+    "The deck is editable python-pptx because presentation-jsx is unavailable in this workspace."
+  ]
+}

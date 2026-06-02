@@ -86,6 +86,7 @@ def main():
         imu_gyro_noise=0.04,
         action_delay_steps=1,
         action_saturation=0.90,
+        zero_command_activity_floor=0.0,
     )
     env_kwargs = robust_env_kwargs(robust_args)
     assert env_kwargs == {
@@ -95,6 +96,7 @@ def main():
         "imu_gyro_noise_std": 0.04,
         "action_delay_steps": 1,
         "action_saturation": 0.90,
+        "zero_command_activity_floor": 0.0,
     }
     assert sensor_noise_summary(env_kwargs) == {
         "encoder_pos_noise_std": 0.01,

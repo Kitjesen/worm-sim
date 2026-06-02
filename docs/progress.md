@@ -1167,3 +1167,51 @@ magnitude/crosstalk under sensor noise, delay, and action saturation.
     locks positive projected speed before reintroducing lateral magnitude.
 - The advisor PPT was regenerated again after V94 so that the latest negative
   result is visible in the report.
+
+## 2026-06-03 V95 Server Training and Advisor PPT
+
+- V95 is now running on the remote 3090 server instead of the local workstation.
+- The run label is:
+  `flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2`.
+- The server run directory is:
+  `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2`.
+- V95 resumes from the safer V92b final checkpoint:
+  `runs/worm_v6_ppo_flat_random_v92b_server_low_yaw_envelope_from_v90best_np2/final_model.zip`.
+- The deployable ABI is unchanged:
+  - 80D observation: `vx, vy, yaw` command, 11 encoder positions, 11 velocity
+    estimates, previous 11D action, 7 segment IMU gravity vectors, 7 segment
+    gyro vectors, and 1 s phase clock.
+  - 12D action: 11D residual motor action plus one learned latent gait gate.
+- Actor and critic both use `512-256-128`.
+- V95 adds an explicit reward-contract term for the repeated robust mixed
+  hardcase `cmd=(+0.05,+/-0.075,0)`: positive forward velocity plus full lateral
+  command now activates a `mixed_positive_vx_full_lateral_gate`, and forward
+  deficit below the positive target is penalized.
+- Initial server log evidence shows training is active and evaluation is running
+  every 5000 steps. Early V95 checkpoints are still not accepted; the remaining
+  blockers are at least one planar sign error and yaw sign errors under the
+  strict schedule.
+- Local smoke verification before launching V95:
+  - `test_reward_contract_v6.py`: passed.
+  - `test_deployable_obs_v6.py`: passed.
+  - `test_omni_eval_metrics_v6.py`: passed.
+  - `test_visual_steel_strip_geometry_v6.py`: passed.
+  - `test_robust_forward_left_curriculum_v6.py`: passed.
+- A mentor/advisor update deck was generated at:
+  `record/current/worm_v6_advisor_update_ppt/worm_v6_advisor_update_20260603_v95.pptx`.
+- The PPT has 18 slides and includes:
+  - current video material and where to play it from,
+  - the deployable observation/action contract,
+  - V90/V92b/V93b/V94 scan conclusions,
+  - the V95 in-progress repair,
+  - innovation claims that are still defensible,
+  - literature comparison showing that CPG/gait-prior plus RL modulation is the
+    common training route for snake and soft-snake locomotion.
+- The PPT manifest is:
+  `record/current/worm_v6_advisor_update_ppt/ppt_manifest_v95.md`.
+
+Important boundary: V95 is an active training experiment, not a verified
+accepted policy yet. Until V95 or a later model passes strict nominal and robust
+scans, the safest advisor-facing claim remains finite-envelope, command
+conditioned, multimodal flat locomotion rather than unconstrained
+omnidirectional velocity tracking.
