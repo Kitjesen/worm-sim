@@ -1352,3 +1352,58 @@ has a deployable multimodal locomotion framework and a stricter full
 component-wise evaluation contract; continuous `vx/vy/yaw` tracking is still
 under training until a later strict scan passes with
 `wrong_mixed_component_sign_count == 0`.
+
+## 2026-06-03 V97 Symmetric Mixed-Gate Repair
+
+- V97 addresses the concrete V96 failure mode: projected planar direction is
+  correct, but one `vx/vy` component can still have the wrong sign in mixed
+  diagonal commands.
+- The V97 code change keeps the deployable ABI unchanged:
+  - observation remains 80D;
+  - action remains `11D residual + 1D learned latent gait gate`;
+  - actor and critic remain `512-256-128`.
+- The mixed-planar hardcase gate is now symmetric in `vx` sign:
+  - previous behavior only applied the hardcase gate to slow positive-`vx`,
+    high-lateral commands;
+  - new behavior applies the same gate center to slow positive or negative
+    axial commands when lateral demand is high and yaw is zero.
+- The deployable TorchScript actor now mirrors the Python adapter for both:
+  - `WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE=1`;
+  - `WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE=1`.
+- New regression checks were added to ensure:
+  - reverse mixed hardcase commands use the symmetric gate center;
+  - deploy actor output matches `compose_deployable_action()` for hardcase and
+    continuous mixed-gate commands.
+- Local verification before server launch:
+  - `test_mixed_planar_gate_v6.py`: passed.
+  - `test_reward_contract_v6.py`: passed.
+  - `test_deployable_obs_v6.py`: passed.
+  - `test_omni_eval_metrics_v6.py`: passed.
+  - `test_deploy_policy_v6.py`: passed.
+  - `test_visual_steel_strip_geometry_v6.py`: passed.
+  - `test_command_scan_analysis_v6.py`: passed.
+  - `test_summarize_scan_acceptance_v6.py`: passed.
+- V97 remote launch plan:
+  - run label:
+    `flat_random_v97_server_symmetric_mixed_gate_from_v96progress_np2`;
+  - resume:
+    `runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/progress_best_model.zip`;
+  - curriculum: `mixed_composition_repair`, which samples all four mixed
+    `vx/vy` quadrants instead of targeting only forward-left;
+  - target timesteps: `3,689,272`;
+  - chunk timesteps: `120,000`;
+  - learning rate: `1e-6`;
+  - robust sensor/action settings are kept from V96.
+- V97 deliberately does not enable the old
+  `WORM_V6_ENABLE_MIXED_COMMAND_COMPOSITION` path because earlier V50/V80
+  scans showed that componentwise prior composition can degrade sign
+  reliability. The next experiment changes gate/residual authority and
+  symmetric sampling first.
+- Reproducible server entry points:
+  - `scripts/launch_v97_flat_symmetric_mixed_gate_remote.sh`;
+  - `scripts/monitor_v97_flat_symmetric_mixed_gate_remote.sh`.
+
+Acceptance boundary: V97 is accepted only if the formal flat scan reports
+`wrong_planar_sign_count == 0`, `wrong_yaw_sign_count == 0`, and
+`wrong_mixed_component_sign_count == 0` while keeping planar/yaw RMSE within
+the existing thresholds.

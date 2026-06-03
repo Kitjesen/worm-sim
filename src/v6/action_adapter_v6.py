@@ -674,17 +674,19 @@ def action_adapter_contract(
                     ],
                     "cmd_vy_norm_min": MIXED_PLANAR_HARDCASE_MIN_VY_NORM,
                     "cmd_yaw_norm_max": DIRECTIONAL_PRIOR_THRESHOLD,
-                    "signed_vx": "positive",
+                    "signed_vx": "positive_or_negative",
                 },
                 "gate_center": MIXED_PLANAR_HARDCASE_GATE_CENTER,
                 "reason": (
                     "V74/V76 diagnostics show cmd=(+0.05,+0.075,0) is "
                     "sampled but still mapped to the pure lateral gate "
                     "center, suppressing visible axial peristaltic action "
-                    "and yielding negative body vx. This narrow ablation "
-                    "restores a small axial gate only for slow-forward, "
-                    "full-lateral planar commands without changing the "
-                    "80D observation or 12D action ABI."),
+                    "and yielding negative body vx. V96 strict scans then "
+                    "showed reverse mixed-vx/vy commands also fail the "
+                    "component-sign gate. This narrow ablation restores a "
+                    "small axial gate for slow-axial, full-lateral planar "
+                    "commands in both vx signs without changing the 80D "
+                    "observation or 12D action ABI."),
             },
             "slope_forward_axis_profile": {
                 "available": (
@@ -1618,7 +1620,6 @@ def command_conditioned_gate_center(command):
     if cmd_yaw >= DIRECTIONAL_PRIOR_THRESHOLD and max(cmd_vx, cmd_vy) < DIRECTIONAL_PRIOR_THRESHOLD:
         return COMMAND_GATE_YAW_CENTER
     if (MIXED_PLANAR_HARDCASE_GATE_ENABLED
-            and signed_vx > 0.0
             and MIXED_PLANAR_HARDCASE_MIN_VX_NORM <= cmd_vx
             <= MIXED_PLANAR_HARDCASE_MAX_VX_NORM
             and cmd_vy >= MIXED_PLANAR_HARDCASE_MIN_VY_NORM

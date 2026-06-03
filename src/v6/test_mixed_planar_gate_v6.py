@@ -68,7 +68,7 @@ def test_mixed_planar_gate_experiment_flags():
     assert module.command_conditioned_gate_center(
         (0.0, 1.0, 0.0)) == module.COMMAND_GATE_LATERAL_CENTER
     assert module.command_conditioned_gate_center(
-        (-0.5, 1.0, 0.0)) == module.COMMAND_GATE_LATERAL_CENTER
+        (-0.5, 1.0, 0.0)) == module.MIXED_PLANAR_HARDCASE_GATE_CENTER
     os.environ.pop("WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE", None)
 
     os.environ["WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE"] = "1"
@@ -89,6 +89,108 @@ def test_mixed_planar_gate_experiment_flags():
     os.environ.pop("WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE", None)
     os.environ.pop("WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE", None)
     importlib.reload(module)
+
+
+def test_deploy_hardcase_gate_matches_adapter_for_reverse_mixed():
+    os.environ["WORM_V6_ENABLE_MIXED_PLANAR_HARDCASE_GATE"] = "1"
+    module = importlib.reload(action_adapter)
+    import deploy_policy_v6 as deploy_policy  # noqa: E402
+    deploy_policy = importlib.reload(deploy_policy)
+
+    class DummyMlp(torch.nn.Module):
+        def forward_actor(self, features):
+            return features
+
+    class ZeroActionNet(torch.nn.Module):
+        def forward(self, features):
+            return torch.zeros(
+                (features.shape[0], module.POLICY_ACTION_DIM),
+                dtype=features.dtype,
+                device=features.device,
+            )
+
+    dummy_policy = SimpleNamespace(
+        features_extractor=torch.nn.Identity(),
+        mlp_extractor=DummyMlp(),
+        action_net=ZeroActionNet(),
+    )
+    actor = deploy_policy.DeployablePPOActor(
+        dummy_policy,
+        obs_mean=np.zeros(80, dtype=np.float32),
+        obs_var=np.ones(80, dtype=np.float32),
+        epsilon=1e-8,
+        clip_obs=10.0,
+    )
+    phase = 0.37
+    command = (-0.5, 1.0, 0.0)
+    raw_obs = np.zeros((1, 80), dtype=np.float32)
+    raw_obs[0, 0:3] = np.asarray(command, dtype=np.float32)
+    raw_obs[0, 78] = np.sin(phase)
+    raw_obs[0, 79] = np.cos(phase)
+
+    with torch.no_grad():
+        deploy_action = actor(torch.as_tensor(raw_obs)).cpu().numpy()[0]
+    expected = module.compose_deployable_action(
+        np.zeros(module.NUM_ACTUATORS, dtype=np.float32),
+        phase=phase,
+        gait_blend=module.command_conditioned_gait_blend(0.5, command),
+        command=command,
+    )
+
+    np.testing.assert_allclose(deploy_action, expected, atol=1e-6)
+    _reload_without_flags()
+    importlib.reload(deploy_policy)
+
+
+def test_deploy_continuous_gate_matches_adapter_for_balanced_mixed():
+    os.environ["WORM_V6_ENABLE_MIXED_PLANAR_CONTINUOUS_GATE"] = "1"
+    module = importlib.reload(action_adapter)
+    import deploy_policy_v6 as deploy_policy  # noqa: E402
+    deploy_policy = importlib.reload(deploy_policy)
+
+    class DummyMlp(torch.nn.Module):
+        def forward_actor(self, features):
+            return features
+
+    class ZeroActionNet(torch.nn.Module):
+        def forward(self, features):
+            return torch.zeros(
+                (features.shape[0], module.POLICY_ACTION_DIM),
+                dtype=features.dtype,
+                device=features.device,
+            )
+
+    dummy_policy = SimpleNamespace(
+        features_extractor=torch.nn.Identity(),
+        mlp_extractor=DummyMlp(),
+        action_net=ZeroActionNet(),
+    )
+    actor = deploy_policy.DeployablePPOActor(
+        dummy_policy,
+        obs_mean=np.zeros(80, dtype=np.float32),
+        obs_var=np.ones(80, dtype=np.float32),
+        epsilon=1e-8,
+        clip_obs=10.0,
+    )
+    phase = 0.37
+    command = (1.0, 1.0, 0.0)
+    raw_obs = np.zeros((1, 80), dtype=np.float32)
+    raw_obs[0, 0:3] = np.asarray(command, dtype=np.float32)
+    raw_obs[0, 78] = np.sin(phase)
+    raw_obs[0, 79] = np.cos(phase)
+
+    with torch.no_grad():
+        deploy_action = actor(torch.as_tensor(raw_obs)).cpu().numpy()[0]
+    expected = module.compose_deployable_action(
+        np.zeros(module.NUM_ACTUATORS, dtype=np.float32),
+        phase=phase,
+        gait_blend=module.command_conditioned_gait_blend(0.5, command),
+        command=command,
+    )
+
+    np.testing.assert_allclose(deploy_action, expected, atol=1e-6)
+    _reload_without_flags()
+    importlib.reload(deploy_policy)
 
 
 def test_mixed_planar_full_channel_split_prior_is_opt_in():
@@ -570,6 +672,8 @@ def test_deploy_slope_mixed_positive_vx_axial_phase_matches_adapter():
 
 def main():
     test_mixed_planar_gate_experiment_flags()
+    test_deploy_hardcase_gate_matches_adapter_for_reverse_mixed()
+    test_deploy_continuous_gate_matches_adapter_for_balanced_mixed()
     test_mixed_planar_full_channel_split_prior_is_opt_in()
     test_mixed_planar_authority_profile_overrides_are_opt_in()
     test_slope_forward_axis_profile_is_opt_in()

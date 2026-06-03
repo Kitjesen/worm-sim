@@ -63,6 +63,13 @@ from action_adapter_v6 import (  # noqa: E402
     MIXED_LATERAL_SLIDE_GAIN,
     MIXED_LATERAL_YAW_GAIN,
     MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED,
+    MIXED_PLANAR_CONTINUOUS_GATE_ENABLED,
+    MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR,
+    MIXED_PLANAR_HARDCASE_GATE_CENTER,
+    MIXED_PLANAR_HARDCASE_GATE_ENABLED,
+    MIXED_PLANAR_HARDCASE_MAX_VX_NORM,
+    MIXED_PLANAR_HARDCASE_MIN_VX_NORM,
+    MIXED_PLANAR_HARDCASE_MIN_VY_NORM,
     MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT,
     MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_RESIDUAL_SCALE_MULT,
@@ -684,6 +691,46 @@ class DeployablePPOActor(torch.nn.Module):
         command_center = torch.where(axial_center_mask, worm_center, mixed_center)
         command_center = torch.where(
             lateral_center_mask, lateral_center, command_center)
+        if bool(MIXED_PLANAR_CONTINUOUS_GATE_ENABLED):
+            mixed_planar_center_mask = (
+                (abs_vx >= threshold)
+                & (abs_vy >= threshold)
+                & (abs_yaw < threshold)
+            )
+            axial_share = abs_vx / torch.clamp(abs_vx + abs_vy, min=1e-9)
+            continuous_alpha = torch.clamp(
+                (axial_share
+                 - float(MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR))
+                / max(
+                    1.0 - float(MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR),
+                    1e-9,
+                ),
+                0.0,
+                1.0,
+            )
+            continuous_center = (
+                lateral_center
+                + continuous_alpha * (worm_center - lateral_center)
+            )
+            continuous_center = torch.where(
+                axial_share < float(MIXED_PLANAR_GATE_AXIAL_SHARE_FLOOR),
+                lateral_center,
+                continuous_center,
+            )
+            command_center = torch.where(
+                mixed_planar_center_mask, continuous_center, command_center)
+        if bool(MIXED_PLANAR_HARDCASE_GATE_ENABLED):
+            hardcase_center_mask = (
+                (abs_vx >= float(MIXED_PLANAR_HARDCASE_MIN_VX_NORM))
+                & (abs_vx <= float(MIXED_PLANAR_HARDCASE_MAX_VX_NORM))
+                & (abs_vy >= float(MIXED_PLANAR_HARDCASE_MIN_VY_NORM))
+                & (abs_yaw < threshold)
+            )
+            command_center = torch.where(
+                hardcase_center_mask,
+                ones * float(MIXED_PLANAR_HARDCASE_GATE_CENTER),
+                command_center,
+            )
         command_center = torch.where(yaw_center_mask, yaw_center, command_center)
         gait_blend = torch.clamp(
             command_center
