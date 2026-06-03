@@ -1407,3 +1407,44 @@ Acceptance boundary: V97 is accepted only if the formal flat scan reports
 `wrong_planar_sign_count == 0`, `wrong_yaw_sign_count == 0`, and
 `wrong_mixed_component_sign_count == 0` while keeping planar/yaw RMSE within
 the existing thresholds.
+
+### V97 Formal Scan Result
+
+- V97 completed on the remote server and the automatic nominal/robust scan
+  finished. Artifacts were pulled to:
+  `record/current/flat_omni_v97_server_symmetric_mixed_gate_scan/`.
+- The training run directory was:
+  `runs/worm_v6_ppo_flat_random_v97_server_symmetric_mixed_gate_from_v96progress_np2/`.
+- V97 did not produce an accepted `best_model.zip`; it produced `final_model`
+  and `progress_best_model` only.
+- Internal training evaluation briefly reduced mixed-component failures to
+  `wrong_mixed_component_sign_count=3` at the progress-best checkpoint, but
+  that checkpoint still had `wrong_planar_sign_count=3` and
+  `wrong_yaw_sign_count=2`.
+- The formal scan rejected every V97 candidate:
+
+| Checkpoint | Condition | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Wrong mixed comp | Representative failure |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| final | nominal | false | 0.0775 | 0.0218 | 1 | 0 | 8 | `cmd=(+0.050,-0.075,0) -> measured=(-0.087,+0.010,+0.081)` |
+| final | robust | false | 0.0844 | 0.0201 | 3 | 0 | 8 | `cmd=(+0.050,-0.075,0) -> measured=(-0.091,-0.012,+0.046)` |
+| progress_best | nominal | false | 0.0741 | 0.0219 | 1 | 0 | 7 | `cmd=(+0.050,+0.075,0) -> measured=(-0.028,+0.016,+0.037)` |
+| progress_best | robust | false | 0.0825 | 0.0201 | 2 | 0 | 7 | `cmd=(+0.050,-0.075,0) -> measured=(-0.105,+0.014,+0.078)` |
+
+- Interpretation:
+  - V97 fixed a real engineering inconsistency: adapter and deploy actor now
+    agree for hardcase/continuous mixed-gate commands.
+  - It did not improve the controller enough. Relative to V96 formal scans,
+    yaw signs remain stable, but `wrong_planar_sign_count` regressed from `0`
+    to `1-3`, and mixed-component failures remain high (`7-8` instead of
+    V96's `8-9`).
+  - The likely issue is reward/curriculum conflict: episode reward improved
+    during V97 training, while the strict direction gates worsened. The next
+    version should not continue this same objective unchanged.
+- Next technical direction:
+  - keep the V97 deploy consistency fix;
+  - do not use V97 as the accepted policy;
+  - branch the next training from V96 progress-best or the V97 progress-best
+    checkpoint only for diagnostics;
+  - make model selection/curriculum harder on base-direction preservation
+    while isolating mixed `vx/vy` sign repair, instead of letting reward
+    improvement override strict sign gates.
