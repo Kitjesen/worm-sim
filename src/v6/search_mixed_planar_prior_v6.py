@@ -40,6 +40,8 @@ TWO_PI = 2.0 * math.pi
 COMMANDS = {
     "forward_left": (0.25, 0.15),
     "forward_right": (0.25, -0.15),
+    "forward_left_scan": (0.10, 0.075),
+    "forward_right_scan": (0.10, -0.075),
     "reverse_left": (-0.25, 0.15),
     "reverse_right": (-0.25, -0.15),
 }
@@ -100,6 +102,15 @@ DEFAULT_X0 = np.array([
     0.0,
 ], dtype=np.float64)
 
+DEFAULT_SCORE_WEIGHTS = {
+    "planar_error": 1.25,
+    "vx_deficit": 0.70,
+    "vy_deficit": 0.70,
+    "yaw_penalty": 0.35,
+    "action_energy": 0.02,
+    "termination": 1.00,
+}
+
 
 def clip_params(params):
     return np.clip(np.asarray(params, dtype=np.float64), BOUNDS_LO, BOUNDS_HI)
@@ -148,7 +159,8 @@ def primitive_action(params, phase):
     return np.clip(action, -1.0, 1.0).astype(np.float32)
 
 
-def score_metrics(metrics, cmd_vx, cmd_vy):
+def score_metrics(metrics, cmd_vx, cmd_vy, score_weights=None):
+    weights = DEFAULT_SCORE_WEIGHTS if score_weights is None else score_weights
     cmd_vec = np.array([cmd_vx, cmd_vy], dtype=np.float64)
     body_vec = np.array([
         metrics["body_vx_m_s"],
@@ -166,12 +178,12 @@ def score_metrics(metrics, cmd_vx, cmd_vy):
     progress_term = projected_speed / cmd_norm
     score = (
         progress_term
-        - 1.25 * error_norm
-        - 0.70 * vx_deficit
-        - 0.70 * vy_deficit
-        - 0.35 * yaw_penalty
-        - 0.02 * float(metrics["action_energy"])
-        - (1.0 if metrics["terminated"] else 0.0)
+        - float(weights["planar_error"]) * error_norm
+        - float(weights["vx_deficit"]) * vx_deficit
+        - float(weights["vy_deficit"]) * vy_deficit
+        - float(weights["yaw_penalty"]) * yaw_penalty
+        - float(weights["action_energy"]) * float(metrics["action_energy"])
+        - (float(weights["termination"]) if metrics["terminated"] else 0.0)
     )
     return {
         "score": float(score),
@@ -186,7 +198,7 @@ def score_metrics(metrics, cmd_vx, cmd_vy):
 
 
 def evaluate_params(params, command_name, seconds=4.0, seed=42,
-                    terrain="flat"):
+                    terrain="flat", score_weights=None):
     cmd_vx, cmd_vy = COMMANDS[command_name]
     env = WormEnvV6(
         terrain=terrain,
@@ -240,11 +252,12 @@ def evaluate_params(params, command_name, seconds=4.0, seed=42,
         "terminated": bool(terminated),
         "action_energy": action_energy,
     }
-    metrics.update(score_metrics(metrics, cmd_vx, cmd_vy))
+    metrics.update(score_metrics(metrics, cmd_vx, cmd_vy, score_weights))
     return metrics
 
 
-def random_search(command_name, trials, seconds, seed, terrain):
+def random_search(command_name, trials, seconds, seed, terrain,
+                  score_weights=None):
     rng = np.random.default_rng(seed)
     rows = []
     best = None
@@ -255,7 +268,8 @@ def random_search(command_name, trials, seconds, seed, terrain):
             params = unit_to_params(rng.uniform(0.0, 1.0, size=len(PARAM_NAMES)))
         metrics = evaluate_params(
             params, command_name=command_name, seconds=seconds,
-            seed=seed + trial, terrain=terrain)
+            seed=seed + trial, terrain=terrain,
+            score_weights=score_weights)
         row = {
             "trial": trial,
             **metrics,
@@ -267,7 +281,8 @@ def random_search(command_name, trials, seconds, seed, terrain):
     return best, rows
 
 
-def cma_search(command_name, generations, popsize, seconds, seed, terrain):
+def cma_search(command_name, generations, popsize, seconds, seed, terrain,
+               score_weights=None):
     import cma
 
     rows = []
@@ -290,7 +305,8 @@ def cma_search(command_name, generations, popsize, seconds, seed, terrain):
             params = unit_to_params(candidate)
             metrics = evaluate_params(
                 params, command_name=command_name, seconds=seconds,
-                seed=seed + trial, terrain=terrain)
+                seed=seed + trial, terrain=terrain,
+                score_weights=score_weights)
             loss = -metrics["score"]
             losses.append(loss)
             row = {
@@ -358,12 +374,32 @@ def parse_args():
     ap.add_argument("--seconds", type=float, default=4.0)
     ap.add_argument("--validation-seconds", type=float, default=6.0)
     ap.add_argument("--seed", type=int, default=58)
+    ap.add_argument("--planar-error-weight", type=float,
+                    default=DEFAULT_SCORE_WEIGHTS["planar_error"])
+    ap.add_argument("--vx-deficit-weight", type=float,
+                    default=DEFAULT_SCORE_WEIGHTS["vx_deficit"])
+    ap.add_argument("--vy-deficit-weight", type=float,
+                    default=DEFAULT_SCORE_WEIGHTS["vy_deficit"])
+    ap.add_argument("--yaw-penalty-weight", type=float,
+                    default=DEFAULT_SCORE_WEIGHTS["yaw_penalty"])
+    ap.add_argument("--action-energy-weight", type=float,
+                    default=DEFAULT_SCORE_WEIGHTS["action_energy"])
+    ap.add_argument("--termination-weight", type=float,
+                    default=DEFAULT_SCORE_WEIGHTS["termination"])
     return ap.parse_args()
 
 
 def main():
     args = parse_args()
     command_names = [c.strip() for c in args.commands.split(",") if c.strip()]
+    score_weights = {
+        "planar_error": float(args.planar_error_weight),
+        "vx_deficit": float(args.vx_deficit_weight),
+        "vy_deficit": float(args.vy_deficit_weight),
+        "yaw_penalty": float(args.yaw_penalty_weight),
+        "action_energy": float(args.action_energy_weight),
+        "termination": float(args.termination_weight),
+    }
     rows_by_command = {}
     best_by_command = {}
     started = time.time()
@@ -374,11 +410,13 @@ def main():
         if args.method == "random":
             best, rows = random_search(
                 command_name, args.trials, args.seconds,
-                args.seed + 1000 * idx, args.terrain)
+                args.seed + 1000 * idx, args.terrain,
+                score_weights=score_weights)
         else:
             best, rows = cma_search(
                 command_name, args.generations, args.popsize, args.seconds,
-                args.seed + 1000 * idx, args.terrain)
+                args.seed + 1000 * idx, args.terrain,
+                score_weights=score_weights)
         rows_by_command[command_name] = rows
         best_by_command[command_name] = best
         print(
@@ -397,6 +435,7 @@ def main():
                 seconds=args.validation_seconds,
                 seed=args.seed + 100000 + idx,
                 terrain=args.terrain,
+                score_weights=score_weights,
             )
             metrics["accepted"] = mixed_planar_acceptance(metrics)
             validation_by_command[command_name] = metrics
@@ -421,10 +460,14 @@ def main():
             name: [float(lo), float(hi)]
             for name, lo, hi in zip(PARAM_NAMES, BOUNDS_LO, BOUNDS_HI)
         },
+        "score_weights": score_weights,
         "objective": (
-            "score = projected_speed/|cmd| - 1.25*planar_error/|cmd| "
-            "- 0.70*vx_deficit - 0.70*vy_deficit "
-            "- 0.35*abs(yaw_rate)/0.20 - 0.02*action_energy - termination"),
+            "score = projected_speed/|cmd| "
+            "- planar_error_weight*planar_error/|cmd| "
+            "- vx_deficit_weight*vx_deficit "
+            "- vy_deficit_weight*vy_deficit "
+            "- yaw_penalty_weight*abs(yaw_rate)/0.20 "
+            "- action_energy_weight*action_energy - termination_weight"),
         "acceptance": {
             "vx_progress_m_s_min": 0.08,
             "vy_progress_m_s_min": 0.03,

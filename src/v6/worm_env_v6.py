@@ -125,6 +125,10 @@ COMMAND_CURRICULA = (
     "feasible_mixed_low_speed",
     "feasible_forward_diagonal_repair",
     "robust_forward_left_diagonal_repair",
+    "terrain_contact_repair",
+    "reverse_axis_mixed_repair",
+    "slope_forward_axis_repair",
+    "slope_positive_vx_diagonal_repair",
     "mixed_composition_repair",
     "axis_separation",
 )
@@ -187,10 +191,17 @@ W_GAIT_GATE_TARGET = 3.0
 W_AXIAL_PRIOR_PRESERVE = 2.0
 W_COMPONENT_TRACKING = 1.5
 W_MIXED_PLANAR_COMPONENT_TRACKING = 2.5
-W_MIXED_PLANAR_SIGN = 3.0
+W_MIXED_PLANAR_SIGN = 12.0
 W_MIXED_PLANAR_FULLSCALE_DEFICIT = 4.0
+W_MIXED_POSITIVE_VX_FULL_LATERAL_DEFICIT = 6.0
 W_YAW_BODY_COMPACTNESS = 10.0
+W_TERRAIN_ZERO_DRIFT = 12.0
+W_TERRAIN_OFF_AXIS = 3.0
+W_TERRAIN_MIXED_PLANAR_SIGN = 4.0
 MIXED_PLANAR_FULLSCALE_THRESHOLD = 0.75
+MIXED_POSITIVE_VX_FULL_LATERAL_VX_NORM_RANGE = (0.40, 0.70)
+MIXED_POSITIVE_VX_FULL_LATERAL_VY_NORM_MIN = 0.85
+MIXED_POSITIVE_VX_FULL_LATERAL_TARGET_FRACTION = 0.60
 YAW_DRIFT_TOLERANCE_RAD = 0.20
 YAW_STATIONARY_TOLERANCE_M_S = 0.02
 YAW_STATIONARY_PENALTY_CLIP = 6.0
@@ -206,7 +217,7 @@ GAIT_GATE_WORM_TARGET = GAIT_GATE_WORM_TARGET_SLOW
 GAIT_GATE_MIXED_TARGET = COMMAND_GATE_MIXED_CENTER
 GAIT_GATE_LATERAL_TARGET = COMMAND_GATE_LATERAL_CENTER
 GAIT_GATE_YAW_TARGET = COMMAND_GATE_YAW_CENTER
-REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v29"
+REWARD_CONTRACT_VERSION = "omni_directional_offaxis_yaw_v36_mixed_component_sign"
 
 
 def reward_contract():
@@ -237,7 +248,12 @@ def reward_contract():
             "mixed_planar_sign": W_MIXED_PLANAR_SIGN,
             "mixed_planar_fullscale_deficit": (
                 W_MIXED_PLANAR_FULLSCALE_DEFICIT),
+            "mixed_positive_vx_full_lateral_deficit": (
+                W_MIXED_POSITIVE_VX_FULL_LATERAL_DEFICIT),
             "yaw_body_compactness": W_YAW_BODY_COMPACTNESS,
+            "terrain_zero_drift": W_TERRAIN_ZERO_DRIFT,
+            "terrain_off_axis": W_TERRAIN_OFF_AXIS,
+            "terrain_mixed_planar_sign": W_TERRAIN_MIXED_PLANAR_SIGN,
             "energy": W_ENERGY,
             "smooth": W_SMOOTH,
         },
@@ -294,6 +310,66 @@ def reward_contract():
                     "keeping pure-axis, right-diagonal, yaw, and reverse "
                     "samples in the mix."),
             },
+            "terrain_contact_repair_sampling": {
+                "stop_anchoring": True,
+                "mixed_vx_vy_hardcase_oversampling": True,
+                "feasible_vx_abs_range_m_s": FEASIBLE_MIXED_VX_ABS_RANGE,
+                "feasible_vy_abs_range_m_s": FEASIBLE_MIXED_VY_ABS_RANGE,
+                "reason": (
+                    "V71/V73 sand and slope scans fail primarily through "
+                    "mixed-vx/vy wrong signs, slope zero-command drift, and "
+                    "slope off-axis coupling. This curriculum increases stop "
+                    "anchoring and mixed-planar hard cases while preserving "
+                    "pure-axis and yaw samples."),
+            },
+            "reverse_axis_mixed_repair_sampling": {
+                "target_terrain": "sand",
+                "dominant_failure": "negative-vx pure/mixed commands drift positive",
+                "pure_reverse_oversampling": True,
+                "reverse_mixed_vx_vy_oversampling": True,
+                "forward_lateral_yaw_guards": True,
+            },
+            "slope_forward_axis_repair_sampling": {
+                "target_terrain": "slope",
+                "dominant_failure": "positive-vx pure/mixed commands drift negative",
+                "stop_anchoring": True,
+                "pure_forward_oversampling": True,
+                "forward_mixed_vx_vy_oversampling": True,
+                "reverse_lateral_yaw_guards": True,
+            },
+            "slope_positive_vx_diagonal_repair_sampling": {
+                "target_terrain": "slope",
+                "dominant_failure": (
+                    "V89-V91 scans keep failing positive-vx mixed planar "
+                    "diagonals after phase, authority, and gain-only "
+                    "adapter routes saturate."),
+                "stop_anchoring": True,
+                "positive_vx_diagonal_hardcase_oversampling": True,
+                "pure_forward_lateral_yaw_guards": True,
+                "reverse_diagonal_guard": True,
+            },
+            "terrain_specific_penalties": {
+                "sand_and_slope_extra_mixed_planar_sign": True,
+                "slope_extra_zero_command_drift": True,
+                "slope_extra_off_axis": True,
+                "slope_zero_command_brake_blend_lock": {
+                    "enabled_when_zero_command_activity_floor_positive": True,
+                    "gait_blend": COMMAND_GATE_MIXED_CENTER,
+                    "residual_component": "suppressed",
+                    "reason": (
+                        "V80 zero-brake prior sweep found the mixed-center "
+                        "prior with full zero-command activity is the only "
+                        "current prior family member that can hold slope stop "
+                        "below the strict 0.02 m/s zero-speed gate. Older "
+                        "policies drifted because their learned zero-command "
+                        "gait gate moved away from that brake center, and "
+                        "residual output pushed the locked prior slightly "
+                        "above the strict threshold. The lock is applied at "
+                        "reset as well as step time so zero-brake evaluations "
+                        "do not consume the random initial-gait sample before "
+                        "joint-noise initialization."),
+                },
+            },
             "axis_separation_curriculum": True,
             "yaw_only_prior_scaling_applied": True,
             "gait_blend_is_policy_gate": True,
@@ -302,9 +378,30 @@ def reward_contract():
             "componentwise_vx_vy_yaw_tracking_cost": True,
             "mixed_planar_component_tracking_cost": True,
             "mixed_planar_sign_penalty": True,
+            "mixed_planar_component_sign_penalty": True,
             "mixed_planar_fullscale_deficit_penalty": True,
             "mixed_planar_fullscale_threshold": (
                 MIXED_PLANAR_FULLSCALE_THRESHOLD),
+            "mixed_positive_vx_full_lateral_deficit_penalty": {
+                "enabled": True,
+                "target_commands": [
+                    "(+0.05,+0.075,0)",
+                    "(+0.05,-0.075,0)",
+                ],
+                "vx_norm_range": (
+                    MIXED_POSITIVE_VX_FULL_LATERAL_VX_NORM_RANGE),
+                "vy_norm_min": (
+                    MIXED_POSITIVE_VX_FULL_LATERAL_VY_NORM_MIN),
+                "forward_target_fraction": (
+                    MIXED_POSITIVE_VX_FULL_LATERAL_TARGET_FRACTION),
+                "reason": (
+                    "V92b-V94 robust scans repeatedly failed the slow "
+                    "positive-vx / full-lateral mixed command because the "
+                    "forward component crossed zero while aggregate RMSE "
+                    "remained inside the global gate. This local penalty "
+                    "keeps the forward component positive without changing "
+                    "the deployable 80D observation or 12D action ABI."),
+            },
             "component_tracking_cost_scale": {
                 "vx": CMD_VX_RANGE[1],
                 "vy": CMD_VY_RANGE[1],
@@ -360,7 +457,8 @@ class WormEnvV6(gym.Env):
                  command_curriculum="omni",
                  command_resample_prob=CMD_RESAMPLE_P,
                  gait_prior_scale=DEFAULT_GAIT_PRIOR_SCALE,
-                 policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE):
+                 policy_residual_scale=DEFAULT_POLICY_RESIDUAL_SCALE,
+                 zero_command_activity_floor=0.0):
         super().__init__()
         self.render_mode = render_mode
         self.terrain = terrain
@@ -380,6 +478,7 @@ class WormEnvV6(gym.Env):
         self.command_resample_prob = float(command_resample_prob)
         self.gait_prior_scale = float(gait_prior_scale)
         self.policy_residual_scale = float(policy_residual_scale)
+        self.zero_command_activity_floor = float(zero_command_activity_floor)
         self.encoder_pos_noise_std = float(encoder_pos_noise_std)
         self.encoder_vel_noise_std = float(encoder_vel_noise_std)
         self.imu_gravity_noise_std = float(imu_gravity_noise_std)
@@ -402,6 +501,9 @@ class WormEnvV6(gym.Env):
             raise ValueError("action_delay_steps must be >= 0")
         if not 0.0 <= self.action_saturation <= 1.0:
             raise ValueError("action_saturation must be in [0, 1]")
+        if not 0.0 <= self.zero_command_activity_floor <= 1.0:
+            raise ValueError(
+                "zero_command_activity_floor must be in [0.0, 1.0]")
 
         # ── Build model ──
         project_root = os.path.normpath(
@@ -572,9 +674,13 @@ class WormEnvV6(gym.Env):
             self._cmd_vy / max(abs(CMD_VY_RANGE[1]), 1e-6),
             self._cmd_yaw / max(abs(CMD_YAW_RANGE[1]), 1e-6),
         )
+        zero_command_brake_blend_lock = (
+            self._zero_command_brake_lock_active(command_norm))
         self._gait_blend = (
             float(self._fixed_gait_blend)
             if self._fixed_gait_blend is not None
+            else COMMAND_GATE_MIXED_CENTER
+            if zero_command_brake_blend_lock
             else command_conditioned_gait_blend(
                 learned_gait_blend, command_norm))
 
@@ -582,6 +688,8 @@ class WormEnvV6(gym.Env):
         residual_action = (
             ACTION_EMA * residual_command
             + (1.0 - ACTION_EMA) * self._last_residual_action)
+        if zero_command_brake_blend_lock:
+            residual_action = np.zeros_like(residual_action)
         phase = 2.0 * math.pi * PHASE_FREQ * self._step_count * CTRL_DT
         prior = directional_gait_prior_from_phase(
             phase, self._gait_blend, command_norm)
@@ -590,6 +698,22 @@ class WormEnvV6(gym.Env):
             * command_conditioned_prior_scale(*command_norm)
             * command_conditioned_prior_authority_scale(*command_norm))
         activity_scale = command_activity_scale(*command_norm)
+        activity_floor = 0.0
+        if (
+            self.terrain == "slope"
+            and self.zero_command_activity_floor > 0.0
+        ):
+            command_mag = max(
+                abs(float(command_norm[0])),
+                abs(float(command_norm[1])),
+                abs(float(command_norm[2])),
+            )
+            if command_mag <= 1e-9:
+                activity_floor = self.zero_command_activity_floor
+                activity_scale = max(
+                    activity_scale,
+                    activity_floor,
+                )
         residual_scale = (
             self.policy_residual_scale
             * command_conditioned_residual_scale(*command_norm))
@@ -609,6 +733,7 @@ class WormEnvV6(gym.Env):
             command=command_norm,
             gait_prior_scale=self.gait_prior_scale,
             policy_residual_scale=self.policy_residual_scale,
+            activity_floor=activity_floor,
         )
         if self.action_delay_steps > 0:
             self._action_delay_buffer.append(applied_action.copy())
@@ -853,9 +978,26 @@ class WormEnvV6(gym.Env):
     def _initial_gait_blend(self):
         if self._fixed_gait_blend is not None:
             return float(self._fixed_gait_blend)
+        if self._zero_command_brake_lock_active():
+            return float(COMMAND_GATE_MIXED_CENTER)
         if self.gait_mode == "random":
             return float(self.np_random.uniform(0.0, 1.0))
         return GAIT_BLENDS[self.gait_mode]
+
+    def _zero_command_brake_lock_active(self, command_norm=None):
+        if (
+            self._fixed_gait_blend is not None
+            or self.terrain != "slope"
+            or self.zero_command_activity_floor <= 0.0
+        ):
+            return False
+        if command_norm is None:
+            return (
+                abs(float(self._cmd_vx)) <= 1e-9
+                and abs(float(self._cmd_vy)) <= 1e-9
+                and abs(float(self._cmd_yaw)) <= 1e-9
+            )
+        return max(abs(float(v)) for v in command_norm) <= 1e-9
 
     def _sample_cmd_vx(self):
         if self._fixed_cmd_vx is not None:
@@ -1621,6 +1763,224 @@ class WormEnvV6(gym.Env):
                 yaw = 0.0
             return self._with_fixed_command_overrides(vx, vy, yaw)
 
+        if self.command_curriculum == "terrain_contact_repair":
+            primitive = int(self.np_random.integers(0, 32))
+            if primitive in (0, 1, 2, 3, 4, 5):
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (6, 7, 8, 9):
+                sign = 1.0 if primitive in (6, 8) else -1.0
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=sign)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (10, 11, 12, 13):
+                sign = 1.0 if primitive in (10, 12) else -1.0
+                vx, yaw = 0.0, 0.0
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=sign)
+            elif primitive in (14, 15):
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            elif primitive in (16, 17, 18, 19, 20, 21, 22, 23,
+                               24, 25, 26, 27):
+                signs = (
+                    (1.0, 1.0),
+                    (1.0, -1.0),
+                    (-1.0, 1.0),
+                    (-1.0, -1.0),
+                )
+                sx, sy = signs[(primitive - 16) % len(signs)]
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=sx)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=sy)
+                yaw = 0.0
+            else:
+                signs = (
+                    (1.0, 1.0),
+                    (1.0, -1.0),
+                    (-1.0, 1.0),
+                    (-1.0, -1.0),
+                )
+                sx, sy = signs[primitive - 28]
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]) if sx > 0.0
+                    else (CMD_VX_RANGE[0], 0.0),
+                    min_abs_fraction=0.70)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]) if sy > 0.0
+                    else (CMD_VY_RANGE[0], 0.0),
+                    min_abs_fraction=0.70)
+                yaw = 0.0
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "reverse_axis_mixed_repair":
+            primitive = int(self.np_random.integers(0, 32))
+            if primitive in (0, 1, 2, 3):
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (4, 5, 6, 7):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (8, 9):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (10, 11):
+                vx, yaw = 0.0, 0.0
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+            elif primitive in (12, 13):
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            elif primitive in (14, 15, 16, 17, 18, 19, 20, 21):
+                vy_sign = 1.0 if primitive % 2 == 0 else -1.0
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=vy_sign)
+                yaw = 0.0
+            elif primitive in (22, 23, 24, 25):
+                vy_sign = 1.0 if primitive in (22, 24) else -1.0
+                vx = self._sample_signed_range(
+                    (CMD_VX_RANGE[0], 0.0), min_abs_fraction=0.70)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]) if vy_sign > 0.0
+                    else (CMD_VY_RANGE[0], 0.0),
+                    min_abs_fraction=0.70)
+                yaw = 0.0
+            elif primitive in (26, 27):
+                vy_sign = 1.0 if primitive == 26 else -1.0
+                vx = self._sample_signed_abs_command(
+                    (0.04, 0.065), sign=-1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=vy_sign)
+                yaw = 0.0
+            elif primitive in (28, 29):
+                yaw_sign = 1.0 if primitive == 28 else -1.0
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy = 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE, sign=yaw_sign)
+            elif primitive == 30:
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+                yaw = 0.0
+            else:
+                vx = 0.0
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "slope_forward_axis_repair":
+            primitive = int(self.np_random.integers(0, 32))
+            if primitive in (0, 1, 2, 3, 4):
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (5, 6, 7, 8):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (9, 10):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (11, 12):
+                vx, yaw = 0.0, 0.0
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+            elif primitive in (13, 14):
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            elif primitive in (15, 16, 17, 18, 19, 20, 21, 22, 23, 24):
+                vy_sign = 1.0 if primitive % 2 == 1 else -1.0
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=vy_sign)
+                yaw = 0.0
+            elif primitive in (25, 26, 27, 28):
+                vy_sign = 1.0 if primitive in (25, 27) else -1.0
+                vx = self._sample_signed_range(
+                    (0.0, CMD_VX_RANGE[1]), min_abs_fraction=0.70)
+                vy = self._sample_signed_range(
+                    (0.0, CMD_VY_RANGE[1]) if vy_sign > 0.0
+                    else (CMD_VY_RANGE[0], 0.0),
+                    min_abs_fraction=0.70)
+                yaw = 0.0
+            elif primitive in (29, 30):
+                yaw_sign = 1.0 if primitive == 29 else -1.0
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE, sign=yaw_sign)
+            else:
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+                yaw = 0.0
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
+        if self.command_curriculum == "slope_positive_vx_diagonal_repair":
+            primitive = int(self.np_random.integers(0, 48))
+            if primitive in (0, 1, 2, 3):
+                vx, vy, yaw = 0.0, 0.0, 0.0
+            elif primitive in (4, 5, 6, 7):
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy, yaw = 0.0, 0.0
+            elif primitive == 8:
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy, yaw = 0.0, 0.0
+            elif primitive in (9, 10, 11):
+                vx, yaw = 0.0, 0.0
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE)
+            elif primitive in (12, 13):
+                vx, vy = 0.0, 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE)
+            elif primitive in (14, 15, 16, 17, 18, 19, 20, 21, 22,
+                               23, 24, 25, 26, 27, 28, 29, 30, 31):
+                vy_sign = 1.0 if primitive % 2 == 0 else -1.0
+                vx = float(self.np_random.uniform(
+                    0.085, CMD_VX_RANGE[1]))
+                vy = float(math.copysign(
+                    self.np_random.uniform(0.055, CMD_VY_RANGE[1]),
+                    vy_sign))
+                yaw = 0.0
+            elif primitive in (32, 33, 34, 35, 36, 37, 38, 39):
+                vy_sign = 1.0 if primitive % 2 == 0 else -1.0
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=vy_sign)
+                yaw = 0.0
+            elif primitive in (40, 41, 42):
+                yaw_sign = 1.0 if primitive in (40, 42) else -1.0
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=1.0)
+                vy = 0.0
+                yaw = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_YAW_ABS_RANGE, sign=yaw_sign)
+            else:
+                vy_sign = 1.0 if primitive in (43, 45, 47) else -1.0
+                vx = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VX_ABS_RANGE, sign=-1.0)
+                vy = self._sample_signed_abs_command(
+                    FEASIBLE_MIXED_VY_ABS_RANGE, sign=vy_sign)
+                yaw = 0.0
+            return self._with_fixed_command_overrides(vx, vy, yaw)
+
         if self.command_curriculum == "mixed_composition_repair":
             primitive = int(self.np_random.integers(0, 20))
             if primitive == 0:
@@ -1925,6 +2285,15 @@ class WormEnvV6(gym.Env):
                 and cmd_vx_norm >= MIXED_PLANAR_FULLSCALE_THRESHOLD
                 and cmd_vy_norm >= MIXED_PLANAR_FULLSCALE_THRESHOLD)
             else 0.0)
+        mixed_positive_vx_full_lateral_gate = (
+            1.0
+            if (mixed_planar_gate > 0.0
+                and cmd_vx > 0.0
+                and MIXED_POSITIVE_VX_FULL_LATERAL_VX_NORM_RANGE[0]
+                <= cmd_vx_norm
+                <= MIXED_POSITIVE_VX_FULL_LATERAL_VX_NORM_RANGE[1]
+                and cmd_vy_norm >= MIXED_POSITIVE_VX_FULL_LATERAL_VY_NORM_MIN)
+            else 0.0)
         prior_component = np.asarray(
             getattr(self, "_last_prior_component",
                     np.zeros(NUM_ACTUATORS, dtype=np.float32)),
@@ -2027,6 +2396,17 @@ class WormEnvV6(gym.Env):
                 0.0,
                 3.0,
             ))
+        mixed_positive_vx_full_lateral_deficit = 0.0
+        if mixed_positive_vx_full_lateral_gate > 0.0:
+            target_forward = (
+                MIXED_POSITIVE_VX_FULL_LATERAL_TARGET_FRACTION
+                * abs(cmd_vx))
+            mixed_positive_vx_full_lateral_deficit = float(np.clip(
+                max(0.0, target_forward - forward_speed)
+                / max(CMD_VX_RANGE[1], 1e-6),
+                0.0,
+                3.0,
+            ))
         mixed_planar_sign_violation = 0.0
         if mixed_planar_gate > 0.0:
             if cmd_vx * forward_speed <= 0.0:
@@ -2035,6 +2415,30 @@ class WormEnvV6(gym.Env):
                 mixed_planar_sign_violation += 1.0
         backward_speed = max(0.0, -along_cmd) / speed_scale
         off_axis_speed_norm = off_axis_speed / speed_scale
+        terrain = getattr(self, "terrain", "flat")
+        terrain_contact_gate = (
+            1.0 if terrain in ("sand", "slope") else 0.0)
+        slope_gate = 1.0 if terrain == "slope" else 0.0
+        zero_command_gate = (
+            1.0
+            if cmd_speed <= 1e-6 and abs(cmd_yaw) <= 1e-6
+            else 0.0)
+        terrain_zero_drift_norm = float(
+            slope_gate
+            * zero_command_gate
+            * min(
+                float(np.linalg.norm(vel_vec))
+                / max(YAW_STATIONARY_TOLERANCE_M_S, 1e-6),
+                YAW_STATIONARY_PENALTY_CLIP,
+            ))
+        terrain_off_axis_norm = float(
+            slope_gate
+            * (1.0 if cmd_speed > 1e-6 else 0.0)
+            * off_axis_speed_norm)
+        if abs(terrain_off_axis_norm) < 1e-9:
+            terrain_off_axis_norm = 0.0
+        terrain_mixed_planar_sign_violation = float(
+            terrain_contact_gate * mixed_planar_sign_violation)
         yaw_stationary_speed_norm = min(
             float(np.linalg.norm(vel_vec))
             / max(YAW_STATIONARY_TOLERANCE_M_S, 1e-6),
@@ -2121,6 +2525,16 @@ class WormEnvV6(gym.Env):
                 mixed_planar_fullscale_gate),
             "reward_mixed_planar_fullscale_deficit_penalty": float(
                 mixed_planar_fullscale_deficit),
+            "mixed_positive_vx_full_lateral_gate": float(
+                mixed_positive_vx_full_lateral_gate),
+            "reward_mixed_positive_vx_full_lateral_deficit_penalty": float(
+                mixed_positive_vx_full_lateral_deficit),
+            "reward_terrain_zero_drift_penalty": float(
+                terrain_zero_drift_norm),
+            "reward_terrain_off_axis_penalty": float(
+                terrain_off_axis_norm),
+            "reward_terrain_mixed_planar_sign_penalty": float(
+                terrain_mixed_planar_sign_violation),
             "desired_gait_blend": float(desired_gait_blend),
             "gait_gate_error": float(gate_target_active * gait_gate_error),
             "reward_axial_prior_preserve_penalty": float(
@@ -2155,6 +2569,12 @@ class WormEnvV6(gym.Env):
             - W_MIXED_PLANAR_SIGN * mixed_planar_sign_violation
             - W_MIXED_PLANAR_FULLSCALE_DEFICIT * (
                 mixed_planar_fullscale_deficit)
+            - W_MIXED_POSITIVE_VX_FULL_LATERAL_DEFICIT * (
+                mixed_positive_vx_full_lateral_deficit)
+            - W_TERRAIN_ZERO_DRIFT * terrain_zero_drift_norm
+            - W_TERRAIN_OFF_AXIS * terrain_off_axis_norm
+            - W_TERRAIN_MIXED_PLANAR_SIGN * (
+                terrain_mixed_planar_sign_violation)
             - W_GAIT_GATE_TARGET * gate_target_active * gait_gate_error
             - W_AXIAL_PRIOR_PRESERVE * axial_prior_preserve_penalty
             - W_COMPONENT_TRACKING * component_tracking_cost

@@ -9,6 +9,7 @@ positive forward displacement must be much better than stalling or reversing.
 import os
 import sys
 import math
+import json
 
 import numpy as np
 
@@ -22,6 +23,7 @@ from train_v6 import (  # noqa: E402
     best_selection_contract,
     directional_eval_summary,
     directional_eval_steps_from_seconds,
+    load_persistent_best_eval,
     make_run_dirs,
     yaw_direction_status,
     training_config_compatible,
@@ -36,6 +38,7 @@ from action_adapter_v6 import (  # noqa: E402
     action_adapter_contract,
     axial_gate_center_from_speed,
     command_conditioned_gate_center,
+    command_conditioned_gait_blend,
     command_activity_scale,
     command_conditioned_prior_authority_scale,
     command_conditioned_prior_scale,
@@ -61,6 +64,8 @@ from worm_env_v6 import (  # noqa: E402
     FEASIBLE_MIXED_YAW_ABS_RANGE,
     LOW_YAW_ENVELOPE_AXIAL_ABS_RANGE,
     LOW_YAW_ENVELOPE_YAW_ABS_RANGE,
+    MIXED_POSITIVE_VX_FULL_LATERAL_VX_NORM_RANGE,
+    MIXED_POSITIVE_VX_FULL_LATERAL_VY_NORM_MIN,
     NUM_ACTUATORS,
     NUM_SLIDES,
     OBS_DIM,
@@ -71,7 +76,12 @@ from action_adapter_v6 import (  # noqa: E402
     LATERAL_PHASE_OFFSET_RAD,
     LATERAL_PRIOR_SCALE_FLOOR,
     MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED,
+    MIXED_PLANAR_AUTHORITY_PROFILE_EXPERIMENTAL_AVAILABLE,
     MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT,
+    MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE,
+    MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_ENABLED,
+    MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT,
+    MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_PRIOR_SCALE_FLOOR,
@@ -80,6 +90,22 @@ from action_adapter_v6 import (  # noqa: E402
     MIXED_YAW_RESIDUAL_SCALE_MULT,
     MIXED_YAW_PRIOR_SCALE_FLOOR,
     SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX,
+    SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR,
+    SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD,
+    SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT,
+    SLOPE_FORWARD_AXIS_PROFILE_ENABLED,
+    SLOPE_FORWARD_AXIS_PROFILE_EXPERIMENTAL_AVAILABLE,
+    SLOPE_MIXED_PLANAR_AXIAL_SLIDE_GAIN,
+    SLOPE_MIXED_PLANAR_LATERAL_SLIDE_GAIN,
+    SLOPE_MIXED_PLANAR_LATERAL_YAW_GAIN,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_ENABLED,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_ENABLED,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT,
+    SLOPE_MIXED_PLANAR_PRIMITIVE_ENABLED,
+    SLOPE_MIXED_PLANAR_PRIMITIVE_EXPERIMENTAL_AVAILABLE,
     YAW_ONLY_RESIDUAL_SCALE_MULT,
     YAW_ONLY_SLIDE_PRIOR_SCALE,
     YAW_ONLY_YAW_PRIOR_SCALE,
@@ -104,8 +130,10 @@ class DummyData:
 def reward_for(body_vx, body_vy=0.0, yaw_rate=0.0,
                cmd_vx=None, cmd_vy=0.0, cmd_yaw=0.0, action=None,
                residual_action=None, prior_component=None,
-               residual_component=None, pre_clip_action=None):
+               residual_component=None, pre_clip_action=None,
+               terrain="flat"):
     env = object.__new__(WormEnvV6)
+    env.terrain = terrain
     env._cmd_vx = CMD_VX_RANGE[1] if cmd_vx is None else cmd_vx
     env._cmd_vy = cmd_vy
     env._cmd_yaw = cmd_yaw
@@ -136,8 +164,10 @@ def reward_for(body_vx, body_vy=0.0, yaw_rate=0.0,
 
 
 def reward_terms_for(body_vx, body_vy=0.0, yaw_rate=0.0,
-                     cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.0):
+                     cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.0,
+                     terrain="flat"):
     env = object.__new__(WormEnvV6)
+    env.terrain = terrain
     env._cmd_vx = cmd_vx
     env._cmd_vy = cmd_vy
     env._cmd_yaw = cmd_yaw
@@ -271,6 +301,43 @@ def reward_for_displacement(forward_delta_m):
         env, np.zeros(NUM_ACTUATORS, dtype=np.float32))
 
 
+def test_persistent_best_requires_tracking_gate(tmp_path):
+    run_dir = tmp_path / "run"
+    log_dir = tmp_path / "logs"
+    run_dir.mkdir()
+    log_dir.mkdir()
+    (run_dir / "best_model.zip").write_bytes(b"stub")
+    (run_dir / "best_model_vecnormalize.pkl").write_bytes(b"stub")
+    fingerprint = best_eval_schedule_fingerprint(best_eval_schedule("random"))
+    payload = {
+        "selection_contract": best_selection_contract(),
+        "eval_schedule_fingerprint": fingerprint,
+        "selection_score": 123.0,
+        "tracking_gate_passed": False,
+    }
+    (run_dir / "best_eval_summary.json").write_text(
+        json.dumps(payload),
+        encoding="utf-8",
+    )
+    assert not np.isfinite(load_persistent_best_eval(
+        str(run_dir),
+        str(log_dir),
+        eval_schedule_fingerprint=fingerprint,
+        selection_contract_version=best_selection_contract()["version"],
+    ))
+    payload["tracking_gate_passed"] = True
+    (run_dir / "best_eval_summary.json").write_text(
+        json.dumps(payload),
+        encoding="utf-8",
+    )
+    assert load_persistent_best_eval(
+        str(run_dir),
+        str(log_dir),
+        eval_schedule_fingerprint=fingerprint,
+        selection_contract_version=best_selection_contract()["version"],
+    ) == 123.0
+
+
 def config_stub(contract):
     return {
         "terrain": "sand",
@@ -284,6 +351,7 @@ def config_stub(contract):
         "reward_contract": contract,
         "action_adapter": action_adapter_contract(),
         "residual_exploration": residual_exploration_contract(),
+        "zero_command_activity_floor": 0.0,
         "eval_command": {
             "cmd_vx_m_s": CMD_VX_RANGE[1],
             "cmd_vy_m_s": 0.0,
@@ -404,6 +472,33 @@ def main():
         0.12, body_vy=0.07, cmd_vx=0.12, cmd_vy=0.07)
     mixed_planar_wrong_vy = reward_for(
         0.12, body_vy=-0.07, cmd_vx=0.12, cmd_vy=0.07)
+    mixed_reverse_left_clean, mixed_reverse_left_clean_terms = (
+        reward_terms_for(
+            -0.06, body_vy=0.035, cmd_vx=-0.10, cmd_vy=0.075))
+    mixed_reverse_left_wrong_vy, mixed_reverse_left_wrong_vy_terms = (
+        reward_terms_for(
+            -0.06, body_vy=-0.035, cmd_vx=-0.10, cmd_vy=0.075))
+    sand_mixed_planar_clean = reward_for(
+        0.12, body_vy=0.07, cmd_vx=0.12, cmd_vy=0.07,
+        terrain="sand")
+    sand_mixed_planar_wrong_vy = reward_for(
+        0.12, body_vy=-0.07, cmd_vx=0.12, cmd_vy=0.07,
+        terrain="sand")
+    slope_zero_still, slope_zero_still_terms = reward_terms_for(
+        0.0, body_vy=0.0, cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.0,
+        terrain="slope")
+    slope_zero_drift, slope_zero_drift_terms = reward_terms_for(
+        0.045, body_vy=0.0, cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.0,
+        terrain="slope")
+    flat_zero_drift, flat_zero_drift_terms = reward_terms_for(
+        0.045, body_vy=0.0, cmd_vx=0.0, cmd_vy=0.0, cmd_yaw=0.0,
+        terrain="flat")
+    slope_off_axis_clean, slope_off_axis_clean_terms = reward_terms_for(
+        CMD_VX_RANGE[1], body_vy=0.0,
+        cmd_vx=CMD_VX_RANGE[1], cmd_vy=0.0, terrain="slope")
+    slope_off_axis_drift, slope_off_axis_drift_terms = reward_terms_for(
+        CMD_VX_RANGE[1], body_vy=0.09,
+        cmd_vx=CMD_VX_RANGE[1], cmd_vy=0.0, terrain="slope")
     full_diag_good = reward_for(
         CMD_VX_RANGE[1] * 0.92,
         body_vy=CMD_VY_RANGE[1] * 0.92,
@@ -424,6 +519,36 @@ def main():
         body_vy=CMD_VY_RANGE[1] * 0.92,
         cmd_vx=CMD_VX_RANGE[1],
         cmd_vy=CMD_VY_RANGE[1])
+    slow_positive_vx_full_left_good = reward_for(
+        0.05,
+        body_vy=0.060,
+        cmd_vx=0.05,
+        cmd_vy=CMD_VY_RANGE[1])
+    slow_positive_vx_full_left_wrong = reward_for(
+        -0.034,
+        body_vy=0.016,
+        cmd_vx=0.05,
+        cmd_vy=CMD_VY_RANGE[1])
+    _, slow_positive_vx_full_left_wrong_terms = reward_terms_for(
+        -0.034,
+        body_vy=0.016,
+        cmd_vx=0.05,
+        cmd_vy=CMD_VY_RANGE[1])
+    _, slow_positive_vx_full_left_good_terms = reward_terms_for(
+        0.05,
+        body_vy=0.060,
+        cmd_vx=0.05,
+        cmd_vy=CMD_VY_RANGE[1])
+    _, reverse_full_left_terms = reward_terms_for(
+        -0.05,
+        body_vy=0.060,
+        cmd_vx=-0.05,
+        cmd_vy=CMD_VY_RANGE[1])
+    _, slow_positive_vx_half_left_terms = reward_terms_for(
+        0.05,
+        body_vy=CMD_VY_RANGE[1] * 0.5,
+        cmd_vx=0.05,
+        cmd_vy=CMD_VY_RANGE[1] * 0.5)
     displacement_reward = reward_for_displacement(
         CMD_VX_RANGE[1] * 0.02)
 
@@ -473,6 +598,27 @@ def main():
         axial_preserved, axial_cancelled)
     assert mixed_planar_clean > mixed_planar_wrong_vy + 3.0, (
         mixed_planar_clean, mixed_planar_wrong_vy)
+    assert mixed_reverse_left_clean_terms[
+        "reward_mixed_planar_sign_penalty"] == 0.0
+    assert mixed_reverse_left_wrong_vy_terms[
+        "reward_mixed_planar_sign_penalty"] == 1.0
+    assert mixed_reverse_left_clean > mixed_reverse_left_wrong_vy + 8.0, (
+        mixed_reverse_left_clean, mixed_reverse_left_wrong_vy)
+    assert sand_mixed_planar_clean > sand_mixed_planar_wrong_vy + 7.0, (
+        sand_mixed_planar_clean, sand_mixed_planar_wrong_vy)
+    assert slope_zero_still > slope_zero_drift + 20.0, (
+        slope_zero_still, slope_zero_drift)
+    assert slope_zero_drift < flat_zero_drift - 20.0, (
+        slope_zero_drift, flat_zero_drift)
+    assert slope_zero_still_terms["reward_terrain_zero_drift_penalty"] == 0.0
+    assert slope_zero_drift_terms[
+        "reward_terrain_zero_drift_penalty"] > 2.0
+    assert flat_zero_drift_terms["reward_terrain_zero_drift_penalty"] == 0.0
+    assert slope_off_axis_clean_terms["reward_terrain_off_axis_penalty"] == 0.0
+    assert slope_off_axis_drift_terms[
+        "reward_terrain_off_axis_penalty"] > 0.8
+    assert slope_off_axis_clean > slope_off_axis_drift + 2.0, (
+        slope_off_axis_clean, slope_off_axis_drift)
     assert full_diag_good > full_diag_underpowered + 4.0, (
         full_diag_good, full_diag_underpowered)
     assert full_diag_underpowered_terms["mixed_planar_fullscale_gate"] == 1.0
@@ -480,11 +626,23 @@ def main():
         "reward_mixed_planar_fullscale_deficit_penalty"] > 0.5
     assert full_diag_good_terms[
         "reward_mixed_planar_fullscale_deficit_penalty"] == 0.0
+    assert slow_positive_vx_full_left_good > (
+        slow_positive_vx_full_left_wrong + 4.0)
+    assert slow_positive_vx_full_left_wrong_terms[
+        "mixed_positive_vx_full_lateral_gate"] == 1.0
+    assert slow_positive_vx_full_left_wrong_terms[
+        "reward_mixed_positive_vx_full_lateral_deficit_penalty"] > 0.5
+    assert slow_positive_vx_full_left_good_terms[
+        "reward_mixed_positive_vx_full_lateral_deficit_penalty"] == 0.0
+    assert reverse_full_left_terms[
+        "mixed_positive_vx_full_lateral_gate"] == 0.0
+    assert slow_positive_vx_half_left_terms[
+        "mixed_positive_vx_full_lateral_gate"] == 0.0
     assert displacement_reward > stalled + 4.0, (
         displacement_reward, stalled)
 
     contract = reward_contract()
-    assert contract["version"] == "omni_directional_offaxis_yaw_v29"
+    assert contract["version"] == "omni_directional_offaxis_yaw_v36_mixed_component_sign"
     assert contract["normalization"]["body_frame_vx_vy_command_tracking"]
     assert contract["normalization"]["off_axis_penalty_tapers_with_planar_command"]
     assert contract["normalization"]["strong_off_axis_suppression"]
@@ -514,7 +672,44 @@ def main():
         "yaw_abs_range_rad_s"] == FEASIBLE_MIXED_YAW_ABS_RANGE
     assert contract["normalization"][
         "feasible_forward_diagonal_repair_sampling"]
+    assert contract["normalization"]["terrain_contact_repair_sampling"][
+        "stop_anchoring"]
+    assert contract["normalization"]["terrain_contact_repair_sampling"][
+        "mixed_vx_vy_hardcase_oversampling"]
+    assert contract["normalization"]["reverse_axis_mixed_repair_sampling"][
+        "pure_reverse_oversampling"]
+    assert contract["normalization"]["reverse_axis_mixed_repair_sampling"][
+        "reverse_mixed_vx_vy_oversampling"]
+    assert contract["normalization"]["slope_forward_axis_repair_sampling"][
+        "pure_forward_oversampling"]
+    assert contract["normalization"]["slope_forward_axis_repair_sampling"][
+        "forward_mixed_vx_vy_oversampling"]
+    assert contract["normalization"][
+        "slope_positive_vx_diagonal_repair_sampling"][
+            "positive_vx_diagonal_hardcase_oversampling"]
+    assert contract["normalization"][
+        "slope_positive_vx_diagonal_repair_sampling"][
+            "reverse_diagonal_guard"]
+    assert contract["normalization"]["terrain_specific_penalties"][
+        "sand_and_slope_extra_mixed_planar_sign"]
+    assert contract["normalization"]["terrain_specific_penalties"][
+        "slope_extra_zero_command_drift"]
+    assert contract["normalization"]["terrain_specific_penalties"][
+        "slope_extra_off_axis"]
+    assert contract["normalization"]["terrain_specific_penalties"][
+        "slope_zero_command_brake_blend_lock"]["gait_blend"] == 0.5
+    assert contract["normalization"]["terrain_specific_penalties"][
+        "slope_zero_command_brake_blend_lock"][
+            "residual_component"] == "suppressed"
     assert "mixed_composition_repair" in COMMAND_CURRICULA
+    assert "terrain_contact_repair" in COMMAND_CURRICULA
+    assert "reverse_axis_mixed_repair" in COMMAND_CURRICULA
+    assert "slope_forward_axis_repair" in COMMAND_CURRICULA
+    assert "slope_positive_vx_diagonal_repair" in COMMAND_CURRICULA
+    terrain_counts = sampled_command_classes("terrain_contact_repair")
+    assert terrain_counts["stop"] >= 35, terrain_counts
+    assert terrain_counts["mixed_vx_vy"] >= 100, terrain_counts
+    assert terrain_counts["pure"] >= 55, terrain_counts
     mixed_counts = sampled_command_classes("mixed_composition_repair")
     assert mixed_counts["mixed_vx_vy"] >= 80, mixed_counts
     assert mixed_counts["mixed_vx_yaw"] >= 80, mixed_counts
@@ -541,6 +736,10 @@ def main():
     assert contract["weights"]["mixed_planar_component_tracking"] > 0.0
     assert contract["weights"]["mixed_planar_sign"] > 0.0
     assert contract["weights"]["mixed_planar_fullscale_deficit"] > 0.0
+    assert contract["weights"]["mixed_positive_vx_full_lateral_deficit"] > 0.0
+    assert contract["weights"]["terrain_zero_drift"] > 0.0
+    assert contract["weights"]["terrain_off_axis"] > 0.0
+    assert contract["weights"]["terrain_mixed_planar_sign"] > 0.0
     assert contract["normalization"]["signed_planar_component_deficit_penalty"]
     assert contract["normalization"]["pure_axial_residual_cancellation_penalty"]
     assert contract["normalization"][
@@ -548,16 +747,27 @@ def main():
     assert contract["normalization"]["componentwise_vx_vy_yaw_tracking_cost"]
     assert contract["normalization"]["mixed_planar_component_tracking_cost"]
     assert contract["normalization"]["mixed_planar_sign_penalty"]
+    assert contract["normalization"]["mixed_planar_component_sign_penalty"]
     assert contract["normalization"]["mixed_planar_fullscale_deficit_penalty"]
     assert contract["normalization"]["mixed_planar_fullscale_threshold"] == 0.75
+    hardcase_penalty = contract["normalization"][
+        "mixed_positive_vx_full_lateral_deficit_penalty"]
+    assert hardcase_penalty["enabled"]
+    assert hardcase_penalty["vx_norm_range"] == (
+        MIXED_POSITIVE_VX_FULL_LATERAL_VX_NORM_RANGE)
+    assert hardcase_penalty["vy_norm_min"] == (
+        MIXED_POSITIVE_VX_FULL_LATERAL_VY_NORM_MIN)
     assert contract["normalization"]["component_tracking_cost_scale"] == {
         "vx": CMD_VX_RANGE[1],
         "vy": CMD_VY_RANGE[1],
         "yaw": CMD_YAW_RANGE[1],
     }
     selection_contract = best_selection_contract()
-    assert selection_contract["version"] == "omni_tracking_scan_v3"
+    assert selection_contract["version"] == "omni_tracking_scan_v5"
     assert selection_contract["requires_continuous_tracking_metrics"]
+    assert selection_contract["best_model_requires_tracking_gate"]
+    assert selection_contract["requires_mixed_vx_vy_component_sign_gate"]
+    assert selection_contract["progress_best_artifacts"]
     assert selection_contract["required_planar_success_rate"] == (
         REQUIRED_PLANAR_SUCCESS_RATE)
     assert selection_contract["required_yaw_success_rate"] == (
@@ -573,7 +783,7 @@ def main():
     assert prior.shape == (NUM_ACTUATORS,)
     assert np.any(prior[:6] < -0.1)
     adapter_contract = action_adapter_contract()
-    assert adapter_contract["version"].endswith("_v37")
+    assert adapter_contract["version"].endswith("_v40")
     assert adapter_contract["gait_gate_mapping"]["raw_action_index"] == (
         NUM_ACTUATORS)
     assert "|cmd_yaw_norm|" in adapter_contract[
@@ -588,26 +798,98 @@ def main():
     assert not prior_authority["enabled"]
     assert not MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED
     assert "mixed vx/vy" in prior_authority["formula"]
+    authority_profile = prior_authority["terrain_profile_ablation"]
+    assert authority_profile["available"]
+    assert MIXED_PLANAR_AUTHORITY_PROFILE_EXPERIMENTAL_AVAILABLE
+    assert authority_profile["default_prior_authority_mult"] == (
+        MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT)
+    assert authority_profile["default_residual_scale_mult"] == (
+        MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT)
+    assert authority_profile["prior_authority_mult"] == (
+        MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT)
+    assert authority_profile["residual_scale_mult"] == (
+        MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT)
+    assert MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT == (
+        MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT)
+    assert MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT == (
+        MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT)
     assert MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT > (
         MIXED_PLANAR_RESIDUAL_SCALE_MULT)
     assert MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT < 1.0
+    slope_forward_profile = prior_authority["slope_forward_axis_profile"]
+    assert slope_forward_profile["available"]
+    assert not slope_forward_profile["enabled"]
+    assert SLOPE_FORWARD_AXIS_PROFILE_EXPERIMENTAL_AVAILABLE
+    assert not SLOPE_FORWARD_AXIS_PROFILE_ENABLED
+    assert slope_forward_profile["prior_authority_mult"] == (
+        SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT)
+    assert slope_forward_profile["gait_blend_floor"] == (
+        SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR)
+    assert slope_forward_profile["phase_offset_rad"] == (
+        SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD)
+    assert slope_forward_profile["target_command"]["intended_terrain"] == (
+        "slope")
+    split_prior_contract = adapter_contract["mixed_planar_split_prior"]
+    assert split_prior_contract["available"]
+    assert not split_prior_contract["enabled"]
+    assert split_prior_contract["full_channel_ablation"]["available"]
+    assert not split_prior_contract["full_channel_ablation"]["enabled"]
+    assert MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE
+    assert not MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_ENABLED
+    slope_mixed_primitive = split_prior_contract[
+        "slope_mixed_planar_primitive"]
+    assert slope_mixed_primitive["available"]
+    assert not slope_mixed_primitive["enabled"]
+    assert SLOPE_MIXED_PLANAR_PRIMITIVE_EXPERIMENTAL_AVAILABLE
+    assert not SLOPE_MIXED_PLANAR_PRIMITIVE_ENABLED
+    assert slope_mixed_primitive["gains"]["axial_slide"] == (
+        SLOPE_MIXED_PLANAR_AXIAL_SLIDE_GAIN)
+    assert slope_mixed_primitive["gains"]["lateral_slide"] == (
+        SLOPE_MIXED_PLANAR_LATERAL_SLIDE_GAIN)
+    assert slope_mixed_primitive["gains"]["lateral_yaw"] == (
+        SLOPE_MIXED_PLANAR_LATERAL_YAW_GAIN)
+    positive_vx_axial_yaw = slope_mixed_primitive["gains"][
+        "positive_vx_axial_yaw_ablation"]
+    assert not positive_vx_axial_yaw["enabled"]
+    assert not SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_ENABLED
+    assert positive_vx_axial_yaw["axial_yaw_gain"] == (
+        SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN)
+    assert positive_vx_axial_yaw["lateral_yaw_mult"] == (
+        SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT)
+    positive_vx_axial_phase = slope_mixed_primitive["gains"][
+        "positive_vx_axial_phase_ablation"]
+    assert positive_vx_axial_phase["available"]
+    assert not positive_vx_axial_phase["enabled"]
+    assert not SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_ENABLED
+    assert positive_vx_axial_phase["phase_offset_rad"] == (
+        SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD)
+    assert positive_vx_axial_phase["slide_sign"] == (
+        SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN)
     assert command_conditioned_prior_authority_scale(0.5, 0.5, 0.0) == 1.0
     assert command_conditioned_prior_authority_scale(1.0, 0.0, 0.0) == 1.0
     assert command_conditioned_prior_authority_scale(0.0, 1.0, 0.0) == 1.0
     assert command_conditioned_prior_authority_scale(0.0, 0.0, 1.0) == 1.0
     assert command_conditioned_prior_authority_scale(1.0, 0.0, 1.0) == 1.0
+    assert command_conditioned_gait_blend(
+        0.0, (1.0, 0.0, 0.0)) < SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR
     centers = adapter_contract["gait_gate_mapping"]["command_centers"]
     assert centers["axial_translation"] < centers["mixed_or_stop"]
     assert centers["axial_translation_slow"] < centers["axial_translation_fast"]
     assert centers["axial_translation_fast"] == centers["mixed_or_stop"]
     assert centers["lateral_translation"] < centers["mixed_or_stop"]
     assert centers["lateral_translation"] == 0.0
+    assert centers["mixed_planar_continuous_gate"]["available"]
+    assert not centers["mixed_planar_continuous_gate"]["enabled"]
+    assert centers["mixed_planar_continuous_gate"][
+        "axial_share_floor"] > 0.0
     assert centers["yaw"] >= centers["mixed_or_stop"]
     assert command_conditioned_gate_center((0.25, 0.0, 0.0)) < (
         command_conditioned_gate_center((1.0, 0.0, 0.0)))
     assert np.isclose(
         command_conditioned_gate_center((1.0, 0.0, 0.0)),
         centers["axial_translation_fast"])
+    assert command_conditioned_gate_center((0.5, 1.0, 0.0)) == (
+        centers["lateral_translation"])
     assert np.isclose(
         axial_gate_center_from_speed(1.0),
         centers["axial_translation_fast"])
@@ -946,6 +1228,127 @@ def main():
     assert np.all(np.abs(samples[:, 1]) <= FEASIBLE_MIXED_VY_ABS_RANGE[1])
     assert np.all(np.abs(samples[:, 2]) <= FEASIBLE_MIXED_YAW_ABS_RANGE[1])
 
+    env.command_curriculum = "reverse_axis_mixed_repair"
+    samples = np.array([env._sample_command() for _ in range(640)])
+    nonzero_dims = np.count_nonzero(np.abs(samples) > 1e-9, axis=1)
+    reverse_axial_samples = samples[
+        (samples[:, 0] < -1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    forward_guard_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    reverse_diagonal_samples = samples[
+        (samples[:, 0] < -1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    forward_diagonal_guard_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    reverse_yaw_samples = samples[
+        (samples[:, 0] < -1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    assert np.count_nonzero(nonzero_dims == 0) >= 50
+    assert len(reverse_axial_samples) >= 60
+    assert len(forward_guard_samples) >= 25
+    assert len(reverse_diagonal_samples) >= 220
+    assert len(forward_diagonal_guard_samples) >= 10
+    assert len(reverse_yaw_samples) >= 20
+    assert np.any(reverse_diagonal_samples[:, 1] > 0.0)
+    assert np.any(reverse_diagonal_samples[:, 1] < 0.0)
+
+    env.command_curriculum = "slope_forward_axis_repair"
+    samples = np.array([env._sample_command() for _ in range(640)])
+    nonzero_dims = np.count_nonzero(np.abs(samples) > 1e-9, axis=1)
+    forward_axial_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    reverse_guard_samples = samples[
+        (samples[:, 0] < -1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    forward_diagonal_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    reverse_diagonal_guard_samples = samples[
+        (samples[:, 0] < -1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    forward_yaw_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    assert np.count_nonzero(nonzero_dims == 0) >= 70
+    assert len(forward_axial_samples) >= 60
+    assert len(reverse_guard_samples) >= 25
+    assert len(forward_diagonal_samples) >= 220
+    assert len(reverse_diagonal_guard_samples) >= 10
+    assert len(forward_yaw_samples) >= 20
+    assert np.any(forward_diagonal_samples[:, 1] > 0.0)
+    assert np.any(forward_diagonal_samples[:, 1] < 0.0)
+
+    env.command_curriculum = "slope_positive_vx_diagonal_repair"
+    samples = np.array([env._sample_command() for _ in range(640)])
+    nonzero_dims = np.count_nonzero(np.abs(samples) > 1e-9, axis=1)
+    forward_diagonal_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    reverse_diagonal_guard_samples = samples[
+        (samples[:, 0] < -1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    fullscale_forward_diagonal_samples = forward_diagonal_samples[
+        (forward_diagonal_samples[:, 0] >= 0.80 * CMD_VX_RANGE[1])
+        & (np.abs(forward_diagonal_samples[:, 1])
+           >= 0.70 * CMD_VY_RANGE[1])
+    ]
+    pure_forward_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    pure_lateral_samples = samples[
+        (np.abs(samples[:, 0]) <= 1e-9)
+        & (np.abs(samples[:, 1]) > 1e-9)
+        & (np.abs(samples[:, 2]) <= 1e-9)
+    ]
+    forward_yaw_guard_samples = samples[
+        (samples[:, 0] > 1e-9)
+        & (np.abs(samples[:, 1]) <= 1e-9)
+        & (np.abs(samples[:, 2]) > 1e-9)
+    ]
+    assert np.count_nonzero(nonzero_dims == 0) >= 35
+    assert len(forward_diagonal_samples) >= 280
+    assert len(fullscale_forward_diagonal_samples) >= 180
+    assert len(reverse_diagonal_guard_samples) >= 30
+    assert len(pure_forward_samples) >= 35
+    assert len(pure_lateral_samples) >= 25
+    assert len(forward_yaw_guard_samples) >= 20
+    assert np.all(forward_diagonal_samples[:, 0] > 0.0)
+    assert np.any(forward_diagonal_samples[:, 1] > 0.0)
+    assert np.any(forward_diagonal_samples[:, 1] < 0.0)
+    assert np.all(np.abs(samples[:, 0]) <= FEASIBLE_MIXED_VX_ABS_RANGE[1])
+    assert np.all(np.abs(samples[:, 1]) <= FEASIBLE_MIXED_VY_ABS_RANGE[1])
+    assert np.all(np.abs(samples[:, 2]) <= FEASIBLE_MIXED_YAW_ABS_RANGE[1])
+
     env.command_curriculum = "continuous_omni"
     samples = np.array([env._sample_command() for _ in range(240)])
     normalized = np.column_stack((
@@ -1140,6 +1543,36 @@ def main():
     assert bad_direction["wrong_planar_sign_count"] == 2
     assert bad_direction["wrong_yaw_sign_count"] == 1
     assert bad_direction["selection_score"] < good_direction["selection_score"]
+    mixed_component_schedule = [{
+        "case_name": "mixed_reverse_left",
+        "gait_blend": 0.5,
+        "cmd_vx_m_s": -0.10,
+        "cmd_vy_m_s": 0.075,
+        "cmd_yaw_rad_s": 0.0,
+    }]
+    mixed_component_good = directional_eval_summary(
+        mixed_component_schedule,
+        episode_rewards=[1000.0],
+        yaw_deltas_rad=[0.0],
+        body_deltas_m=[(-0.20, 0.15)],
+        elapsed_s=[2.0],
+    )
+    mixed_component_wrong_vy = directional_eval_summary(
+        mixed_component_schedule,
+        episode_rewards=[1200.0],
+        yaw_deltas_rad=[0.0],
+        body_deltas_m=[(-0.20, -0.15)],
+        elapsed_s=[2.0],
+    )
+    assert mixed_component_good["wrong_mixed_component_sign_count"] == 0
+    assert mixed_component_good["direction_gate_passed"]
+    assert mixed_component_wrong_vy[
+        "wrong_mixed_component_sign_count"] == 1
+    assert mixed_component_wrong_vy[
+        "wrong_mixed_component_axis_count"] == 1
+    assert not mixed_component_wrong_vy["direction_gate_passed"]
+    assert mixed_component_wrong_vy[
+        "selection_score"] < mixed_component_good["selection_score"]
     full_schedule = best_eval_schedule("random")
     elapsed = [2.0] * len(full_schedule)
     good_body_deltas = [
@@ -1206,6 +1639,22 @@ def main():
     ok, reasons = training_config_compatible(
         config_stub(contract), config_stub(contract))
     assert ok, reasons
+    ok, reasons = training_config_compatible(
+        json.loads(json.dumps(config_stub(contract))),
+        config_stub(contract))
+    assert ok, reasons
+    floor_changed = config_stub(contract)
+    floor_changed["zero_command_activity_floor"] = 0.25
+    ok, reasons = training_config_compatible(
+        config_stub(contract), floor_changed)
+    assert not ok
+    assert "zero_command_activity_floor" in reasons
+    ok, reasons = training_config_compatible(
+        config_stub(contract),
+        floor_changed,
+        allow_experimental_contract_mismatch=True,
+    )
+    assert ok, reasons
 
     nominal_sensor = config_stub(contract)
     robust_sensor = config_stub(contract)
@@ -1246,6 +1695,19 @@ def main():
         assert False, (
             "training_config_compatible must expose an explicit "
             f"curriculum-resume override: {exc}")
+    assert ok, reasons
+
+    sand_config = config_stub(contract)
+    flat_config = config_stub(contract)
+    flat_config["terrain"] = "flat"
+    ok, reasons = training_config_compatible(flat_config, sand_config)
+    assert not ok
+    assert "training fields" in reasons
+    ok, reasons = training_config_compatible(
+        flat_config,
+        sand_config,
+        allow_terrain_mismatch=True,
+    )
     assert ok, reasons
 
     old = dict(contract)
@@ -1311,6 +1773,10 @@ def main():
     assert ckpt_dir == os.path.join(run_dir, "checkpoints")
 
     print("reward contract checks passed")
+
+
+def test_main_contract_smoke():
+    main()
 
 
 if __name__ == "__main__":

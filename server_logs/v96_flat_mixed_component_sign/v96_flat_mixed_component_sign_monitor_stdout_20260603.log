@@ -1,0 +1,255 @@
+[2026-06-03T18:20:33+08:00] train pid=2514148 is already stopped
+[2026-06-03T18:20:33+08:00] scan v96_final_model_nominal using runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/final_model.zip
+[2026-06-03T18:20:33+08:00] scan v96_final_model_robust using runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/final_model.zip
+[2026-06-03T18:20:33+08:00] scan v96_progress_best_model_nominal using runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/progress_best_model.zip
+[2026-06-03T18:20:33+08:00] skip v96_best_model_nominal: missing runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/best_model.zip
+[2026-06-03T18:20:33+08:00] skip v96_best_model_robust: missing runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/best_model.zip
+[2026-06-03T18:20:33+08:00] scan v96_progress_best_model_robust using runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/progress_best_model.zip
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+{
+  "num_commands": 29,
+  "planar_rmse_m_s": 0.05970676917315314,
+  "yaw_rmse_rad_s": 0.02171458609802608,
+  "vx_error_rmse_m_s": 0.03359438615726931,
+  "vy_error_rmse_m_s": 0.045474950185931125,
+  "planar_sign_rate": 1.0,
+  "yaw_sign_rate": 1.0,
+  "max_planar_error_m_s": 0.14546150410890613,
+  "max_yaw_error_rad_s": 0.1339980289617102,
+  "zero_command_mean_speed_m_s": 3.186549610619489e-05,
+  "zero_command_mean_abs_yaw_rate_rad_s": 0.00012664064329063565,
+  "yaw_only_mean_planar_speed_m_s": 0.029570590010047908,
+  "yaw_only_max_planar_speed_m_s": 0.03466468213832138,
+  "vx_error_exceed_threshold_m_s": 0.1,
+  "vy_error_exceed_threshold_m_s": 0.1,
+  "planar_error_exceed_threshold_m_s": 0.1,
+  "yaw_error_exceed_threshold_rad_s": 0.2,
+  "off_axis_exceed_threshold_m_s": 0.08,
+  "zero_command_speed_exceed_threshold_m_s": 0.02,
+  "yaw_only_planar_exceed_threshold_m_s": 0.08,
+  "vx_error_exceed_count": 0,
+  "vy_error_exceed_count": 2,
+  "planar_error_exceed_count": 2,
+  "yaw_error_exceed_count": 0,
+  "off_axis_exceed_count": 1,
+  "zero_command_speed_exceed_count": 0,
+  "yaw_only_planar_exceed_count": 0,
+  "wrong_planar_sign_count": 0,
+  "wrong_yaw_sign_count": 0,
+  "fixed_lateral_speed_threshold_m_s": 0.03,
+  "fixed_lateral_off_axis_threshold_m_s": 0.08,
+  "fixed_lateral_yaw_threshold_rad_s": 0.2,
+  "fixed_lateral_left_cmd_vy_m_s": 0.075,
+  "fixed_lateral_left_body_vx_m_s": -0.023158208934455835,
+  "fixed_lateral_left_body_vy_m_s": 0.0740065840731029,
+  "fixed_lateral_left_yaw_rate_rad_s": 0.11419336374851212,
+  "fixed_lateral_left_speed_passed": true,
+  "fixed_lateral_left_strict_passed": true,
+  "fixed_lateral_right_cmd_vy_m_s": -0.075,
+  "fixed_lateral_right_body_vx_m_s": -0.038507430189726445,
+  "fixed_lateral_right_body_vy_m_s": -0.07893691066447493,
+  "fixed_lateral_right_yaw_rate_rad_s": -0.009403029123847087,
+  "fixed_lateral_right_speed_passed": true,
+  "fixed_lateral_right_strict_passed": true,
+  "fixed_lateral_speed_gate_passed": true,
+  "fixed_lateral_strict_gate_passed": true
+}
+Saved scan: record/current/flat_omni_v96_server_mixed_component_sign_scan/v96_final_model_nominal_scan.json
+Saved CSV: record/current/flat_omni_v96_server_mixed_component_sign_scan/v96_final_model_nominal_scan.csv
+{
+  "accepted": true,
+  "failed_conditions": [],
+  "dominant_failure_group": "mixed_vx_vy"
+}
+[2026-06-03T18:24:41+08:00] done v96_final_model_nominal
+{
+  "num_commands": 29,
+  "planar_rmse_m_s": 0.05753296847683284,
+  "yaw_rmse_rad_s": 0.020015118779835674,
+  "vx_error_rmse_m_s": 0.03520364712024908,
+  "vy_error_rmse_m_s": 0.041572430003048014,
+  "planar_sign_rate": 1.0,
+  "yaw_sign_rate": 1.0,
+  "max_planar_error_m_s": 0.10563475871073559,
+  "max_yaw_error_rad_s": 0.10823408996567278,
+  "zero_command_mean_speed_m_s": 3.186549610619489e-05,
+  "zero_command_mean_abs_yaw_rate_rad_s": 0.00012664064329063565,
+  "yaw_only_mean_planar_speed_m_s": 0.02847781429292666,
+  "yaw_only_max_planar_speed_m_s": 0.03464142518228292,
+  "vx_error_exceed_threshold_m_s": 0.1,
+  "vy_error_exceed_threshold_m_s": 0.1,
+  "planar_error_exceed_threshold_m_s": 0.1,
+  "yaw_error_exceed_threshold_rad_s": 0.2,
+  "off_axis_exceed_threshold_m_s": 0.08,
+  "zero_command_speed_exceed_threshold_m_s": 0.02,
+  "yaw_only_planar_exceed_threshold_m_s": 0.08,
+  "vx_error_exceed_count": 0,
+  "vy_error_exceed_count": 0,
+  "planar_error_exceed_count": 1,
+  "yaw_error_exceed_count": 0,
+  "off_axis_exceed_count": 1,
+  "zero_command_speed_exceed_count": 0,
+  "yaw_only_planar_exceed_count": 0,
+  "wrong_planar_sign_count": 0,
+  "wrong_yaw_sign_count": 0,
+  "fixed_lateral_speed_threshold_m_s": 0.03,
+  "fixed_lateral_off_axis_threshold_m_s": 0.08,
+  "fixed_lateral_yaw_threshold_rad_s": 0.2,
+  "fixed_lateral_left_cmd_vy_m_s": 0.075,
+  "fixed_lateral_left_body_vx_m_s": -0.023727229386108925,
+  "fixed_lateral_left_body_vy_m_s": 0.05712878391364668,
+  "fixed_lateral_left_yaw_rate_rad_s": 0.0886722029683346,
+  "fixed_lateral_left_speed_passed": true,
+  "fixed_lateral_left_strict_passed": true,
+  "fixed_lateral_right_cmd_vy_m_s": -0.075,
+  "fixed_lateral_right_body_vx_m_s": -0.035326504696229354,
+  "fixed_lateral_right_body_vy_m_s": -0.10669300981341541,
+  "fixed_lateral_right_yaw_rate_rad_s": 0.03385542814999276,
+  "fixed_lateral_right_speed_passed": true,
+  "fixed_lateral_right_strict_passed": true,
+  "fixed_lateral_speed_gate_passed": true,
+  "fixed_lateral_strict_gate_passed": true
+}
+Saved scan: record/current/flat_omni_v96_server_mixed_component_sign_scan/v96_final_model_robust_scan.json
+Saved CSV: record/current/flat_omni_v96_server_mixed_component_sign_scan/v96_final_model_robust_scan.csv
+{
+  "num_commands": 29,
+  "planar_rmse_m_s": 0.05947521884965427,
+  "yaw_rmse_rad_s": 0.021845428171272656,
+  "vx_error_rmse_m_s": 0.033580267297696524,
+  "vy_error_rmse_m_s": 0.045225758079830695,
+  "planar_sign_rate": 1.0,
+  "yaw_sign_rate": 1.0,
+  "max_planar_error_m_s": 0.1087042766948415,
+  "max_yaw_error_rad_s": 0.12352880010372824,
+  "zero_command_mean_speed_m_s": 3.186549610619489e-05,
+  "zero_command_mean_abs_yaw_rate_rad_s": 0.00012664064329063565,
+  "yaw_only_mean_planar_speed_m_s": 0.029597936581330832,
+  "yaw_only_max_planar_speed_m_s": 0.03473886945097181,
+  "vx_error_exceed_threshold_m_s": 0.1,
+  "vy_error_exceed_threshold_m_s": 0.1,
+  "planar_error_exceed_threshold_m_s": 0.1,
+  "yaw_error_exceed_threshold_rad_s": 0.2,
+  "off_axis_exceed_threshold_m_s": 0.08,
+  "zero_command_speed_exceed_threshold_m_s": 0.02,
+  "yaw_only_planar_exceed_threshold_m_s": 0.08,
+  "vx_error_exceed_count": 0,
+  "vy_error_exceed_count": 1,
+  "planar_error_exceed_count": 2,
+  "yaw_error_exceed_count": 0,
+  "off_axis_exceed_count": 1,
+  "zero_command_speed_exceed_count": 0,
+  "yaw_only_planar_exceed_count": 0,
+  "wrong_planar_sign_count": 0,
+  "wrong_yaw_sign_count": 0,
+  "fixed_lateral_speed_threshold_m_s": 0.03,
+  "fixed_lateral_off_axis_threshold_m_s": 0.08,
+  "fixed_lateral_yaw_threshold_rad_s": 0.2,
+  "fixed_lateral_left_cmd_vy_m_s": 0.075,
+  "fixed_lateral_left_body_vx_m_s": -0.019843549466634008,
+  "fixed_lateral_left_body_vy_m_s": 0.07448247741181041,
+  "fixed_lateral_left_yaw_rate_rad_s": 0.12352880010372824,
+  "fixed_lateral_left_speed_passed": true,
+  "fixed_lateral_left_strict_passed": true,
+  "fixed_lateral_right_cmd_vy_m_s": -0.075,
+  "fixed_lateral_right_body_vx_m_s": -0.023249594325398165,
+  "fixed_lateral_right_body_vy_m_s": -0.11420527044660385,
+  "fixed_lateral_right_yaw_rate_rad_s": -0.007429225438409626,
+  "fixed_lateral_right_speed_passed": true,
+  "fixed_lateral_right_strict_passed": true,
+  "fixed_lateral_speed_gate_passed": true,
+  "fixed_lateral_strict_gate_passed": true
+}
+Saved scan: record/current/flat_omni_v96_server_mixed_component_sign_scan/v96_progress_best_model_nominal_scan.json
+Saved CSV: record/current/flat_omni_v96_server_mixed_component_sign_scan/v96_progress_best_model_nominal_scan.csv
+{
+  "num_commands": 29,
+  "planar_rmse_m_s": 0.05946882162768561,
+  "yaw_rmse_rad_s": 0.020145835543639308,
+  "vx_error_rmse_m_s": 0.03694875260766569,
+  "vy_error_rmse_m_s": 0.0424037233323225,
+  "planar_sign_rate": 1.0,
+  "yaw_sign_rate": 1.0,
+  "max_planar_error_m_s": 0.11065773920604655,
+  "max_yaw_error_rad_s": 0.15864763083577405,
+  "zero_command_mean_speed_m_s": 3.186549610619489e-05,
+  "zero_command_mean_abs_yaw_rate_rad_s": 0.00012664064329063565,
+  "yaw_only_mean_planar_speed_m_s": 0.028544660251681203,
+  "yaw_only_max_planar_speed_m_s": 0.03462224859291398,
+  "vx_error_exceed_threshold_m_s": 0.1,
+  "vy_error_exceed_threshold_m_s": 0.1,
+  "planar_error_exceed_threshold_m_s": 0.1,
+  "yaw_error_exceed_threshold_rad_s": 0.2,
+  "off_axis_exceed_threshold_m_s": 0.08,
+  "zero_command_speed_exceed_threshold_m_s": 0.02,
+  "yaw_only_planar_exceed_threshold_m_s": 0.08,
+  "vx_error_exceed_count": 1,
+  "vy_error_exceed_count": 1,
+  "planar_error_exceed_count": 2,
+  "yaw_error_exceed_count": 0,
+  "off_axis_exceed_count": 1,
+  "zero_command_speed_exceed_count": 0,
+  "yaw_only_planar_exceed_count": 0,
+  "wrong_planar_sign_count": 0,
+  "wrong_yaw_sign_count": 0,
+  "fixed_lateral_speed_threshold_m_s": 0.03,
+  "fixed_lateral_off_axis_threshold_m_s": 0.08,
+  "fixed_lateral_yaw_threshold_rad_s": 0.2,
+  "fixed_lateral_left_cmd_vy_m_s": 0.075,
+  "fixed_lateral_left_body_vx_m_s": -0.030691649961221912,
+  "fixed_lateral_left_body_vy_m_s": 0.0530430715381742,
+  "fixed_lateral_left_yaw_rate_rad_s": 0.07779238173443821,
+  "fixed_lateral_left_speed_passed": true,
+  "fixed_lateral_left_strict_passed": true,
+  "fixed_lateral_right_cmd_vy_m_s": -0.075,
+  "fixed_lateral_right_body_vx_m_s": 0.0021589365773400427,
+  "fixed_lateral_right_body_vy_m_s": -0.14890161057389956,
+  "fixed_lateral_right_yaw_rate_rad_s": -0.03175471423954068,
+  "fixed_lateral_right_speed_passed": true,
+  "fixed_lateral_right_strict_passed": true,
+  "fixed_lateral_speed_gate_passed": true,
+  "fixed_lateral_strict_gate_passed": true
+}
+Saved scan: record/current/flat_omni_v96_server_mixed_component_sign_scan/v96_progress_best_model_robust_scan.json
+Saved CSV: record/current/flat_omni_v96_server_mixed_component_sign_scan/v96_progress_best_model_robust_scan.csv
+{
+  "accepted": true,
+  "failed_conditions": [],
+  "dominant_failure_group": "mixed_vx_vy"
+}
+[2026-06-03T18:25:12+08:00] done v96_final_model_robust
+{
+  "accepted": true,
+  "failed_conditions": [],
+  "dominant_failure_group": "mixed_vx_vy"
+}
+[2026-06-03T18:25:12+08:00] done v96_progress_best_model_nominal
+{
+  "accepted": true,
+  "failed_conditions": [],
+  "dominant_failure_group": "mixed_vx_vy"
+}
+[2026-06-03T18:25:12+08:00] done v96_progress_best_model_robust
+# Worm V6 V96 flat mixed-component sign acceptance
+
+Selected row: sign-failure command when available, otherwise worst strict-analysis command.
+
+| Label | Accepted | Failed | Adapter | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Planar exceed | Off-axis exceed | Fixed lateral strict | Selected command | Measured `(vx, vy, yaw)` | Selected sign |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |
+| `v96_final_model_nominal` | true | `-` | `cmaes_tri_anchor_auto_gate_directional_v40` | 0.0597 | 0.0217 | 0 | 0 | 2 | 1 | true | `(-0.1000, -0.0750, 0.0000)` | `(-0.0465, 0.0603, 0.0392)` | pass |
+| `v96_final_model_robust` | true | `-` | `cmaes_tri_anchor_auto_gate_directional_v40` | 0.0575 | 0.0200 | 0 | 0 | 1 | 1 | true | `(0.1000, -0.0750, 0.0000)` | `(0.0420, 0.0133, 0.0207)` | pass |
+| `v96_progress_best_model_nominal` | true | `-` | `cmaes_tri_anchor_auto_gate_directional_v40` | 0.0595 | 0.0218 | 0 | 0 | 2 | 1 | true | `(0.1000, -0.0750, 0.0000)` | `(0.0635, 0.0274, 0.0838)` | pass |
+| `v96_progress_best_model_robust` | true | `-` | `cmaes_tri_anchor_auto_gate_directional_v40` | 0.0595 | 0.0201 | 0 | 0 | 2 | 1 | true | `(-0.1000, 0.0750, 0.0000)` | `(-0.0615, -0.0288, -0.0729)` | pass |
+
+[2026-06-03T18:25:13+08:00] monitor complete scan_status=0

@@ -1260,3 +1260,95 @@ omnidirectional velocity tracking.
   - For advisor and paper language, V95 should be described as a diagnostic
     improvement that tightened the evaluation definition, not as a completed
     continuous `vx/vy/yaw` controller.
+
+## 2026-06-03 V96 Mixed-Component Sign Training and Advisor PPT
+
+- V96 is the next flat remote continuation after the V95 component-sign audit.
+- The run label is:
+  `flat_random_v96_server_mixed_component_sign_from_v95final_np2`.
+- The server run directory is:
+  `/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2`.
+- V96 resumes from:
+  `runs/worm_v6_ppo_flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2/final_model.zip`.
+- The deployable ABI is still unchanged:
+  - 80D observation: `vx, vy, yaw` command, encoders, previous action, 7 segment
+    IMUs, and 1 s phase clock.
+  - 12D action: 11D residual motor action plus one learned latent gait gate.
+- Actor and critic both use `512-256-128`.
+- The reward contract is now
+  `omni_directional_offaxis_yaw_v36_mixed_component_sign`.
+- The model-selection contract is now `omni_tracking_scan_v5`.
+- The key V96 change is stricter mixed-command supervision:
+  - mixed `vx/vy` commands are not accepted only because their projected planar
+    direction is roughly correct;
+  - each nonzero command component must also have the correct body-frame sign;
+  - the directional evaluator records `wrong_mixed_component_sign_count`,
+    `wrong_mixed_component_axis_count`, and weak component counts.
+- Local verification before syncing to the server:
+  - `test_reward_contract_v6.py`: passed.
+  - `test_command_scan_analysis_v6.py`: passed.
+  - `test_summarize_scan_acceptance_v6.py`: passed.
+  - `test_omni_eval_metrics_v6.py`: passed.
+- Server verification in the `wormv6_np2` environment:
+  - reward contract checks passed.
+  - command scan analysis checks passed.
+  - omni eval metrics checks passed.
+- Training was launched on the remote server with:
+  - target timesteps: `3,569,272`
+  - resume start timesteps: `3,500,344`
+  - chunk timesteps: `68,928`
+  - `n_envs=8`, `device=cpu`, learning rate `1e-6`
+  - robust sensor/action conditions: encoder noise, IMU noise, one-step action
+    delay, and action saturation `0.9`
+- Early V96 log evidence shows the stricter metric is active. The first
+  progress-best style result reduced the old V95 robust mixed-component failure
+  from `10` to `4`, but it is still not accepted because mixed component signs
+  and yaw signs remain unresolved.
+- V96 completed its remote continuation and produced `final_model.zip` plus
+  `progress_best_model.zip`. It did not produce an accepted `best_model.zip`.
+- A first pass of the remote scan summary incorrectly reported acceptance
+  because the server still used an older scan analyzer. The scan JSON was
+  valid, so the analyzer/summarizer were synced to the server and the
+  analysis was recomputed without rerunning simulation.
+- The corrected formal scan artifacts were pulled to:
+  `record/current/flat_omni_v96_server_mixed_component_sign_scan/`.
+
+| Checkpoint | Condition | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Wrong mixed comp | Representative component failure |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| final | nominal | false | 0.0597 | 0.0217 | 0 | 0 | 9 | `cmd=(+0.100,-0.075,0) -> measured=(+0.081,+0.036,+0.132)` |
+| final | robust | false | 0.0575 | 0.0200 | 0 | 0 | 8 | `cmd=(-0.100,+0.0375,0) -> measured=(-0.0526,-0.0355,-0.1017)` |
+| progress_best | nominal | false | 0.0595 | 0.0218 | 0 | 0 | 9 | `cmd=(+0.100,-0.075,0) -> measured=(+0.0635,+0.0274,+0.0838)` |
+| progress_best | robust | false | 0.0595 | 0.0201 | 0 | 0 | 8 | `cmd=(-0.100,+0.075,0) -> measured=(-0.0615,-0.0288,-0.0729)` |
+
+- Interpretation:
+  - V96 improved the projection-level strict scan: wrong planar and wrong yaw
+    are both zero in the formal 29-command nominal/robust scans, and planar/yaw
+    RMSE are within the target thresholds.
+  - V96 still fails the real mixed-component requirement: `vx`/`vy` components
+    are wrong-sign for 8-9 mixed commands.
+  - The next training iteration should change the mixed `vx/vy` composition
+    mechanism or curriculum. Simply continuing the same reward is unlikely to
+    fix the remaining cross-axis sign conflict.
+- The reproducible server entry points are:
+  - `scripts/launch_v96_flat_mixed_component_sign_remote.sh`
+  - `scripts/monitor_v96_flat_mixed_component_sign_remote.sh`
+- The advisor PPT generated for this state is:
+  `record/current/worm_v6_advisor_update_ppt/worm_v6_advisor_update_20260603_v96.pptx`.
+- The PPT manifest is:
+  `record/current/worm_v6_advisor_update_ppt/ppt_manifest_v96.md`.
+- The deck contains:
+  - six fixed-direction video references;
+  - continuous sweep and mixed hard-case video references;
+  - observation/action ABI;
+  - latent gait gate and residual-prior formulation;
+  - V95 strict scan conclusion;
+  - V96 in-progress training status;
+  - literature comparison with CPG/gait-prior plus RL modulation work;
+  - advisor-safe claim boundaries.
+
+Current boundary: V96 is a completed repair experiment, not a completed
+omnidirectional controller. The correct paper/report wording is that the system
+has a deployable multimodal locomotion framework and a stricter full
+component-wise evaluation contract; continuous `vx/vy/yaw` tracking is still
+under training until a later strict scan passes with
+`wrong_mixed_component_sign_count == 0`.

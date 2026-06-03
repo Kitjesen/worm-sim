@@ -102,6 +102,7 @@ def robust_env_kwargs(args):
         "imu_gyro_noise_std": float(args.imu_gyro_noise),
         "action_delay_steps": int(args.action_delay_steps),
         "action_saturation": float(args.action_saturation),
+        "zero_command_activity_floor": float(args.zero_command_activity_floor),
     }
 
 
@@ -459,6 +460,8 @@ def main():
                     help="Integer control-step delay before action is applied")
     ap.add_argument("--action-saturation", type=float, default=1.0,
                     help="Applied action limit in [0, 1] before actuator scaling")
+    ap.add_argument("--zero-command-activity-floor", type=float, default=0.0,
+                    help="Minimum slope zero-command activity scale")
     ap.add_argument("--json-out", default=None)
     ap.add_argument("--csv-out", default=None)
     args = ap.parse_args()
@@ -520,6 +523,8 @@ def main():
         "sensor_noise": sensor_noise_summary(env_kwargs),
         "action_delay_steps": env_kwargs["action_delay_steps"],
         "action_saturation": env_kwargs["action_saturation"],
+        "zero_command_activity_floor": (
+            env_kwargs["zero_command_activity_floor"]),
         "gait_prior_scale": args.gait_prior_scale,
         "policy_residual_scale": args.policy_residual_scale,
         "action_adapter": action_adapter_contract(

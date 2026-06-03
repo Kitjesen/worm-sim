@@ -25,7 +25,7 @@ from motor_contract_v6 import (
 )
 
 
-ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v37"
+ACTION_ADAPTER_VERSION = "cmaes_tri_anchor_auto_gate_directional_v40"
 USE_CONTINUOUS_VECTOR_PRIOR_BLEND = False
 
 
@@ -34,6 +34,16 @@ def _env_flag(name, default=False):
     if value is None:
         return bool(default)
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_float(name, default):
+    value = os.environ.get(name)
+    if value is None:
+        return float(default)
+    try:
+        return float(value)
+    except ValueError:
+        return float(default)
 
 
 MIXED_COMMAND_COMPOSITION_EXPERIMENTAL_AVAILABLE = True
@@ -69,11 +79,33 @@ MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED = _env_flag(
 MIXED_PLANAR_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE = True
 MIXED_PLANAR_SPLIT_PRIOR_ENABLED = _env_flag(
     "WORM_V6_ENABLE_MIXED_PLANAR_SPLIT_PRIOR", default=False)
+MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE = True
+MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR", default=False)
+SLOPE_MIXED_PLANAR_PRIMITIVE_EXPERIMENTAL_AVAILABLE = True
+SLOPE_MIXED_PLANAR_PRIMITIVE_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_SLOPE_MIXED_PLANAR_PRIMITIVE", default=False)
 MIXED_PLANAR_RESIDUAL_SCALE_MULT = 1.80
 MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT = 2.50
 MIXED_YAW_RESIDUAL_SCALE_MULT = 1.60
 YAW_ONLY_RESIDUAL_SCALE_MULT = 1.25
 MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT = 0.65
+MIXED_PLANAR_AUTHORITY_PROFILE_EXPERIMENTAL_AVAILABLE = True
+MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT = _env_float(
+    "WORM_V6_MIXED_PLANAR_PRIOR_AUTHORITY_MULT",
+    MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT)
+MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT = _env_float(
+    "WORM_V6_MIXED_PLANAR_RESIDUAL_SCALE_MULT",
+    MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT)
+SLOPE_FORWARD_AXIS_PROFILE_EXPERIMENTAL_AVAILABLE = True
+SLOPE_FORWARD_AXIS_PROFILE_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_SLOPE_FORWARD_AXIS_PROFILE", default=False)
+SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT = _env_float(
+    "WORM_V6_SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT", 1.50)
+SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR = _env_float(
+    "WORM_V6_SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR", 0.50)
+SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD = _env_float(
+    "WORM_V6_SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD", math.pi)
 REVERSE_PRIOR_SCALE_FLOOR = 0.40
 LATERAL_PRIOR_SCALE_FLOOR = 1.00
 YAW_ONLY_PRIOR_SCALE_FLOOR = 1.00
@@ -89,6 +121,29 @@ MIXED_AXIAL_YAW_GAIN = 0.45
 MIXED_LATERAL_YAW_GAIN = 1.50
 MIXED_YAW_YAW_GAIN = 1.00
 MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM = True
+SLOPE_MIXED_PLANAR_AXIAL_SLIDE_GAIN = _env_float(
+    "WORM_V6_SLOPE_MIXED_PLANAR_AXIAL_SLIDE_GAIN", 1.00)
+SLOPE_MIXED_PLANAR_LATERAL_SLIDE_GAIN = _env_float(
+    "WORM_V6_SLOPE_MIXED_PLANAR_LATERAL_SLIDE_GAIN", 0.85)
+SLOPE_MIXED_PLANAR_LATERAL_YAW_GAIN = _env_float(
+    "WORM_V6_SLOPE_MIXED_PLANAR_LATERAL_YAW_GAIN", 1.35)
+SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_EXPERIMENTAL_AVAILABLE = True
+SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW",
+    default=False)
+SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN = _env_float(
+    "WORM_V6_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN", 0.45)
+SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT = _env_float(
+    "WORM_V6_SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT", 1.00)
+SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_EXPERIMENTAL_AVAILABLE = True
+SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_ENABLED = _env_flag(
+    "WORM_V6_ENABLE_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE",
+    default=False)
+SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD = _env_float(
+    "WORM_V6_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD",
+    SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD)
+SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN = _env_float(
+    "WORM_V6_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN", 1.00)
 LATERAL_PHASE_OFFSET_RAD = -0.5 * math.pi
 LATERAL_LEFT_PRIMITIVE_SCALE = 1.00
 LATERAL_RIGHT_PRIMITIVE_SCALE = 0.75
@@ -334,7 +389,7 @@ def action_adapter_contract(
                 f"m={MIXED_PLANAR_RESIDUAL_SCALE_MULT:.2f} for mixed vx/vy, "
                 f"m={MIXED_YAW_RESIDUAL_SCALE_MULT:.2f} for mixed yaw; "
                 f"optional V54 ablation uses "
-                f"m={MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT:.2f} "
+                f"m={MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT:.2f} "
                 "for mixed vx/vy"),
             "reason": (
                 "V50 strict scans showed hand-composed mixed priors degraded "
@@ -353,8 +408,11 @@ def action_adapter_contract(
                 "WORM_V6_ENABLE_MIXED_PLANAR_AUTHORITY_REBALANCE=1"),
             "formula": (
                 "prior_scale *= a(cmd); "
-                f"a={MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT:.2f} for "
-                "mixed vx/vy with zero yaw when enabled; a=1 otherwise"),
+                f"a={MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT:.2f} for "
+                "mixed vx/vy with zero yaw when enabled; "
+                f"optional slope-forward profile uses "
+                f"a={SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT:.2f} for "
+                "positive vx with zero yaw; a=1 otherwise"),
             "reason": (
                 "V51/V52 raised residual authority but the dominant mixed "
                 "planar prior still overwhelmed the learned correction. V54 "
@@ -362,6 +420,59 @@ def action_adapter_contract(
                 "increasing residual authority, but no-retrain and short "
                 "continuation scans regressed planar RMSE. The ablation is "
                 "kept available for comparison and disabled by default."),
+            "terrain_profile_ablation": {
+                "available": (
+                    MIXED_PLANAR_AUTHORITY_PROFILE_EXPERIMENTAL_AVAILABLE),
+                "default_prior_authority_mult": (
+                    MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT),
+                "default_residual_scale_mult": (
+                    MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT),
+                "prior_authority_mult": (
+                    MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT),
+                "residual_scale_mult": (
+                    MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT),
+                "prior_env": (
+                    "WORM_V6_MIXED_PLANAR_PRIOR_AUTHORITY_MULT"),
+                "residual_env": (
+                    "WORM_V6_MIXED_PLANAR_RESIDUAL_SCALE_MULT"),
+                "reason": (
+                    "V82/V83 showed gate and full-channel split-prior changes "
+                    "did not repair slope mixed-vx/vy signs. These default-off "
+                    "numeric overrides allow sand/slope deployment profiles to "
+                    "test prior-vs-residual authority without changing the "
+                    "80D observation or 12D action ABI."),
+            },
+            "slope_forward_axis_profile": {
+                "available": (
+                    SLOPE_FORWARD_AXIS_PROFILE_EXPERIMENTAL_AVAILABLE),
+                "enabled": SLOPE_FORWARD_AXIS_PROFILE_ENABLED,
+                "default": "disabled",
+                "enable_env": (
+                    "WORM_V6_ENABLE_SLOPE_FORWARD_AXIS_PROFILE=1"),
+                "prior_authority_mult": (
+                    SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT),
+                "prior_authority_env": (
+                    "WORM_V6_SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT"),
+                "gait_blend_floor": SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR,
+                "gait_blend_floor_env": (
+                    "WORM_V6_SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR"),
+                "phase_offset_rad": SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD,
+                "phase_offset_env": (
+                    "WORM_V6_SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD"),
+                "target_command": {
+                    "cmd_vx_norm": "positive and active",
+                    "cmd_yaw_norm_max": DIRECTIONAL_PRIOR_THRESHOLD,
+                    "intended_terrain": "slope",
+                },
+                "reason": (
+                    "V84 authority-only profiles reduced slope RMSE but did "
+                    "not fix positive-vx wrong signs, while prior-only "
+                    "slope probes showed positive forward motion only around "
+                    "gait_blend 0.5-0.75 with stronger prior scale. This "
+                    "default-off V85 profile tests that structural forward "
+                    "axis correction without changing the observation or "
+                    "action ABI."),
+            },
         },
         "mixed_planar_split_prior": {
             "available": MIXED_PLANAR_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE,
@@ -378,6 +489,85 @@ def action_adapter_contract(
                 "split-channel prior so mixed planar commands can express "
                 "axial contraction and lateral steering at the same time "
                 "without changing the 80D observation or 12D action ABI."),
+            "full_channel_ablation": {
+                "available": (
+                    MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_EXPERIMENTAL_AVAILABLE),
+                "enabled": MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_ENABLED,
+                "default": "disabled",
+                "enable_env": (
+                    "WORM_V6_ENABLE_MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR=1"),
+                "formula": (
+                    "for mixed vx/vy with zero yaw: retain both axial and "
+                    "lateral primitive components on slide and yaw channels, "
+                    "using the mixed-composition gains and axis-norm "
+                    "normalization"),
+                "reason": (
+                    "V81/V82 strict scans showed the split-channel prior still "
+                    "fails mixed-vx/vy signs: gate ablations reduced some "
+                    "slope off-axis failures but did not repair planar sign. "
+                    "This V83 ablation tests whether the split prior is too "
+                    "under-expressive by giving both planar axes authority on "
+                    "both actuator groups while preserving the action ABI."),
+            },
+            "slope_mixed_planar_primitive": {
+                "available": (
+                    SLOPE_MIXED_PLANAR_PRIMITIVE_EXPERIMENTAL_AVAILABLE),
+                "enabled": SLOPE_MIXED_PLANAR_PRIMITIVE_ENABLED,
+                "default": "disabled",
+                "enable_env": (
+                    "WORM_V6_ENABLE_SLOPE_MIXED_PLANAR_PRIMITIVE=1"),
+                "formula": (
+                    "for slope mixed vx/vy with zero yaw: slide actuators "
+                    "compose signed axial slides plus signed lateral slides; "
+                    "yaw actuators keep only signed lateral yaw authority"),
+                "gains": {
+                    "axial_slide": SLOPE_MIXED_PLANAR_AXIAL_SLIDE_GAIN,
+                    "lateral_slide": SLOPE_MIXED_PLANAR_LATERAL_SLIDE_GAIN,
+                    "lateral_yaw": SLOPE_MIXED_PLANAR_LATERAL_YAW_GAIN,
+                    "axis_norm": MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM,
+                    "positive_vx_axial_yaw_ablation": {
+                        "available": (
+                            SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_EXPERIMENTAL_AVAILABLE),
+                        "enabled": (
+                            SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_ENABLED),
+                        "default": "disabled",
+                        "enable_env": (
+                            "WORM_V6_ENABLE_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW=1"),
+                        "axial_yaw_gain": (
+                            SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN),
+                        "axial_yaw_gain_env": (
+                            "WORM_V6_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN"),
+                        "lateral_yaw_mult": (
+                            SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT),
+                        "lateral_yaw_mult_env": (
+                            "WORM_V6_SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT"),
+                    },
+                    "positive_vx_axial_phase_ablation": {
+                        "available": (
+                            SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_EXPERIMENTAL_AVAILABLE),
+                        "enabled": (
+                            SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_ENABLED),
+                        "default": "disabled",
+                        "enable_env": (
+                            "WORM_V6_ENABLE_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE=1"),
+                        "phase_offset_rad": (
+                            SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD),
+                        "phase_offset_env": (
+                            "WORM_V6_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD"),
+                        "slide_sign": (
+                            SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN),
+                        "slide_sign_env": (
+                            "WORM_V6_SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN"),
+                    },
+                },
+                "reason": (
+                    "V86/V87 profile and phase grids saturated at mixed-vx/vy "
+                    "wrong-planar signs, and V88 short retraining under the "
+                    "best phase profiles regressed to wrong>=6. This "
+                    "default-off V89 structural probe removes the axial yaw "
+                    "component that induces diagonal yaw drift while keeping "
+                    "both planar contact primitives available."),
+            },
         },
         "command_conditioned_prior_scale": {
             "enabled": True,
@@ -495,6 +685,18 @@ def action_adapter_contract(
                     "restores a small axial gate only for slow-forward, "
                     "full-lateral planar commands without changing the "
                     "80D observation or 12D action ABI."),
+            },
+            "slope_forward_axis_profile": {
+                "available": (
+                    SLOPE_FORWARD_AXIS_PROFILE_EXPERIMENTAL_AVAILABLE),
+                "enabled": SLOPE_FORWARD_AXIS_PROFILE_ENABLED,
+                "default": "disabled",
+                "gait_blend_floor": SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR,
+                "phase_offset_rad": SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD,
+                "target_command": {
+                    "cmd_vx_norm": "positive and active",
+                    "cmd_yaw_norm_max": DIRECTIONAL_PRIOR_THRESHOLD,
+                },
             },
             "reverse": "dominant negative vx reverses phase",
             "lateral": (
@@ -962,7 +1164,11 @@ def command_directional_prior_transform(
             phase_offset = ZERO_YAW_REVERSE_PHASE_OFFSET_RAD
             yaw_scale = ZERO_YAW_REVERSE_YAW_PRIOR_SCALE
         elif cmd_vx_norm > threshold:
-            phase_offset = ZERO_YAW_FORWARD_PHASE_OFFSET_RAD
+            phase_offset = (
+                SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD
+                if is_slope_forward_axis_profile_command(
+                    cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm)
+                else ZERO_YAW_FORWARD_PHASE_OFFSET_RAD)
             yaw_scale = ZERO_YAW_FORWARD_YAW_PRIOR_SCALE
         else:
             yaw_scale = 1.0
@@ -1033,6 +1239,16 @@ def is_mixed_planar_command(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
         and abs_yaw < threshold)
 
 
+def is_slope_forward_axis_profile_command(
+        cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+    del cmd_vy_norm
+    if not SLOPE_FORWARD_AXIS_PROFILE_ENABLED:
+        return False
+    return (
+        float(cmd_vx_norm) >= DIRECTIONAL_PRIOR_THRESHOLD
+        and abs(float(cmd_yaw_norm)) < DIRECTIONAL_PRIOR_THRESHOLD)
+
+
 def _componentwise_mixed_gait_prior_from_phase(phase, gait_blend, command):
     cmd_vx, cmd_vy, cmd_yaw = [float(v) for v in command]
     abs_vx = abs(cmd_vx)
@@ -1082,7 +1298,7 @@ def _componentwise_mixed_gait_prior_from_phase(phase, gait_blend, command):
 
 def split_channel_mixed_planar_gait_prior_from_phase(
         phase, gait_blend, command):
-    """Compose mixed vx/vy by assigning axial slides and lateral yaw joints."""
+    """Compose mixed vx/vy with either split or full-channel authority."""
     cmd_vx, cmd_vy, cmd_yaw = [float(v) for v in command]
     if not is_mixed_planar_command(cmd_vx, cmd_vy, cmd_yaw):
         return _dominant_directional_gait_prior_from_phase(
@@ -1100,14 +1316,95 @@ def split_channel_mixed_planar_gait_prior_from_phase(
     lateral_prior = lateral_primitive_action_from_phase(side, phase)
 
     prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
-    prior[:NUM_SLIDES] = vx_gain * axial_prior[:NUM_SLIDES]
-    prior[NUM_SLIDES:] = vy_gain * lateral_prior[NUM_SLIDES:]
+    if MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_ENABLED:
+        prior[:NUM_SLIDES] = (
+            MIXED_AXIAL_SLIDE_GAIN * vx_gain * axial_prior[:NUM_SLIDES]
+            + MIXED_LATERAL_SLIDE_GAIN * vy_gain
+            * lateral_prior[:NUM_SLIDES]
+        )
+        prior[NUM_SLIDES:] = (
+            MIXED_AXIAL_YAW_GAIN * vx_gain * axial_prior[NUM_SLIDES:]
+            + MIXED_LATERAL_YAW_GAIN * vy_gain
+            * lateral_prior[NUM_SLIDES:]
+        )
+        if MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM:
+            axis_norm = math.sqrt(vx_gain ** 2 + vy_gain ** 2)
+            prior /= max(1.0, axis_norm)
+    else:
+        prior[:NUM_SLIDES] = vx_gain * axial_prior[:NUM_SLIDES]
+        prior[NUM_SLIDES:] = vy_gain * lateral_prior[NUM_SLIDES:]
+    return np.clip(prior, -1.0, 1.0).astype(np.float32)
+
+
+def slope_mixed_planar_gait_prior_from_phase(phase, gait_blend, command):
+    """Slope mixed-planar primitive that avoids axial yaw contamination."""
+    cmd_vx, cmd_vy, cmd_yaw = [float(v) for v in command]
+    if not is_mixed_planar_command(cmd_vx, cmd_vy, cmd_yaw):
+        return _dominant_directional_gait_prior_from_phase(
+            phase, gait_blend, command)
+
+    abs_vx = abs(cmd_vx)
+    abs_vy = abs(cmd_vy)
+    max_axis = max(abs_vx, abs_vy, DIRECTIONAL_PRIOR_THRESHOLD)
+    vx_gain = float(np.clip(abs_vx / max_axis, 0.0, 1.0))
+    vy_gain = float(np.clip(abs_vy / max_axis, 0.0, 1.0))
+
+    axial_prior = _dominant_directional_gait_prior_from_phase(
+        phase, gait_blend, (np.sign(cmd_vx), 0.0, 0.0))
+    if (SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_ENABLED
+            and cmd_vx >= DIRECTIONAL_PRIOR_THRESHOLD):
+        axial_prior = gait_prior_from_phase(
+            float(phase)
+            + SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD,
+            gait_blend,
+        )
+        axial_prior = axial_prior.copy()
+        axial_prior[:NUM_SLIDES] *= (
+            SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN)
+        axial_prior[NUM_SLIDES:] *= ZERO_YAW_FORWARD_YAW_PRIOR_SCALE
+    side = lateral_primitive_side_for_command(cmd_vy)
+    lateral_prior = lateral_primitive_action_from_phase(side, phase)
+
+    prior = np.zeros(NUM_ACTUATORS, dtype=np.float32)
+    prior[:NUM_SLIDES] = (
+        SLOPE_MIXED_PLANAR_AXIAL_SLIDE_GAIN
+        * vx_gain
+        * axial_prior[:NUM_SLIDES]
+        + SLOPE_MIXED_PLANAR_LATERAL_SLIDE_GAIN
+        * vy_gain
+        * lateral_prior[:NUM_SLIDES]
+    )
+    lateral_yaws = (
+        SLOPE_MIXED_PLANAR_LATERAL_YAW_GAIN
+        * vy_gain
+        * lateral_prior[NUM_SLIDES:]
+    )
+    if (SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_ENABLED
+            and cmd_vx >= DIRECTIONAL_PRIOR_THRESHOLD):
+        lateral_yaws = (
+            SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT
+            * lateral_yaws)
+        prior[NUM_SLIDES:] = (
+            lateral_yaws
+            + SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN
+            * vx_gain
+            * axial_prior[NUM_SLIDES:]
+        )
+    else:
+        prior[NUM_SLIDES:] = lateral_yaws
+    if MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM:
+        axis_norm = math.sqrt(vx_gain ** 2 + vy_gain ** 2)
+        prior /= max(1.0, axis_norm)
     return np.clip(prior, -1.0, 1.0).astype(np.float32)
 
 
 def directional_gait_prior_from_phase(phase, gait_blend, command=None):
     if command is None:
         return gait_prior_from_phase(phase, gait_blend)
+    if (SLOPE_MIXED_PLANAR_PRIMITIVE_ENABLED
+            and is_mixed_planar_command(*command)):
+        return slope_mixed_planar_gait_prior_from_phase(
+            phase, gait_blend, command)
     if (MIXED_PLANAR_SPLIT_PRIOR_ENABLED
             and is_mixed_planar_command(*command)):
         return split_channel_mixed_planar_gait_prior_from_phase(
@@ -1231,7 +1528,7 @@ def command_conditioned_residual_scale(
         and max(abs_vx, abs_vy) >= threshold)
     if mixed_planar:
         if MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED:
-            return MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT
+            return MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT
         return MIXED_PLANAR_RESIDUAL_SCALE_MULT
     if mixed_yaw:
         return MIXED_YAW_RESIDUAL_SCALE_MULT
@@ -1244,10 +1541,13 @@ def command_conditioned_prior_authority_scale(
         cmd_vx_norm,
         cmd_vy_norm,
         cmd_yaw_norm):
+    if is_slope_forward_axis_profile_command(
+            cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
+        return SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT
     if not MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED:
         return 1.0
     if is_mixed_planar_command(cmd_vx_norm, cmd_vy_norm, cmd_yaw_norm):
-        return MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT
+        return MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT
     return 1.0
 
 
@@ -1359,7 +1659,13 @@ def command_conditioned_gait_blend(policy_gait_blend, command):
         * COMMAND_GATE_CENTER_RESIDUAL_RANGE
         * (float(policy_gait_blend) - 0.5)
     )
-    return float(np.clip(center + residual, 0.0, 1.0))
+    gait_blend = float(np.clip(center + residual, 0.0, 1.0))
+    if command is not None and is_slope_forward_axis_profile_command(*command):
+        gait_blend = max(
+            gait_blend,
+            float(np.clip(SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR, 0.0, 1.0)),
+        )
+    return gait_blend
 
 
 def policy_action_to_residual_and_gait_blend(policy_action):

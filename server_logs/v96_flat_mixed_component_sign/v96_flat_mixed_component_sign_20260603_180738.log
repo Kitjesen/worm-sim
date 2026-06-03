@@ -1,0 +1,155 @@
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+  Archived incompatible previous artifacts: /home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/incompatible_timing_archive/20260603_180742
+Worm V6 RL Training — PPO (Longworm2) [flat]
+  terrain:    flat
+  gait_mode:  random
+  gait_blend: mode/default
+  sensor:     {'encoder_pos_noise_std': 0.01, 'encoder_vel_noise_std': 0.02, 'imu_gravity_noise_std': 0.01, 'imu_gyro_noise_std': 0.01, 'action_delay_steps': 1, 'action_saturation': 0.9}
+  device:     cpu (requested: cpu)
+  envs:       8
+  timesteps:  3,569,272
+  run_dir:    /home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2
+  metadata:   /home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/training_config.json
+  actor_arch: [512, 256, 128]
+  critic_arch:[512, 256, 128]
+  dir_eval:   every 5,000 steps, 6.00s
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+  tensorboard: /home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/logs
+  Resuming from: runs/worm_v6_ppo_flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2/final_model.zip
+  Loaded VecNormalize from: runs/worm_v6_ppo_flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2/final_model_vecnormalize.pkl
+  resume_start_timesteps: 3,500,344
+  remaining_to_target:     68,928
+  learning_rate:           1e-06
+  chunk_timesteps:         68,928
+  Policy network: ActorCriticPolicy(
+  (features_extractor): FlattenExtractor(
+    (flatten): Flatten(start_dim=1, end_dim=-1)
+  )
+  (pi_features_extractor): FlattenExtractor(
+    (flatten): Flatten(start_dim=1, end_dim=-1)
+  )
+  (vf_features_extractor): FlattenExtractor(
+    (flatten): Flatten(start_dim=1, end_dim=-1)
+  )
+  (mlp_extractor): MlpExtractor(
+    (policy_net): Sequential(
+      (0): Linear(in_features=80, out_features=512, bias=True)
+      (1): Tanh()
+      (2): Linear(in_features=512, out_features=256, bias=True)
+      (3): Tanh()
+      (4): Linear(in_features=256, out_features=128, bias=True)
+      (5): Tanh()
+    )
+    (value_net): Sequential(
+      (0): Linear(in_features=80, out_features=512, bias=True)
+      (1): Tanh()
+      (2): Linear(in_features=512, out_features=256, bias=True)
+      (3): Tanh()
+      (4): Linear(in_features=256, out_features=128, bias=True)
+      (5): Tanh()
+    )
+  )
+  (action_net): Linear(in_features=128, out_features=12, bias=True)
+  (value_net): Linear(in_features=128, out_features=1, bias=True)
+)
+  best_eval_schedule:
+    blend=auto case=stop cmd=(+0.00,+0.00,+0.0)
+    blend=auto case=slow_forward cmd=(+0.03,+0.00,+0.0)
+    blend=auto case=slow_reverse cmd=(-0.03,+0.00,+0.0)
+    blend=auto case=slow_lateral_left cmd=(+0.00,+0.04,+0.0)
+    blend=auto case=slow_lateral_right cmd=(+0.00,-0.04,+0.0)
+    blend=auto case=forward cmd=(+0.10,+0.00,+0.0)
+    blend=auto case=reverse cmd=(-0.10,+0.00,+0.0)
+    blend=auto case=lateral_left cmd=(+0.00,+0.07,+0.0)
+    blend=auto case=lateral_right cmd=(+0.00,-0.07,+0.0)
+    blend=auto case=mixed_forward_left cmd=(+0.05,+0.04,+0.0)
+    blend=auto case=mixed_forward_right cmd=(+0.05,-0.04,+0.0)
+    blend=auto case=mixed_slow_forward_full_left cmd=(+0.05,+0.07,+0.0)
+    blend=auto case=mixed_slow_forward_full_right cmd=(+0.05,-0.07,+0.0)
+    blend=auto case=mixed_reverse_left cmd=(-0.05,+0.04,+0.0)
+    blend=auto case=mixed_reverse_right cmd=(-0.05,-0.04,+0.0)
+    blend=auto case=mixed_slow_reverse_full_left cmd=(-0.05,+0.07,+0.0)
+    blend=auto case=mixed_slow_reverse_full_right cmd=(-0.05,-0.07,+0.0)
+    blend=auto case=mixed_full_forward_left cmd=(+0.10,+0.07,+0.0)
+    blend=auto case=mixed_full_forward_right cmd=(+0.10,-0.07,+0.0)
+    blend=auto case=mixed_full_reverse_left cmd=(-0.10,+0.07,+0.0)
+    blend=auto case=mixed_full_reverse_right cmd=(-0.10,-0.07,+0.0)
+    blend=auto case=yaw_left cmd=(+0.00,+0.00,+0.1)
+    blend=auto case=yaw_right cmd=(+0.00,+0.00,-0.1)
+    blend=auto case=slow_yaw_left cmd=(+0.00,+0.00,+0.1)
+    blend=auto case=slow_yaw_right cmd=(+0.00,+0.00,-0.1)
+    blend=auto case=forward_yaw_left cmd=(+0.06,+0.00,+0.1)
+    blend=auto case=forward_yaw_right cmd=(+0.06,+0.00,-0.1)
+  persistent_best_selection_score: reset for eval/selection contract
+
+  Training started...
+Eval directional: score=-1061635.67 mean_reward=-16871.56 pass=False track=False planar=0.96 yaw=0.56 rmse=(0.052,0.064) wrong_planar=1 wrong_yaw=2 wrong_mixed=4
+New progress-best omni-progress model at 3505344 steps
+  step  3505344  ep_reward=-57405.55  ep_len=  1000
+Eval directional: score=-1082074.00 mean_reward=-16789.09 pass=False track=False planar=0.96 yaw=0.59 rmse=(0.053,0.057) wrong_planar=1 wrong_yaw=2 wrong_mixed=6
+  step  3510344  ep_reward=-57336.98  ep_len=  1000
+Eval directional: score=-1089549.31 mean_reward=-16734.85 pass=False track=False planar=0.96 yaw=0.67 rmse=(0.058,0.056) wrong_planar=1 wrong_yaw=1 wrong_mixed=7
+  step  3515344  ep_reward=-57336.98  ep_len=  1000
+Eval directional: score=-1071494.01 mean_reward=-16825.16 pass=False track=False planar=0.96 yaw=0.59 rmse=(0.055,0.063) wrong_planar=1 wrong_yaw=1 wrong_mixed=5
+  step  3520344  ep_reward=-58697.37  ep_len=  1000
+Eval directional: score=-1083753.84 mean_reward=-16906.54 pass=False track=False planar=0.96 yaw=0.59 rmse=(0.053,0.063) wrong_planar=1 wrong_yaw=2 wrong_mixed=6
+  step  3525344  ep_reward=-58935.47  ep_len=  1000
+Eval directional: score=-1103687.81 mean_reward=-16786.93 pass=False track=False planar=0.96 yaw=0.59 rmse=(0.055,0.060) wrong_planar=1 wrong_yaw=2 wrong_mixed=8
+  step  3530344  ep_reward=-58935.47  ep_len=  1000
+Eval directional: score=-1090904.23 mean_reward=-16793.11 pass=False track=False planar=0.96 yaw=0.63 rmse=(0.053,0.057) wrong_planar=1 wrong_yaw=2 wrong_mixed=7
+  step  3535344  ep_reward=-58602.18  ep_len=  1000
+Eval directional: score=-1081804.78 mean_reward=-16710.82 pass=False track=False planar=0.96 yaw=0.59 rmse=(0.054,0.060) wrong_planar=1 wrong_yaw=2 wrong_mixed=6
+  step  3540344  ep_reward=-58602.18  ep_len=  1000
+Eval directional: score=-1102002.18 mean_reward=-16652.87 pass=False track=False planar=0.96 yaw=0.59 rmse=(0.054,0.058) wrong_planar=1 wrong_yaw=2 wrong_mixed=8
+  step  3545344  ep_reward=-57679.22  ep_len=  1000
+Eval directional: score=-1070011.91 mean_reward=-16934.81 pass=False track=False planar=0.96 yaw=0.63 rmse=(0.051,0.060) wrong_planar=1 wrong_yaw=2 wrong_mixed=5
+  step  3550344  ep_reward=-58076.25  ep_len=  1000
+Eval directional: score=-1081803.69 mean_reward=-16689.53 pass=False track=False planar=0.96 yaw=0.59 rmse=(0.054,0.059) wrong_planar=1 wrong_yaw=1 wrong_mixed=6
+  step  3555344  ep_reward=-58076.25  ep_len=  1000
+Eval directional: score=-1089431.29 mean_reward=-16740.63 pass=False track=False planar=0.96 yaw=0.70 rmse=(0.052,0.052) wrong_planar=1 wrong_yaw=2 wrong_mixed=7
+  step  3560344  ep_reward=-59120.21  ep_len=  1000
+Eval directional: score=-1059572.72 mean_reward=-16834.25 pass=False track=False planar=1.00 yaw=0.56 rmse=(0.050,0.062) wrong_planar=0 wrong_yaw=2 wrong_mixed=4
+New progress-best omni-progress model at 3565344 steps
+  step  3565344  ep_reward=-60380.77  ep_len=  1000
+Eval directional: score=-1079767.05 mean_reward=-16793.38 pass=False track=False planar=0.96 yaw=0.67 rmse=(0.054,0.059) wrong_planar=1 wrong_yaw=2 wrong_mixed=6
+  step  3570344  ep_reward=-60380.77  ep_len=  1000
+Eval directional: score=-1069850.55 mean_reward=-16711.59 pass=False track=False planar=0.96 yaw=0.67 rmse=(0.051,0.059) wrong_planar=1 wrong_yaw=2 wrong_mixed=5
+  step  3575344  ep_reward=-61132.83  ep_len=  1000
+Eval directional: score=-1092434.51 mean_reward=-16755.18 pass=False track=False planar=0.96 yaw=0.56 rmse=(0.056,0.068) wrong_planar=1 wrong_yaw=2 wrong_mixed=7
+  step  3580344  ep_reward=-61132.83  ep_len=  1000
+Eval directional: score=-1081347.31 mean_reward=-16790.52 pass=False track=False planar=1.00 yaw=0.56 rmse=(0.053,0.059) wrong_planar=0 wrong_yaw=1 wrong_mixed=6
+  step  3585344  ep_reward=-62327.61  ep_len=  1000
+Eval directional: score=-1069537.78 mean_reward=-16827.51 pass=False track=False planar=1.00 yaw=0.59 rmse=(0.054,0.066) wrong_planar=0 wrong_yaw=2 wrong_mixed=5
+  step  3590344  ep_reward=-62702.21  ep_len=  1000
+Eval directional: score=-1092216.73 mean_reward=-16735.15 pass=False track=False planar=0.96 yaw=0.52 rmse=(0.053,0.062) wrong_planar=1 wrong_yaw=1 wrong_mixed=7
+  step  3595344  ep_reward=-62702.21  ep_len=  1000
+ 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━ 98,304/68,928  [ 0:07:02 < 0:00:00 , 157 it/s ]
+
+  Saved final model: /home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/final_model.zip
+  Saved VecNormalize: /home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/final_model_vecnormalize.pkl
+  Saved training result: /home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/training_result.json

@@ -52,8 +52,10 @@ from action_adapter_v6 import (  # noqa: E402
     INPLACE_YAW_YAW_PHASE_RAD,
     INPLACE_YAW_YAW_WAVE_N,
     LATERAL_PHASE_OFFSET_RAD,
+    LATERAL_LEFT_PRIMITIVE_SCALE,
     LATERAL_PRIMITIVE_ANCHORS,
     LATERAL_PRIOR_SCALE_FLOOR,
+    LATERAL_RIGHT_PRIMITIVE_SCALE,
     MIXED_AXIAL_SLIDE_GAIN,
     MIXED_AXIAL_YAW_GAIN,
     MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM,
@@ -61,9 +63,10 @@ from action_adapter_v6 import (  # noqa: E402
     MIXED_LATERAL_SLIDE_GAIN,
     MIXED_LATERAL_YAW_GAIN,
     MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED,
-    MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT,
-    MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT,
+    MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT,
+    MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT,
     MIXED_PLANAR_RESIDUAL_SCALE_MULT,
+    MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_ENABLED,
     MIXED_PLANAR_PRIOR_SCALE_FLOOR,
     MIXED_PLANAR_SPLIT_PRIOR_ENABLED,
     MIXED_YAW_RESIDUAL_SCALE_MULT,
@@ -73,6 +76,20 @@ from action_adapter_v6 import (  # noqa: E402
     POLICY_ACTION_DIM,
     REVERSE_PRIOR_SCALE_FLOOR,
     SLOW_RIGHT_LATERAL_PRIOR_NORM_MAX,
+    SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR,
+    SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD,
+    SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT,
+    SLOPE_FORWARD_AXIS_PROFILE_ENABLED,
+    SLOPE_MIXED_PLANAR_AXIAL_SLIDE_GAIN,
+    SLOPE_MIXED_PLANAR_LATERAL_SLIDE_GAIN,
+    SLOPE_MIXED_PLANAR_LATERAL_YAW_GAIN,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_ENABLED,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_ENABLED,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN,
+    SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT,
+    SLOPE_MIXED_PLANAR_PRIMITIVE_ENABLED,
     USE_CONTINUOUS_VECTOR_PRIOR_BLEND,
     YAW_ONLY_PRIOR_SCALE_FLOOR,
     YAW_ONLY_RESIDUAL_SCALE_MULT,
@@ -247,11 +264,14 @@ class DeployablePPOActor(torch.nn.Module):
 
     def _lateral_prior(self, phase, cmd_vy):
         left_prior = self._lateral_prior_from_params(
-            phase, self.lateral_left_params, 1.0)
+            phase, self.lateral_left_params, 1.0) * float(
+                LATERAL_LEFT_PRIMITIVE_SCALE)
         right_prior = self._lateral_prior_from_params(
-            phase, self.lateral_right_params, -1.0)
+            phase, self.lateral_right_params, -1.0) * float(
+                LATERAL_RIGHT_PRIMITIVE_SCALE)
         slow_right_prior = self._lateral_prior_from_params(
-            phase, self.lateral_right_slow_params, -1.0)
+            phase, self.lateral_right_slow_params, -1.0) * float(
+                LATERAL_RIGHT_PRIMITIVE_SCALE)
         right_slow_mask = (
             (cmd_vy < 0.0)
             & (torch.abs(cmd_vy)
@@ -297,9 +317,14 @@ class DeployablePPOActor(torch.nn.Module):
             ones * float(LATERAL_PHASE_OFFSET_RAD),
             zeros,
         )
+        forward_phase_offset = (
+            float(SLOPE_FORWARD_AXIS_PHASE_OFFSET_RAD)
+            if bool(SLOPE_FORWARD_AXIS_PROFILE_ENABLED)
+            else float(ZERO_YAW_FORWARD_PHASE_OFFSET_RAD)
+        )
         phase_offset = torch.where(
             zero_yaw_forward_mask,
-            ones * float(ZERO_YAW_FORWARD_PHASE_OFFSET_RAD),
+            ones * forward_phase_offset,
             phase_offset,
         )
         phase_offset = torch.where(
@@ -491,6 +516,28 @@ class DeployablePPOActor(torch.nn.Module):
             phase, gait_blend, -ones, zeros, zeros)
         axial_prior = torch.where(cmd_vx >= 0.0, forward_prior, reverse_prior)
         lateral_prior = self._lateral_prior(phase, cmd_vy)
+        if bool(MIXED_PLANAR_FULL_CHANNEL_SPLIT_PRIOR_ENABLED):
+            slides = (
+                float(MIXED_AXIAL_SLIDE_GAIN)
+                * vx_gain
+                * axial_prior[:, :NUM_SLIDES]
+                + float(MIXED_LATERAL_SLIDE_GAIN)
+                * vy_gain
+                * lateral_prior[:, :NUM_SLIDES]
+            )
+            yaws = (
+                float(MIXED_AXIAL_YAW_GAIN)
+                * vx_gain
+                * axial_prior[:, NUM_SLIDES:]
+                + float(MIXED_LATERAL_YAW_GAIN)
+                * vy_gain
+                * lateral_prior[:, NUM_SLIDES:]
+            )
+            prior = torch.cat([slides, yaws], dim=1)
+            if bool(MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM):
+                axis_norm = torch.sqrt(vx_gain * vx_gain + vy_gain * vy_gain)
+                prior = prior / torch.clamp(axis_norm, min=1.0)
+            return torch.clamp(prior, -1.0, 1.0)
         return torch.clamp(
             torch.cat(
                 [
@@ -502,6 +549,72 @@ class DeployablePPOActor(torch.nn.Module):
             -1.0,
             1.0,
         )
+
+    def _slope_mixed_planar_prior(self, phase, gait_blend, cmd_vx, cmd_vy):
+        abs_vx = torch.abs(cmd_vx)
+        abs_vy = torch.abs(cmd_vy)
+        max_axis = torch.clamp(
+            torch.maximum(abs_vx, abs_vy),
+            min=float(DIRECTIONAL_PRIOR_THRESHOLD),
+        )
+        vx_gain = torch.clamp(abs_vx / max_axis, 0.0, 1.0)
+        vy_gain = torch.clamp(abs_vy / max_axis, 0.0, 1.0)
+        ones = torch.ones_like(cmd_vx)
+        zeros = torch.zeros_like(cmd_vx)
+        forward_prior = self._dominant_directional_prior(
+            phase, gait_blend, ones, zeros, zeros)
+        reverse_prior = self._dominant_directional_prior(
+            phase, gait_blend, -ones, zeros, zeros)
+        axial_prior = torch.where(cmd_vx >= 0.0, forward_prior, reverse_prior)
+        if bool(SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_ENABLED):
+            positive_vx_mask = cmd_vx >= float(DIRECTIONAL_PRIOR_THRESHOLD)
+            positive_vx_axial_prior = self._base_gait_prior(
+                phase
+                + float(
+                    SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_PHASE_OFFSET_RAD),
+                gait_blend,
+            )
+            positive_vx_axial_prior = torch.cat(
+                [
+                    positive_vx_axial_prior[:, :NUM_SLIDES]
+                    * float(
+                        SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_SLIDE_SIGN),
+                    positive_vx_axial_prior[:, NUM_SLIDES:]
+                    * float(ZERO_YAW_FORWARD_YAW_PRIOR_SCALE),
+                ],
+                dim=1,
+            )
+            axial_prior = torch.where(
+                positive_vx_mask, positive_vx_axial_prior, axial_prior)
+        lateral_prior = self._lateral_prior(phase, cmd_vy)
+        slides = (
+            float(SLOPE_MIXED_PLANAR_AXIAL_SLIDE_GAIN)
+            * vx_gain
+            * axial_prior[:, :NUM_SLIDES]
+            + float(SLOPE_MIXED_PLANAR_LATERAL_SLIDE_GAIN)
+            * vy_gain
+            * lateral_prior[:, :NUM_SLIDES]
+        )
+        yaws = (
+            float(SLOPE_MIXED_PLANAR_LATERAL_YAW_GAIN)
+            * vy_gain
+            * lateral_prior[:, NUM_SLIDES:]
+        )
+        if bool(SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_ENABLED):
+            positive_vx_mask = cmd_vx >= float(DIRECTIONAL_PRIOR_THRESHOLD)
+            positive_vx_yaws = (
+                float(SLOPE_MIXED_PLANAR_POSITIVE_VX_LATERAL_YAW_MULT)
+                * yaws
+                + float(SLOPE_MIXED_PLANAR_POSITIVE_VX_AXIAL_YAW_GAIN)
+                * vx_gain
+                * axial_prior[:, NUM_SLIDES:]
+            )
+            yaws = torch.where(positive_vx_mask, positive_vx_yaws, yaws)
+        prior = torch.cat([slides, yaws], dim=1)
+        if bool(MIXED_COMPOSITION_NORMALIZE_BY_AXIS_NORM):
+            axis_norm = torch.sqrt(vx_gain * vx_gain + vy_gain * vy_gain)
+            prior = prior / torch.clamp(axis_norm, min=1.0)
+        return torch.clamp(prior, -1.0, 1.0)
 
     def forward(self, raw_obs):
         if raw_obs.dim() == 1:
@@ -530,6 +643,10 @@ class DeployablePPOActor(torch.nn.Module):
         abs_yaw = torch.abs(cmd_yaw)
         ones = torch.ones_like(cmd_vx)
         threshold = float(DIRECTIONAL_PRIOR_THRESHOLD)
+        slope_forward_axis_mask = (
+            (cmd_vx >= threshold)
+            & (abs_yaw < threshold)
+        )
         mixed_center = ones * float(COMMAND_GATE_MIXED_CENTER)
         axial_alpha = torch.clamp(
             (abs_vx - threshold)
@@ -576,6 +693,15 @@ class DeployablePPOActor(torch.nn.Module):
             0.0,
             1.0,
         )
+        if bool(SLOPE_FORWARD_AXIS_PROFILE_ENABLED):
+            gait_blend = torch.where(
+                slope_forward_axis_mask,
+                torch.maximum(
+                    gait_blend,
+                    ones * float(SLOPE_FORWARD_AXIS_GAIT_BLEND_FLOOR),
+                ),
+                gait_blend,
+            )
         abs_vx = torch.abs(cmd_vx)
         abs_vy = torch.abs(cmd_vy)
         abs_yaw = torch.abs(cmd_yaw)
@@ -628,6 +754,10 @@ class DeployablePPOActor(torch.nn.Module):
         else:
             prior = self._dominant_directional_prior(
                 phase, gait_blend, cmd_vx, cmd_vy, cmd_yaw)
+        if bool(SLOPE_MIXED_PLANAR_PRIMITIVE_ENABLED):
+            slope_mixed_prior = self._slope_mixed_planar_prior(
+                phase, gait_blend, cmd_vx, cmd_vy)
+            prior = torch.where(mixed_planar_mask, slope_mixed_prior, prior)
         forward = torch.clamp(cmd_vx, min=0.0)
         non_forward = torch.maximum(
             torch.maximum(torch.clamp(-cmd_vx, min=0.0), torch.abs(cmd_vy)),
@@ -665,14 +795,19 @@ class DeployablePPOActor(torch.nn.Module):
             torch.ones_like(forward_share),
             floor + (1.0 - floor) * forward_share,
         )
-        if (bool(MIXED_COMMAND_COMPOSITION_ENABLED)
-                or not bool(MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED)):
+        if not bool(MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED):
             prior_authority_multiplier = ones
         else:
             prior_authority_multiplier = torch.where(
                 mixed_planar_mask,
-                ones * float(MIXED_PLANAR_DOMINANT_PRIOR_SCALE_MULT),
+                ones * float(MIXED_PLANAR_PROFILE_PRIOR_AUTHORITY_MULT),
                 ones,
+            )
+        if bool(SLOPE_FORWARD_AXIS_PROFILE_ENABLED):
+            prior_authority_multiplier = torch.where(
+                slope_forward_axis_mask,
+                ones * float(SLOPE_FORWARD_AXIS_PRIOR_AUTHORITY_MULT),
+                prior_authority_multiplier,
             )
         residual_multiplier = torch.ones_like(cmd_vx)
         if bool(COMMAND_CONDITIONED_RESIDUAL_AUTHORITY_ENABLED):
@@ -684,7 +819,7 @@ class DeployablePPOActor(torch.nn.Module):
             residual_multiplier = torch.where(
                 mixed_planar_mask,
                 ones * float(
-                    MIXED_PLANAR_REBALANCED_RESIDUAL_SCALE_MULT
+                    MIXED_PLANAR_PROFILE_RESIDUAL_SCALE_MULT
                     if bool(MIXED_PLANAR_AUTHORITY_REBALANCE_ENABLED)
                     else MIXED_PLANAR_RESIDUAL_SCALE_MULT),
                 residual_multiplier,

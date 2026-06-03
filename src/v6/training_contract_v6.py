@@ -13,7 +13,7 @@ import math
 RESIDUAL_EXPLORATION_CONTRACT_VERSION = "low_noise_residual_v1"
 DEFAULT_ENT_COEF = 0.005
 DEFAULT_LOG_STD_INIT = -2.5
-DIRECTIONAL_SELECTION_CONTRACT_VERSION = "omni_tracking_scan_v3"
+DIRECTIONAL_SELECTION_CONTRACT_VERSION = "omni_tracking_scan_v5"
 DIRECTION_MIN_TURN_DELTA_RAD = 0.05
 DIRECTION_STRAIGHT_TOLERANCE_RAD = 0.20
 DIRECTION_FAILED_SCORE_OFFSET = 1_000_000.0
@@ -27,6 +27,7 @@ YAW_TRACKING_RMSE_TARGET_RAD_S = 0.20
 MEAN_OFF_AXIS_SPEED_TARGET_M_S = 0.08
 ZERO_COMMAND_SPEED_TARGET_M_S = 0.02
 YAW_ONLY_MEAN_PLANAR_SPEED_TARGET_M_S = 0.05
+MIXED_COMPONENT_SIGN_MIN_SPEED_M_S = 0.005
 
 
 def residual_exploration_contract(
@@ -56,11 +57,16 @@ def best_selection_contract():
         "required_yaw_success_rate": REQUIRED_YAW_SUCCESS_RATE,
         "max_straight_violation_count": MAX_STRAIGHT_VIOLATION_COUNT,
         "requires_continuous_tracking_metrics": True,
+        "best_model_requires_tracking_gate": True,
+        "progress_best_artifacts": True,
         "planar_tracking_rmse_target_m_s": PLANAR_TRACKING_RMSE_TARGET_M_S,
         "yaw_tracking_rmse_target_rad_s": YAW_TRACKING_RMSE_TARGET_RAD_S,
         "mean_off_axis_speed_target_m_s": MEAN_OFF_AXIS_SPEED_TARGET_M_S,
         "zero_command_speed_target_m_s": ZERO_COMMAND_SPEED_TARGET_M_S,
         "yaw_only_mean_planar_speed_target_m_s": (
             YAW_ONLY_MEAN_PLANAR_SPEED_TARGET_M_S),
+        "requires_mixed_vx_vy_component_sign_gate": True,
+        "mixed_component_sign_min_speed_m_s": (
+            MIXED_COMPONENT_SIGN_MIN_SPEED_M_S),
         "failed_score_offset": DIRECTION_FAILED_SCORE_OFFSET,
     }

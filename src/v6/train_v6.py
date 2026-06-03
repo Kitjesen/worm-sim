@@ -37,6 +37,7 @@ from training_contract_v6 import (
     DIRECTIONAL_SELECTION_CONTRACT_VERSION,
     MAX_STRAIGHT_VIOLATION_COUNT,
     MEAN_OFF_AXIS_SPEED_TARGET_M_S,
+    MIXED_COMPONENT_SIGN_MIN_SPEED_M_S,
     PLANAR_MIN_PROGRESS_M,
     PLANAR_STATIONARY_TOLERANCE_M,
     PLANAR_TRACKING_RMSE_TARGET_M_S,
@@ -157,6 +158,18 @@ def dict_float_match(actual, expected):
         elif actual_value != expected_value:
             return False
     return True
+
+
+def json_semantic_value(value):
+    if isinstance(value, dict):
+        return {key: json_semantic_value(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_semantic_value(val) for val in value]
+    return value
+
+
+def json_semantic_match(actual, expected):
+    return json_semantic_value(actual) == json_semantic_value(expected)
 
 
 def best_eval_schedule(gait_mode, gait_blend=None):
@@ -380,6 +393,59 @@ def planar_direction_status(cmd_vx_m_s, cmd_vy_m_s, body_delta_x_m,
     }
 
 
+def mixed_planar_component_status(
+        cmd_vx_m_s, cmd_vy_m_s, cmd_yaw_rad_s, body_vx_m_s, body_vy_m_s,
+        min_component_speed_m_s=MIXED_COMPONENT_SIGN_MIN_SPEED_M_S):
+    cmd_vx_m_s = float(cmd_vx_m_s)
+    cmd_vy_m_s = float(cmd_vy_m_s)
+    cmd_yaw_rad_s = float(cmd_yaw_rad_s)
+    body_vx_m_s = float(body_vx_m_s)
+    body_vy_m_s = float(body_vy_m_s)
+    is_mixed_planar = (
+        abs(cmd_vx_m_s) > 1e-9
+        and abs(cmd_vy_m_s) > 1e-9
+        and abs(cmd_yaw_rad_s) <= 1e-9
+    )
+    if not is_mixed_planar:
+        return {
+            "is_mixed_planar": False,
+            "status": "not_mixed_planar",
+            "wrong_axis_count": 0,
+            "weak_axis_count": 0,
+            "vx_sign_ok": True,
+            "vy_sign_ok": True,
+        }
+
+    vx_sign_ok = cmd_vx_m_s * body_vx_m_s > 0.0
+    vy_sign_ok = cmd_vy_m_s * body_vy_m_s > 0.0
+    wrong_axis_count = int(not vx_sign_ok) + int(not vy_sign_ok)
+
+    vx_weak = (
+        vx_sign_ok
+        and abs(body_vx_m_s) < min(
+            float(min_component_speed_m_s), 0.25 * abs(cmd_vx_m_s)))
+    vy_weak = (
+        vy_sign_ok
+        and abs(body_vy_m_s) < min(
+            float(min_component_speed_m_s), 0.25 * abs(cmd_vy_m_s)))
+    weak_axis_count = int(vx_weak) + int(vy_weak)
+    if wrong_axis_count:
+        status = "wrong_mixed_component_sign"
+    elif weak_axis_count:
+        status = "weak_mixed_component"
+    else:
+        status = "correct"
+    return {
+        "is_mixed_planar": True,
+        "status": status,
+        "wrong_axis_count": int(wrong_axis_count),
+        "weak_axis_count": int(weak_axis_count),
+        "vx_sign_ok": bool(vx_sign_ok),
+        "vy_sign_ok": bool(vy_sign_ok),
+        "min_component_speed_m_s": float(min_component_speed_m_s),
+    }
+
+
 def directional_eval_summary(eval_schedule, episode_rewards, yaw_deltas_rad,
                              body_deltas_m=None, elapsed_s=None,
                              gait_blend_means=None,
@@ -470,6 +536,23 @@ def directional_eval_summary(eval_schedule, episode_rewards, yaw_deltas_rad,
         case["yaw_rate_rad_s"] = float(case["yaw_delta_rad"] / case_elapsed)
         case["yaw_rate_error_rad_s"] = float(
             case["yaw_rate_rad_s"] - case["cmd_yaw_rad_s"])
+        mixed_component_status = mixed_planar_component_status(
+            case["cmd_vx_m_s"],
+            case["cmd_vy_m_s"],
+            case["cmd_yaw_rad_s"],
+            case["body_vx_m_s"],
+            case["body_vy_m_s"],
+        )
+        case["mixed_planar_component_status"] = mixed_component_status["status"]
+        case["is_mixed_planar_case"] = mixed_component_status["is_mixed_planar"]
+        case["mixed_component_vx_sign_ok"] = (
+            mixed_component_status["vx_sign_ok"])
+        case["mixed_component_vy_sign_ok"] = (
+            mixed_component_status["vy_sign_ok"])
+        case["mixed_component_wrong_axis_count"] = (
+            mixed_component_status["wrong_axis_count"])
+        case["mixed_component_weak_axis_count"] = (
+            mixed_component_status["weak_axis_count"])
 
     wrong_yaw_sign_count = sum(
         1 for case in cases if case["yaw_status"] == "wrong_sign")
@@ -483,6 +566,17 @@ def directional_eval_summary(eval_schedule, episode_rewards, yaw_deltas_rad,
         1 for case in cases if case["planar_status"] == "weak_translation")
     stationary_violation_count = sum(
         1 for case in cases if case["planar_status"] == "stationary_drift")
+    wrong_mixed_component_sign_count = sum(
+        1 for case in cases
+        if case["mixed_planar_component_status"]
+        == "wrong_mixed_component_sign")
+    wrong_mixed_component_axis_count = sum(
+        case["mixed_component_wrong_axis_count"] for case in cases)
+    weak_mixed_component_count = sum(
+        1 for case in cases
+        if case["mixed_planar_component_status"] == "weak_mixed_component")
+    weak_mixed_component_axis_count = sum(
+        case["mixed_component_weak_axis_count"] for case in cases)
     yaw_passed_count = sum(
         1 for case in cases
         if case["yaw_status"] in ("correct", "straight_ok"))
@@ -498,6 +592,7 @@ def directional_eval_summary(eval_schedule, episode_rewards, yaw_deltas_rad,
     direction_gate_passed = (
         wrong_yaw_sign_count == 0
         and wrong_planar_sign_count == 0
+        and wrong_mixed_component_sign_count == 0
         and planar_success_rate >= REQUIRED_PLANAR_SUCCESS_RATE
         and yaw_success_rate >= REQUIRED_YAW_SUCCESS_RATE
         and straight_violation_count <= MAX_STRAIGHT_VIOLATION_COUNT
@@ -554,11 +649,17 @@ def directional_eval_summary(eval_schedule, episode_rewards, yaw_deltas_rad,
         - 10000.0 * mean_off_axis_speed
         - 10000.0 * zero_command_mean_speed
         - 8000.0 * yaw_only_mean_planar_speed
+        - 5000.0 * wrong_mixed_component_sign_count
+        - 2000.0 * wrong_mixed_component_axis_count
+        - 500.0 * weak_mixed_component_count
+        - 250.0 * weak_mixed_component_axis_count
     )
     if not direction_gate_passed:
         selection_score -= DIRECTION_FAILED_SCORE_OFFSET
         selection_score -= 1000.0 * wrong_yaw_sign_count
         selection_score -= 1000.0 * wrong_planar_sign_count
+        selection_score -= 2500.0 * wrong_mixed_component_sign_count
+        selection_score -= 1000.0 * wrong_mixed_component_axis_count
         selection_score -= 250.0 * weak_turn_count
         selection_score -= 250.0 * weak_translation_count
         excess_straight = max(
@@ -584,6 +685,13 @@ def directional_eval_summary(eval_schedule, episode_rewards, yaw_deltas_rad,
         "wrong_sign_count": int(wrong_yaw_sign_count),
         "wrong_yaw_sign_count": int(wrong_yaw_sign_count),
         "wrong_planar_sign_count": int(wrong_planar_sign_count),
+        "wrong_mixed_component_sign_count": int(
+            wrong_mixed_component_sign_count),
+        "wrong_mixed_component_axis_count": int(
+            wrong_mixed_component_axis_count),
+        "weak_mixed_component_count": int(weak_mixed_component_count),
+        "weak_mixed_component_axis_count": int(
+            weak_mixed_component_axis_count),
         "weak_turn_count": int(weak_turn_count),
         "weak_translation_count": int(weak_translation_count),
         "straight_violation_count": int(straight_violation_count),
@@ -607,11 +715,19 @@ def comparable_training_fields(config):
 def training_config_compatible(
         existing, expected, allow_command_curriculum_mismatch=False,
         allow_experimental_contract_mismatch=False,
-        allow_sensor_robustness_mismatch=False):
+        allow_sensor_robustness_mismatch=False,
+        allow_terrain_mismatch=False):
     if not isinstance(existing, dict):
         return False, ["missing training_config.json"]
     reasons = []
-    if comparable_training_fields(existing) != comparable_training_fields(expected):
+    existing_training_fields = comparable_training_fields(existing)
+    expected_training_fields = comparable_training_fields(expected)
+    if allow_terrain_mismatch:
+        existing_training_fields = dict(existing_training_fields)
+        expected_training_fields = dict(expected_training_fields)
+        existing_training_fields["terrain"] = expected_training_fields.get(
+            "terrain")
+    if existing_training_fields != expected_training_fields:
         reasons.append("training fields")
     sensor_match = dict_float_match(
         existing.get("sensor_robustness"),
@@ -623,25 +739,36 @@ def training_config_compatible(
             existing.get("control_timing"),
             expected.get("control_timing", {})):
         reasons.append("control_timing")
-    if (existing.get("reward_contract") != expected.get("reward_contract")
+    if (not json_semantic_match(
+            existing.get("reward_contract"), expected.get("reward_contract"))
             and not allow_experimental_contract_mismatch):
         reasons.append("reward_contract")
-    if (existing.get("eval_command") != expected.get("eval_command")
+    if (not json_semantic_match(
+            existing.get("eval_command"), expected.get("eval_command"))
             and not allow_experimental_contract_mismatch):
         reasons.append("eval_command")
     if (existing.get("command_curriculum") != expected.get(
             "command_curriculum")
             and not allow_command_curriculum_mismatch):
         reasons.append("command_curriculum")
-    if existing.get("best_selection_contract") != expected.get(
-            "best_selection_contract") and not allow_experimental_contract_mismatch:
+    if (not json_semantic_match(
+            existing.get("best_selection_contract"),
+            expected.get("best_selection_contract"))
+            and not allow_experimental_contract_mismatch):
         reasons.append("best_selection_contract")
-    if (existing.get("action_adapter") != expected.get("action_adapter")
+    if (not json_semantic_match(
+            existing.get("action_adapter"), expected.get("action_adapter"))
             and not allow_experimental_contract_mismatch):
         reasons.append("action_adapter")
-    if (existing.get("residual_exploration")
-            != expected.get("residual_exploration")):
+    if not json_semantic_match(
+            existing.get("residual_exploration"),
+            expected.get("residual_exploration")):
         reasons.append("residual_exploration")
+    if not close_float(
+            existing.get("zero_command_activity_floor", 0.0),
+            expected.get("zero_command_activity_floor", 0.0),
+            ) and not allow_experimental_contract_mismatch:
+        reasons.append("zero_command_activity_floor")
     existing_training = existing.get("training", {})
     expected_training = expected.get("training", {})
     if existing_training.get("policy_net_arch") != expected_training.get(
@@ -665,7 +792,8 @@ def run_dir_for_model(model_path):
 def resume_model_compatible(
         model_path, expected_config, allow_command_curriculum_mismatch=False,
         allow_experimental_contract_mismatch=False,
-        allow_sensor_robustness_mismatch=False):
+        allow_sensor_robustness_mismatch=False,
+        allow_terrain_mismatch=False):
     config = read_json(os.path.join(
         run_dir_for_model(model_path), "training_config.json"))
     return training_config_compatible(
@@ -676,6 +804,7 @@ def resume_model_compatible(
             allow_experimental_contract_mismatch),
         allow_sensor_robustness_mismatch=(
             allow_sensor_robustness_mismatch),
+        allow_terrain_mismatch=allow_terrain_mismatch,
     )
 
 
@@ -725,7 +854,7 @@ def make_env(terrain='flat', gait_mode='random', gait_blend=None,
              fixed_cmd_vx=None, fixed_cmd_vy=None,
              command_curriculum="omni",
              command_resample_prob=None, gait_prior_scale=None,
-             policy_residual_scale=None):
+             policy_residual_scale=None, zero_command_activity_floor=0.0):
     """Factory for creating a monitored WormEnvV6 instance."""
     def _init():
         from worm_env_v6 import WormEnvV6
@@ -748,7 +877,9 @@ def make_env(terrain='flat', gait_mode='random', gait_blend=None,
             **({} if gait_prior_scale is None else {
                 "gait_prior_scale": gait_prior_scale}),
             **({} if policy_residual_scale is None else {
-                "policy_residual_scale": policy_residual_scale}))
+                "policy_residual_scale": policy_residual_scale}),
+            **({"zero_command_activity_floor": zero_command_activity_floor}),
+        )
         env = Monitor(env)
         env.reset(seed=seed)
         return env
@@ -767,6 +898,10 @@ def write_json(path, data):
 
 def best_eval_summary_path(run_dir):
     return os.path.join(run_dir, "best_eval_summary.json")
+
+
+def progress_best_eval_summary_path(run_dir):
+    return os.path.join(run_dir, "progress_best_eval_summary.json")
 
 
 def has_best_model_pair(run_dir):
@@ -789,6 +924,8 @@ def load_persistent_best_eval(run_dir, log_dir, eval_schedule_fingerprint=None,
     if selection_contract_version is not None:
         summary_contract = (summary or {}).get("selection_contract", {})
         if summary_contract.get("version") != selection_contract_version:
+            return -np.inf
+        if (summary or {}).get("tracking_gate_passed") is not True:
             return -np.inf
     try:
         value = float((summary or {}).get(
@@ -855,6 +992,14 @@ def write_best_eval_summary(path, mean_reward, timestep,
                 "wrong_yaw_sign_count"],
             "wrong_planar_sign_count": directional_summary[
                 "wrong_planar_sign_count"],
+            "wrong_mixed_component_sign_count": directional_summary[
+                "wrong_mixed_component_sign_count"],
+            "wrong_mixed_component_axis_count": directional_summary[
+                "wrong_mixed_component_axis_count"],
+            "weak_mixed_component_count": directional_summary[
+                "weak_mixed_component_count"],
+            "weak_mixed_component_axis_count": directional_summary[
+                "weak_mixed_component_axis_count"],
             "weak_turn_count": directional_summary["weak_turn_count"],
             "weak_translation_count": directional_summary[
                 "weak_translation_count"],
@@ -938,6 +1083,7 @@ def build_training_config(args, run_gait_label, sensor_kwargs, device):
         },
         "command_curriculum": args.command_curriculum,
         "command_resample_prob": args.command_resample_prob,
+        "zero_command_activity_floor": args.zero_command_activity_floor,
         "eval_command": {
             "cmd_vx_m_s": CMD_VX_RANGE[1],
             "cmd_vy_m_s": 0.0,
@@ -1050,12 +1196,23 @@ class DirectionalPersistentBestEvalCallback(BaseCallback):
         self.eval_schedule = eval_schedule
         self.eval_freq = int(eval_freq)
         self.best_model_save_path = best_model_save_path
-        self.best_selection_score = float(persistent_best_score)
+        self.best_tracking_selection_score = float(persistent_best_score)
+        self.best_progress_selection_score = -np.inf
         self.persistent_path = persistent_path
         self.eval_schedule_fingerprint = eval_schedule_fingerprint
         self.deterministic = deterministic
         self.eval_max_steps = (
             None if eval_max_steps is None else max(1, int(eval_max_steps)))
+
+    def _save_model_pair(self, model_stem):
+        if not self.best_model_save_path:
+            return
+        os.makedirs(self.best_model_save_path, exist_ok=True)
+        self.model.save(os.path.join(self.best_model_save_path, model_stem))
+        if self.train_env is not None:
+            self.train_env.save(os.path.join(
+                self.best_model_save_path,
+                f"{model_stem}_vecnormalize.pkl"))
 
     def _evaluate_once(self):
         from worm_env_v6 import MAX_EP_STEPS
@@ -1185,16 +1342,43 @@ class DirectionalPersistentBestEvalCallback(BaseCallback):
             f"rmse=({summary['planar_velocity_rmse_m_s']:.3f},"
             f"{summary['yaw_rate_rmse_rad_s']:.3f}) "
             f"wrong_planar={summary['wrong_planar_sign_count']} "
-            f"wrong_yaw={summary['wrong_yaw_sign_count']}")
+            f"wrong_yaw={summary['wrong_yaw_sign_count']} "
+            f"wrong_mixed={summary['wrong_mixed_component_sign_count']}")
 
-        if summary["selection_score"] <= self.best_selection_score:
+        selection_score = float(summary["selection_score"])
+        if summary["tracking_gate_passed"]:
+            gate_label = "accepted"
+        elif summary["direction_gate_passed"]:
+            gate_label = "direction-only"
+        else:
+            gate_label = "progress"
+
+        if selection_score > self.best_progress_selection_score:
+            self.best_progress_selection_score = selection_score
+            self._save_model_pair("progress_best_model")
+            if self.best_model_save_path:
+                write_best_eval_summary(
+                    progress_best_eval_summary_path(
+                        self.best_model_save_path),
+                    summary["mean_reward"],
+                    self.num_timesteps,
+                    eval_schedule=self.eval_schedule,
+                    eval_schedule_fingerprint=(
+                        self.eval_schedule_fingerprint),
+                    directional_summary=summary,
+                )
+            print(
+                f"New progress-best omni-{gate_label} model at "
+                f"{self.num_timesteps} steps")
+
+        if not summary["tracking_gate_passed"]:
             return True
 
-        self.best_selection_score = float(summary["selection_score"])
-        if self.best_model_save_path:
-            os.makedirs(self.best_model_save_path, exist_ok=True)
-            self.model.save(os.path.join(
-                self.best_model_save_path, "best_model"))
+        if selection_score <= self.best_tracking_selection_score:
+            return True
+
+        self.best_tracking_selection_score = selection_score
+        self._save_model_pair("best_model")
         if self.persistent_path:
             write_best_eval_summary(
                 self.persistent_path,
@@ -1204,14 +1388,8 @@ class DirectionalPersistentBestEvalCallback(BaseCallback):
                 eval_schedule_fingerprint=self.eval_schedule_fingerprint,
                 directional_summary=summary,
             )
-        if summary["tracking_gate_passed"]:
-            gate_label = "accepted"
-        elif summary["direction_gate_passed"]:
-            gate_label = "direction-only"
-        else:
-            gate_label = "progress"
         print(
-            f"New best omni-{gate_label} model at "
+            f"New deployable best omni-accepted model at "
             f"{self.num_timesteps} steps")
         return True
 
@@ -1252,6 +1430,7 @@ def train(args):
                 args.allow_contract_resume),
             allow_sensor_robustness_mismatch=(
                 args.allow_sensor_robustness_resume),
+            allow_terrain_mismatch=args.allow_terrain_resume,
         )
         if not resume_ok:
             print(
@@ -1261,7 +1440,12 @@ def train(args):
 
     existing_config = read_json(config_path)
     existing_ok, existing_reasons = training_config_compatible(
-        existing_config, training_config)
+        existing_config,
+        training_config,
+        allow_command_curriculum_mismatch=args.allow_curriculum_resume,
+        allow_experimental_contract_mismatch=args.allow_contract_resume,
+        allow_sensor_robustness_mismatch=args.allow_sensor_robustness_resume,
+        allow_terrain_mismatch=args.allow_terrain_resume)
     if not existing_ok:
         archive_existing_run_artifacts(
             RUN_DIR, ", ".join(existing_reasons) or "configuration mismatch")
@@ -1306,6 +1490,7 @@ def train(args):
             command_resample_prob=args.command_resample_prob,
             gait_prior_scale=args.gait_prior_scale,
             policy_residual_scale=args.policy_residual_scale,
+            zero_command_activity_floor=args.zero_command_activity_floor,
             **sensor_kwargs)])
     else:
         raw_vec_env = SubprocVecEnv(
@@ -1315,6 +1500,7 @@ def train(args):
                       command_resample_prob=args.command_resample_prob,
                       gait_prior_scale=args.gait_prior_scale,
                       policy_residual_scale=args.policy_residual_scale,
+                      zero_command_activity_floor=args.zero_command_activity_floor,
                       **sensor_kwargs)
              for i in range(n_envs)])
 
@@ -1422,6 +1608,7 @@ def train(args):
                 command_resample_prob=0.0,
                 gait_prior_scale=args.gait_prior_scale,
                 policy_residual_scale=args.policy_residual_scale,
+                zero_command_activity_floor=args.zero_command_activity_floor,
                 **sensor_kwargs)
             for idx, case in enumerate(eval_schedule)
         ])
@@ -1502,6 +1689,10 @@ def train(args):
         "best_vecnormalize": os.path.join(
             RUN_DIR, "best_model_vecnormalize.pkl"),
         "best_eval_summary": best_eval_summary_path(RUN_DIR),
+        "progress_best_model": os.path.join(RUN_DIR, "progress_best_model.zip"),
+        "progress_best_vecnormalize": os.path.join(
+            RUN_DIR, "progress_best_model_vecnormalize.pkl"),
+        "progress_best_eval_summary": progress_best_eval_summary_path(RUN_DIR),
         "training_config": config_path,
     }
     best_eval = read_json(best_eval_summary_path(RUN_DIR))
@@ -1545,6 +1736,10 @@ if __name__ == "__main__":
                     help="Scale for deterministic phase/gait_blend action prior")
     ap.add_argument("--policy-residual-scale", type=float, default=0.35,
                     help="Scale applied to PPO residual before adding gait prior")
+    ap.add_argument("--zero-command-activity-floor", type=float, default=0.0,
+                    help="When command norm is near zero, floor action activity "
+                         "scale to this value (useful for slope stop-brake "
+                         "ablation).")
     from worm_env_v6 import COMMAND_CURRICULA
     ap.add_argument("--command-curriculum", type=str, default="omni",
                     choices=COMMAND_CURRICULA,
@@ -1594,6 +1789,10 @@ if __name__ == "__main__":
                          "robustness training condition, such as encoder/IMU "
                          "noise, action delay, or action saturation, while "
                          "keeping the deployable observation/action ABI fixed")
+    ap.add_argument("--allow-terrain-resume", action="store_true",
+                    help="Allow --resume across flat/sand/slope terrain "
+                         "fine-tuning while keeping all deployable ABI, "
+                         "action-adapter, sensor, and network fields checked")
     ap.add_argument("--test", action="store_true",
                     help="Quick test run (10k steps, 1 env)")
     args = ap.parse_args()
