@@ -1,9 +1,9 @@
 {
   "pptx": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\worm_v6_advisor_update_ppt\\worm_v6_advisor_update_20260603_v95.pptx",
-  "slides": 18,
+  "slides": 19,
   "created_from_base_script": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\scripts\\create_worm_v6_advisor_update_ppt.py",
   "v95_server_training": {
-    "status": "started",
+    "status": "completed_not_accepted_under_component_sign_gate",
     "run_label": "flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2",
     "run_dir": "/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/runs/worm_v6_ppo_flat_random_v95_server_mixed_positive_vx_hardcase_from_v92bfinal_np2",
     "log_dir": "/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/server_logs",
@@ -11,6 +11,45 @@
     "curriculum": "robust_forward_left_diagonal_repair",
     "train_chunk_steps": 100000,
     "reward_change": "mixed_positive_vx_full_lateral_deficit_penalty"
+  },
+  "v95_component_audit": {
+    "scan_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v95_server_mixed_positive_vx_hardcase_scan",
+    "strict_component_gate": "wrong_mixed_component_sign_count",
+    "summary": "All four V95 scans fail once mixed vx/vy component sign is required.",
+    "rows": [
+      [
+        "best nominal",
+        "false",
+        "0.0547",
+        "0.0217",
+        "7",
+        "(+0.05,+0.075,0)->(-0.0229,+0.0578,+0.1136)"
+      ],
+      [
+        "best robust",
+        "false",
+        "0.0570",
+        "0.0201",
+        "8",
+        "(+0.05,+0.075,0)->(-0.0345,+0.0059,+0.0113)"
+      ],
+      [
+        "final nominal",
+        "false",
+        "0.0572",
+        "0.0218",
+        "11",
+        "(+0.05,+0.075,0)->(-0.0267,+0.0516,+0.0851)"
+      ],
+      [
+        "final robust",
+        "false",
+        "0.0616",
+        "0.0201",
+        "10",
+        "(-0.10,+0.075,0)->(-0.0605,-0.0338,-0.0882)"
+      ]
+    ]
   },
   "video_dir": "D:\\inovxio\\thirdparty\\simulation\\worm_project\\record\\current\\flat_omni_v86b_server_robust_forward_left_videos",
   "scan_dirs": {
@@ -70,7 +109,8 @@
     ]
   ],
   "limitations": [
-    "V95 is still running; it is reported as in-progress, not as a verified result.",
+    "V95 completed, but it is not accepted under the stricter mixed-component sign gate.",
+    "After completion, V95 final robust passes the old projection gate but fails the stricter mixed-component sign gate.",
     "V90 remains the safest fully accepted flat strict-scan baseline.",
     "V86b videos are visual evidence; formal claims use scan JSON/CSV.",
     "The deck is editable python-pptx because presentation-jsx is unavailable in this workspace."

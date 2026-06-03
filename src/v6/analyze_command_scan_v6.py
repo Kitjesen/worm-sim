@@ -20,6 +20,7 @@ VY_ERROR_TARGET_M_S = 0.10
 OFF_AXIS_TARGET_M_S = 0.08
 ZERO_SPEED_TARGET_M_S = 0.02
 YAW_ONLY_PLANAR_TARGET_M_S = 0.08
+MIXED_COMPONENT_SIGN_MIN_ABS_CMD = 1e-6
 
 COMMAND_CLASS_ORDER = [
     "stop",
@@ -119,7 +120,23 @@ def _compact_command(row: Dict) -> Dict:
         "tracking_score": _tracking_score(row),
         "planar_sign_ok": bool(row.get("planar_sign_ok", True)),
         "yaw_sign_ok": bool(row.get("yaw_sign_ok", True)),
+        "mixed_component_sign_ok": _mixed_component_sign_ok(row),
     }
+
+
+def _component_sign_ok(cmd: float, measured: float) -> bool:
+    if abs(cmd) <= MIXED_COMPONENT_SIGN_MIN_ABS_CMD:
+        return True
+    return cmd * measured > 0.0
+
+
+def _mixed_component_sign_ok(row: Dict) -> bool:
+    if classify_command(row) != "mixed_vx_vy":
+        return True
+    return (
+        _component_sign_ok(_f(row, "cmd_vx_m_s"), _f(row, "body_vx_m_s"))
+        and _component_sign_ok(_f(row, "cmd_vy_m_s"), _f(row, "body_vy_m_s"))
+    )
 
 
 def _group_summary(rows: List[Dict]) -> Dict:
@@ -140,6 +157,7 @@ def _group_summary(rows: List[Dict]) -> Dict:
             "off_axis_exceed_count": 0,
             "wrong_planar_sign_count": 0,
             "wrong_yaw_sign_count": 0,
+            "wrong_mixed_component_sign_count": 0,
             "dominant_error_score": 0.0,
             "telemetry_means": {},
             "worst_command": None,
@@ -177,6 +195,8 @@ def _group_summary(rows: List[Dict]) -> Dict:
             1 for r in rows if not bool(r.get("planar_sign_ok", True))),
         "wrong_yaw_sign_count": sum(
             1 for r in rows if not bool(r.get("yaw_sign_ok", True))),
+        "wrong_mixed_component_sign_count": sum(
+            1 for r in rows if not _mixed_component_sign_ok(r)),
         "dominant_error_score": sum(_tracking_score(r) for r in rows),
         "telemetry_means": telemetry_means,
         "worst_command": _compact_command(worst),
@@ -189,6 +209,8 @@ def _acceptance(summary: Dict, rows: List[Dict]) -> Dict:
     yaw_rmse = summary.get("yaw_rmse_rad_s")
     wrong_planar = int(summary.get("wrong_planar_sign_count", 0) or 0)
     wrong_yaw = int(summary.get("wrong_yaw_sign_count", 0) or 0)
+    wrong_mixed_component = sum(
+        1 for r in rows if not _mixed_component_sign_ok(r))
     zero_speed = summary.get("zero_command_mean_speed_m_s")
     yaw_only_speed = summary.get("yaw_only_mean_planar_speed_m_s")
 
@@ -207,6 +229,8 @@ def _acceptance(summary: Dict, rows: List[Dict]) -> Dict:
         failed.append("wrong_planar_sign_count")
     if wrong_yaw != 0:
         failed.append("wrong_yaw_sign_count")
+    if wrong_mixed_component != 0:
+        failed.append("wrong_mixed_component_sign_count")
     if mean_off_axis is None or mean_off_axis > OFF_AXIS_TARGET_M_S:
         failed.append("mean_off_axis_speed_m_s")
     if zero_speed is None or float(zero_speed) > ZERO_SPEED_TARGET_M_S:
@@ -229,6 +253,7 @@ def _acceptance(summary: Dict, rows: List[Dict]) -> Dict:
             "yaw_rmse_rad_s": yaw_rmse,
             "wrong_planar_sign_count": wrong_planar,
             "wrong_yaw_sign_count": wrong_yaw,
+            "wrong_mixed_component_sign_count": wrong_mixed_component,
             "mean_off_axis_speed_m_s": mean_off_axis,
             "zero_command_mean_speed_m_s": zero_speed,
             "yaw_only_mean_planar_speed_m_s": yaw_only_speed,
@@ -333,7 +358,11 @@ def render_markdown(analysis: Dict) -> str:
         lines.append(
             f"| `{key}` | {value_text} | `{target:.4f}` | "
             f"{'fail' if failed else 'pass'} |")
-    for key in ("wrong_planar_sign_count", "wrong_yaw_sign_count"):
+    for key in (
+        "wrong_planar_sign_count",
+        "wrong_yaw_sign_count",
+        "wrong_mixed_component_sign_count",
+    ):
         value = measured.get(key)
         failed = key in acceptance["failed_conditions"]
         lines.append(
@@ -347,8 +376,8 @@ def render_markdown(analysis: Dict) -> str:
         "## Command-class decomposition",
         "",
         "| Class | N | Planar RMSE | Yaw RMSE | vx exceed | vy exceed | "
-        "planar exceed | yaw exceed | off-axis exceed |",
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "planar exceed | yaw exceed | off-axis exceed | mixed comp sign fail |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for name in COMMAND_CLASS_ORDER:
         info = analysis["groups"][name]
@@ -363,7 +392,8 @@ def render_markdown(analysis: Dict) -> str:
             f"{info['vy_error_exceed_count']} | "
             f"{info['planar_error_exceed_count']} | "
             f"{info['yaw_error_exceed_count']} | "
-            f"{info['off_axis_exceed_count']} |")
+            f"{info['off_axis_exceed_count']} | "
+            f"{info['wrong_mixed_component_sign_count']} |")
 
     telemetry_rows = [
         (name, analysis["groups"][name])

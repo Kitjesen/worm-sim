@@ -47,6 +47,28 @@ def _command_key(row):
     )
 
 
+def _component_sign_ok(cmd, measured):
+    cmd = float(cmd or 0.0)
+    measured = float(measured or 0.0)
+    if abs(cmd) <= 1e-9:
+        return True
+    return cmd * measured > 0.0
+
+
+def _mixed_component_sign_ok(row):
+    cmd_vx = float(row.get("cmd_vx_m_s", 0.0))
+    cmd_vy = float(row.get("cmd_vy_m_s", 0.0))
+    cmd_yaw = float(row.get("cmd_yaw_rad_s", 0.0))
+    if abs(cmd_vx) <= 1e-9 or abs(cmd_vy) <= 1e-9:
+        return True
+    if abs(cmd_yaw) > 1e-9:
+        return True
+    return (
+        _component_sign_ok(cmd_vx, row.get("body_vx_m_s", 0.0))
+        and _component_sign_ok(cmd_vy, row.get("body_vy_m_s", 0.0))
+    )
+
+
 def _selected_command(scan, analysis):
     commands = list(scan.get("commands", []))
     planar_sign_failures = [
@@ -59,6 +81,15 @@ def _selected_command(scan, analysis):
     ]
     if planar_sign_failures:
         return max(planar_sign_failures, key=lambda r: float(
+            r.get("planar_error_m_s", 0.0)) + float(
+            r.get("yaw_error_rad_s", 0.0)))
+
+    mixed_component_failures = [
+        row for row in commands
+        if not _mixed_component_sign_ok(row)
+    ]
+    if mixed_component_failures:
+        return max(mixed_component_failures, key=lambda r: float(
             r.get("planar_error_m_s", 0.0)) + float(
             r.get("yaw_error_rad_s", 0.0)))
 
@@ -113,6 +144,8 @@ def summarize_item(label, scan_path, analysis_path):
             "wrong_planar_sign_count", summary.get("wrong_planar_sign_count")),
         "wrong_yaw_sign_count": measured.get(
             "wrong_yaw_sign_count", summary.get("wrong_yaw_sign_count")),
+        "wrong_mixed_component_sign_count": measured.get(
+            "wrong_mixed_component_sign_count"),
         "planar_error_exceed_count": summary.get("planar_error_exceed_count"),
         "off_axis_exceed_count": summary.get("off_axis_exceed_count"),
         "fixed_lateral_strict_gate_passed": summary.get(
@@ -124,6 +157,7 @@ def summarize_item(label, scan_path, analysis_path):
         "counter_body_vy_m_s": counter.get("body_vy_m_s"),
         "counter_yaw_rate_rad_s": counter.get("yaw_rate_rad_s"),
         "counter_planar_sign_ok": counter.get("planar_sign_ok"),
+        "counter_mixed_component_sign_ok": _mixed_component_sign_ok(counter),
         "counter_mean_prior_component_l2": counter.get(
             "mean_prior_component_l2"),
         "counter_mean_residual_component_l2": counter.get(
@@ -139,11 +173,11 @@ def render_markdown(rows, title):
         "strict-analysis command.",
         "",
         "| Label | Accepted | Failed | Adapter | Planar RMSE | Yaw RMSE | "
-        "Wrong planar | Wrong yaw | Planar exceed | Off-axis exceed | "
+        "Wrong planar | Wrong yaw | Wrong mixed comp | Planar exceed | Off-axis exceed | "
         "Fixed lateral strict | Selected command | Measured `(vx, vy, yaw)` | "
-        "Selected sign |",
-        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | "
-        "--- | --- | --- | --- |",
+        "Projected sign | Mixed comp sign |",
+        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | "
+        "--- | --- | --- | --- | --- |",
     ]
     for row in rows:
         cmd_tuple = (
@@ -158,6 +192,9 @@ def render_markdown(rows, title):
         )
         sign = row.get("counter_planar_sign_ok")
         sign_text = "n/a" if sign is None else ("pass" if sign else "fail")
+        comp_sign = row.get("counter_mixed_component_sign_ok")
+        comp_sign_text = (
+            "n/a" if comp_sign is None else ("pass" if comp_sign else "fail"))
         failed = row.get("failed_conditions") or "-"
         lines.append(
             f"| `{row['label']}` | {_fmt(row.get('accepted'))} | `{failed}` | "
@@ -166,11 +203,12 @@ def render_markdown(rows, title):
             f"{_fmt(row.get('yaw_rmse_rad_s'))} | "
             f"{row.get('wrong_planar_sign_count')} | "
             f"{row.get('wrong_yaw_sign_count')} | "
+            f"{row.get('wrong_mixed_component_sign_count')} | "
             f"{row.get('planar_error_exceed_count')} | "
             f"{row.get('off_axis_exceed_count')} | "
             f"{_fmt(row.get('fixed_lateral_strict_gate_passed'))} | "
             f"`{cmd_tuple}` | "
-            f"`{counter_tuple}` | {sign_text} |")
+            f"`{counter_tuple}` | {sign_text} | {comp_sign_text} |")
     lines.append("")
     return "\n".join(lines)
 

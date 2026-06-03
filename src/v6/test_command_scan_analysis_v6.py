@@ -70,7 +70,11 @@ def main():
 
     assert analysis["acceptance"]["accepted"] is False
     assert "planar_rmse_m_s" in analysis["acceptance"]["failed_conditions"]
+    assert "wrong_mixed_component_sign_count" in (
+        analysis["acceptance"]["failed_conditions"])
     assert analysis["groups"]["mixed_vx_vy"]["planar_error_exceed_count"] == 1
+    assert analysis["groups"]["mixed_vx_vy"][
+        "wrong_mixed_component_sign_count"] == 1
     assert analysis["groups"]["mixed_vx_yaw"]["yaw_error_exceed_count"] == 1
     assert analysis["groups"]["mixed_vx_yaw"]["telemetry_means"][
         "mean_gait_blend"] == 0.5

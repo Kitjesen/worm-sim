@@ -1215,3 +1215,48 @@ accepted policy yet. Until V95 or a later model passes strict nominal and robust
 scans, the safest advisor-facing claim remains finite-envelope, command
 conditioned, multimodal flat locomotion rather than unconstrained
 omnidirectional velocity tracking.
+
+## 2026-06-03 V95 Strict Scan and Component-Sign Audit
+
+- V95 completed its 100k-step remote continuation and produced both
+  `best_model.zip` and `final_model.zip`.
+- The formal scan artifacts were pulled to:
+  `record/current/flat_omni_v95_server_mixed_positive_vx_hardcase_scan/`.
+- Four 35-command scans were run:
+  - `v95_best_nominal`
+  - `v95_best_robust`
+  - `v95_final_nominal`
+  - `v95_final_robust`
+- Under the old projection-based strict analyzer, `v95_final_robust` appeared
+  accepted:
+  - planar RMSE: `0.0616 m/s`
+  - yaw RMSE: `0.0201 rad/s`
+  - wrong planar sign: `0`
+  - wrong yaw sign: `0`
+- However, this exposed a weakness in the analyzer: mixed `vx/vy` commands can
+  pass the projected planar direction gate while one component is still
+  physically wrong. For example, in `v95_final_robust`, the mixed command
+  `cmd=(-0.1000, +0.0750, 0)` measured approximately
+  `(-0.0605, -0.0338, -0.0882)`, so the projected direction is acceptable but
+  the `vy` component is opposite-sign.
+- The analyzer was tightened with a new
+  `wrong_mixed_component_sign_count` gate. A mixed `vx/vy` command is now
+  considered component-correct only when both nonzero commanded components have
+  the same sign as their measured body-frame components.
+- With the stricter component-sign gate, V95 is not accepted:
+
+| Checkpoint | Condition | Accepted | Planar RMSE | Yaw RMSE | Wrong planar | Wrong yaw | Wrong mixed comp | Representative component failure |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| best | nominal | false | 0.0547 | 0.0217 | 0 | 0 | 7 | `cmd=(+0.05,+0.075,0) -> measured=(-0.0229,+0.0578,+0.1136)` |
+| best | robust | false | 0.0570 | 0.0201 | 1 | 0 | 8 | `cmd=(+0.05,+0.075,0) -> measured=(-0.0345,+0.0059,+0.0113)` |
+| final | nominal | false | 0.0572 | 0.0218 | 0 | 0 | 11 | `cmd=(+0.05,+0.075,0) -> measured=(-0.0267,+0.0516,+0.0851)` |
+| final | robust | false | 0.0616 | 0.0201 | 0 | 0 | 10 | `cmd=(-0.10,+0.075,0) -> measured=(-0.0605,-0.0338,-0.0882)` |
+
+- Interpretation:
+  - V95 improved the old projection-level robust gate for the final checkpoint.
+  - It did not solve true component-wise mixed `vx/vy` tracking.
+  - The next training target should explicitly optimize mixed-component signs
+    and component magnitudes, not only projected planar direction.
+  - For advisor and paper language, V95 should be described as a diagnostic
+    improvement that tightened the evaluation definition, not as a completed
+    continuous `vx/vy/yaw` controller.

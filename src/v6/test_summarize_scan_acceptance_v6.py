@@ -73,6 +73,7 @@ def test_summarize_item_combines_scan_and_acceptance(tmp_path):
     assert row["failed_conditions"] == "wrong_planar_sign_count"
     assert row["counter_cmd_vx_m_s"] == 0.05
     assert row["counter_body_vx_m_s"] == -0.04
+    assert row["counter_mixed_component_sign_ok"] is False
 
 
 def test_render_markdown_includes_counter_sign(tmp_path):
@@ -84,4 +85,6 @@ def test_render_markdown_includes_counter_sign(tmp_path):
     assert "# Title" in markdown
     assert "`case`" in markdown
     assert "Selected command" in markdown
+    assert "Wrong mixed comp" in markdown
     assert "pass" in markdown
+    assert "fail" in markdown

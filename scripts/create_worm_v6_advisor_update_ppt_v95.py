@@ -20,6 +20,45 @@ V95_LOG_DIR = (
     "/home/bsrl/hongsenpang/codex_runs/worm-sim-v6-server-training/"
     "server_logs"
 )
+V95_SCAN_DIR = (
+    ROOT / "record" / "current"
+    / "flat_omni_v95_server_mixed_positive_vx_hardcase_scan"
+)
+
+V95_COMPONENT_AUDIT_ROWS = [
+    [
+        "best nominal",
+        "false",
+        "0.0547",
+        "0.0217",
+        "7",
+        "(+0.05,+0.075,0)->(-0.0229,+0.0578,+0.1136)",
+    ],
+    [
+        "best robust",
+        "false",
+        "0.0570",
+        "0.0201",
+        "8",
+        "(+0.05,+0.075,0)->(-0.0345,+0.0059,+0.0113)",
+    ],
+    [
+        "final nominal",
+        "false",
+        "0.0572",
+        "0.0218",
+        "11",
+        "(+0.05,+0.075,0)->(-0.0267,+0.0516,+0.0851)",
+    ],
+    [
+        "final robust",
+        "false",
+        "0.0616",
+        "0.0201",
+        "10",
+        "(-0.10,+0.075,0)->(-0.0605,-0.0338,-0.0882)",
+    ],
+]
 
 
 PAPER_ROWS = [
@@ -156,6 +195,51 @@ def add_v95_status_slide(prs: Presentation) -> None:
     )
 
 
+def add_v95_component_audit_slide(prs: Presentation) -> None:
+    blank = prs.slide_layouts[6]
+    slide = prs.slides.add_slide(blank)
+    base.add_title(
+        slide,
+        "V95 结果审计：投影方向改善，但 mixed vx/vy 分量仍未学会",
+        "旧 analyzer 会把 final robust 判为 accepted；新增分量符号 gate 后，V95 仍失败。",
+    )
+    base.add_panel(slide, 0.55, 1.18, 12.25, 4.55)
+    rows = [[
+        "checkpoint",
+        "accepted",
+        "planar RMSE",
+        "yaw RMSE",
+        "wrong mixed comp",
+        "representative component failure",
+    ]] + V95_COMPONENT_AUDIT_ROWS
+    base.add_table(slide, rows, 0.85, 1.55, 11.65, 2.75, font_size=7)
+    base.add_bullets(
+        slide,
+        [
+            "V95 的真实进步：final checkpoint 在旧投影方向 gate 下 robust 扫描不再有 wrong planar/yaw。",
+            "Metric keyword: mixed-component sign gate = wrong_mixed_component_sign_count。",
+            "新的问题定义：mixed vx/vy 命令必须同时满足 vx、vy 两个非零分量同号，不能只看投影方向。",
+            "结论边界：V95 是诊断性进步，不是连续 vx/vy/yaw 跟踪完成版。",
+            "下一步训练：奖励与选择标准直接加入 mixed-component sign 和 component magnitude，不再只优化 planar projection。",
+        ],
+        0.85,
+        4.55,
+        11.2,
+        1.05,
+        size=12,
+    )
+    base.add_textbox(
+        slide,
+        f"Scan artifacts: {V95_SCAN_DIR}",
+        0.75,
+        6.72,
+        11.8,
+        0.25,
+        size=8,
+        color=base.COLORS["muted"],
+    )
+
+
 def add_literature_training_slide(prs: Presentation) -> None:
     blank = prs.slide_layouts[6]
     slide = prs.slides.add_slide(blank)
@@ -220,7 +304,7 @@ def write_v95_manifest(pptx_path: Path, slide_count: int) -> None:
         "slides": slide_count,
         "created_from_base_script": str(ROOT / "scripts" / "create_worm_v6_advisor_update_ppt.py"),
         "v95_server_training": {
-            "status": "started",
+            "status": "completed_not_accepted_under_component_sign_gate",
             "run_label": V95_RUN_LABEL,
             "run_dir": V95_RUN_DIR,
             "log_dir": V95_LOG_DIR,
@@ -228,6 +312,12 @@ def write_v95_manifest(pptx_path: Path, slide_count: int) -> None:
             "curriculum": "robust_forward_left_diagonal_repair",
             "train_chunk_steps": 100000,
             "reward_change": "mixed_positive_vx_full_lateral_deficit_penalty",
+        },
+        "v95_component_audit": {
+            "scan_dir": str(V95_SCAN_DIR),
+            "strict_component_gate": "wrong_mixed_component_sign_count",
+            "summary": "All four V95 scans fail once mixed vx/vy component sign is required.",
+            "rows": V95_COMPONENT_AUDIT_ROWS,
         },
         "video_dir": str(base.V86_VIDEO_DIR),
         "scan_dirs": {
@@ -238,7 +328,8 @@ def write_v95_manifest(pptx_path: Path, slide_count: int) -> None:
         },
         "literature_rows": PAPER_ROWS,
         "limitations": [
-            "V95 is still running; it is reported as in-progress, not as a verified result.",
+            "V95 completed, but it is not accepted under the stricter mixed-component sign gate.",
+            "After completion, V95 final robust passes the old projection gate but fails the stricter mixed-component sign gate.",
             "V90 remains the safest fully accepted flat strict-scan baseline.",
             "V86b videos are visual evidence; formal claims use scan JSON/CSV.",
             "The deck is editable python-pptx because presentation-jsx is unavailable in this workspace.",
@@ -253,13 +344,14 @@ def write_v95_manifest(pptx_path: Path, slide_count: int) -> None:
         "",
         f"- PPTX: `{pptx_path}`",
         f"- Slides: `{slide_count}`",
-        f"- V95 status: started on server; run label `{V95_RUN_LABEL}`",
+        f"- V95 status: completed, but not accepted under mixed-component sign gate; run label `{V95_RUN_LABEL}`",
         f"- V95 run dir: `{V95_RUN_DIR}`",
+        f"- V95 scan dir: `{V95_SCAN_DIR}`",
         f"- Video dir: `{base.V86_VIDEO_DIR}`",
         "",
         "## Key point",
         "",
-        "V95 is an in-progress targeted reward repair for the repeated robust mixed-vx/vy sign failure at cmd=(+0.05,+/-0.075,0). It is not yet a verified result.",
+        "V95 is a diagnostic improvement: final robust passes the old projected-direction gate, but all four scans fail the stricter mixed-component sign gate.",
     ]
     (OUT_DIR / "ppt_manifest_v95.md").write_text(
         "\n".join(lines) + "\n",
@@ -272,12 +364,13 @@ def main() -> None:
     base_path = base.build_deck()
     prs = Presentation(base_path)
     add_v95_status_slide(prs)
+    add_v95_component_audit_slide(prs)
     add_literature_training_slide(prs)
     add_video_index_slide(prs)
     out = OUT_DIR / "worm_v6_advisor_update_20260603_v95.pptx"
     prs.save(out)
     slide_count = len(Presentation(out).slides)
-    assert slide_count == 18, slide_count
+    assert slide_count == 19, slide_count
     assert out.stat().st_size > 100_000, out.stat().st_size
     write_v95_manifest(out, slide_count)
     print(f"pptx={out}")
