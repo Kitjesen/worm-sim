@@ -1,0 +1,87 @@
+{
+  "config": {
+    "actuator_force_limit_n": 500.0,
+    "actuator_kp_n_m": 4000.0,
+    "cable_bend": 100000000.0,
+    "cable_twist": 40000000.0,
+    "fixed_plate_mass_kg": 0.08,
+    "moving_plate_mass_kg": 0.08,
+    "plate_half_extent_m": 0.07,
+    "plate_thickness_m": 0.008,
+    "rest_length_m": 0.1175,
+    "sample_steps": 80,
+    "settle_steps": 250,
+    "strip_bow_m": 0.012,
+    "strip_capsule_radius_m": 0.0015,
+    "strip_circle_radius_m": 0.068,
+    "strip_count": 8,
+    "strip_density_kg_m3": 7850.0,
+    "strip_vertices": 7,
+    "timestep_s": 0.0005
+  },
+  "fit": {
+    "compression_source": "actual_compression_m",
+    "force_at_max_compression_n": 38.70771746073462,
+    "force_intercept_n": 16.739005282448662,
+    "max_compression_m": 0.04031695845926418,
+    "max_force_n": 39.769774373830785,
+    "r2": 0.45418772458079004,
+    "sample_count": 4,
+    "secant_stiffness_at_max_n_per_m": 960.085257915586,
+    "stiffness_n_per_m": 680.5135051245386,
+    "zero_intercept_stiffness_n_per_m": 1205.2201684777692
+  },
+  "generated_at": "2026-05-29T21:50:20",
+  "purpose": "single_segment_spring_steel_force_displacement_calibration",
+  "records": [
+    {
+      "actual_compression_m": 0.0,
+      "actual_compression_mm": 0.0,
+      "compression_m": 0.0,
+      "compression_mm": 0.0,
+      "max_force_n": 1.817003563809848e-16,
+      "mean_force_n": 9.625900393538963e-17,
+      "mean_qpos_m": -1.47402698254735e-20,
+      "std_force_n": 5.881771596530242e-17,
+      "target_compression_m": 0.0,
+      "target_compression_mm": 0.0
+    },
+    {
+      "actual_compression_m": 0.00295833346499745,
+      "actual_compression_mm": 2.95833346499745,
+      "compression_m": 0.01,
+      "compression_mm": 10.0,
+      "max_force_n": 28.92843436548219,
+      "mean_force_n": 28.184461079703716,
+      "mean_qpos_m": 0.00295833346499745,
+      "std_force_n": 0.4068772046516605,
+      "target_compression_m": 0.01,
+      "target_compression_mm": 10.0
+    },
+    {
+      "actual_compression_m": 0.015071723212797272,
+      "actual_compression_mm": 15.071723212797272,
+      "compression_m": 0.025,
+      "compression_mm": 25.0,
+      "max_force_n": 42.34112738053458,
+      "mean_force_n": 39.769774373830785,
+      "mean_qpos_m": 0.015071723212797272,
+      "std_force_n": 1.2807876218200072,
+      "target_compression_m": 0.025,
+      "target_compression_mm": 25.0
+    },
+    {
+      "actual_compression_m": 0.04031695845926418,
+      "actual_compression_mm": 40.316958459264185,
+      "compression_m": 0.05,
+      "compression_mm": 50.0,
+      "max_force_n": 40.000321728023465,
+      "mean_force_n": 38.70771746073462,
+      "mean_qpos_m": 0.04031695845926418,
+      "std_force_n": 1.2343431237328335,
+      "target_compression_m": 0.05,
+      "target_compression_mm": 50.0
+    }
+  ],
+  "video_path": null
+}

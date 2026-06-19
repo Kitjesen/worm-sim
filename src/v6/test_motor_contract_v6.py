@@ -23,6 +23,7 @@ from motor_contract_v6 import (  # noqa: E402
     normalized_action_to_ctrl,
     normalized_action_to_targets,
 )
+from action_adapter_v6 import POLICY_ACTION_DIM  # noqa: E402
 from worm_env_v6 import WormEnvV6  # noqa: E402
 from worm_v6 import (  # noqa: E402
     SLIDE_FORCE,
@@ -73,7 +74,7 @@ def main():
     env = WormEnvV6(terrain="flat", gait_mode="worm")
     try:
         env.reset(seed=123)
-        env.step(np.ones(NUM_ACTUATORS, dtype=np.float32))
+        env.step(np.ones(POLICY_ACTION_DIM, dtype=np.float32))
         assert np.all(env.data.ctrl[:NUM_SLIDES] <= SLIDE_TARGET_MAX_M + 1e-9)
         assert np.all(env.data.ctrl[:NUM_SLIDES] >= SLIDE_TARGET_MIN_M - 1e-9)
     finally:

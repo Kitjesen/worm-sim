@@ -39,6 +39,11 @@ from motor_contract_v6 import (
     YAW_TARGET_SCALE_RAD,
     YAW_TORQUE_LIMIT_NM,
 )
+from visual_steel_strip_geometry_v6 import (
+    DEFAULT_EXTRA_COMPRESSION_RANGE_M,
+    DEFAULT_PREBEND_COMPRESSION_M,
+    generate_steel_strip_boxes,
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants from URDF analysis
@@ -575,10 +580,8 @@ def build_xml(mesh_dir, urdf_path, terrain='flat', mjx_compat=False):
 def inject_strips(scene, d, slide_pairs, natural_spacings):
     """Inject steel strip visuals at each slide joint.
 
-    Smooth parabolic arc: ARC_SEGS segments per strip, each following
-    the local tangent of  r(t) = R + bow * 4t(1-t).
-    Adjacent segments share endpoints → seamless curve.
-    8 strips × 6 joints × 5 segs = 240 geoms.
+    The visual bow uses the shared V6 geometry model: about 50 mm pre-bend
+    compression plus up to another 50 mm active compression.
     """
     BOX = mujoco.mjtGeom.mjGEOM_BOX
 
@@ -586,82 +589,42 @@ def inject_strips(scene, d, slide_pairs, natural_spacings):
         p_par = d.xpos[bid_parent].copy()
         p_chi = d.xpos[bid_child].copy()
         r_par = d.xmat[bid_parent].reshape(3, 3)
-
-        link = p_chi - p_par
-        dist = np.linalg.norm(link)
-        if dist < 0.005:
-            continue
-        e_ax = link / dist
-
-        # Dynamic bow based on compression ratio
         nat_len = natural_spacings[pair_idx]
-        comp = max(0.0, 1.0 - dist / nat_len)
-        vis_bow = VIS_BOW_MIN + (VIS_BOW_MAX - VIS_BOW_MIN) * min(1.0, comp * 8.0)
+        boxes = generate_steel_strip_boxes(
+            p_par,
+            p_chi,
+            r_par,
+            nat_len,
+            joint_index=pair_idx,
+            num_strips=NUM_STRIPS,
+            arc_segments=ARC_SEGS,
+            strip_radius_m=STRIP_CIRCLE_R,
+            strip_width_m=STRIP_W,
+            strip_thickness_m=STRIP_T,
+            bow_min_m=VIS_BOW_MIN,
+            bow_max_m=VIS_BOW_MAX,
+            prebend_compression_m=DEFAULT_PREBEND_COMPRESSION_M,
+            extra_compression_range_m=DEFAULT_EXTRA_COMPRESSION_RANGE_M,
+            arc_overlap=ARC_OVERLAP,
+            rgba=tuple(float(v) for v in STRIP_RGBA),
+        )
 
-        # Axial span slightly shorter than full gap (leave plate edges visible)
-        span = dist * 0.92
-        half_span = span * 0.5
-
-        # Body-frame radial directions
-        body_y = r_par[:, 1]
-        body_z = r_par[:, 2]
-        mid = (p_par + p_chi) * 0.5
-
-        # Precompute arc sample points along parabola: r(t) = R + bow*4t(1-t)
-        # t goes from 0 (parent plate) to 1 (child plate)
-        arc_t = [s / ARC_SEGS for s in range(ARC_SEGS + 1)]
-        arc_r = [STRIP_CIRCLE_R + vis_bow * 4.0 * t * (1.0 - t) for t in arc_t]
-        # Axial positions relative to midpoint
-        arc_ax = [-half_span + span * t for t in arc_t]
-
-        for angle in STRIP_ANGLES:
-            ca, sa = math.cos(angle), math.sin(angle)
-            e_r = ca * body_y + sa * body_z
-
-            # Fixed tangent direction for all segments (no face twisting)
-            e_tang = np.cross(e_ax, e_r)
-            tang_n = np.linalg.norm(e_tang)
-            if tang_n < 1e-6:
-                continue
-            e_tang /= tang_n
-
-            # 3D sample points on the parabolic arc
-            pts = [mid + arc_ax[i] * e_ax + arc_r[i] * e_r
-                   for i in range(ARC_SEGS + 1)]
-
-            for s in range(ARC_SEGS):
-                if scene.ngeom >= scene.maxgeom:
-                    return
-
-                pa, pb = pts[s], pts[s + 1]
-                seg_mid = (pa + pb) * 0.5
-                dv = pb - pa
-                seg_len = np.linalg.norm(dv)
-                if seg_len < 1e-6:
-                    continue
-                z_dir = dv / seg_len
-
-                # Derive radial from fixed tangent + local z_dir
-                radial = np.cross(e_tang, z_dir)
-                rn = np.linalg.norm(radial)
-                if rn < 1e-6:
-                    continue
-                radial /= rn
-
-                # Rotation: columns = local axes in world frame
-                R = np.column_stack([e_tang, radial, z_dir])
-                mat = R.flatten()
-
-                # Overlap: extend segment length to cover seams
-                size = np.array([STRIP_W / 2, STRIP_T / 2,
-                                 seg_len * ARC_OVERLAP / 2])
-
-                geom = scene.geoms[scene.ngeom]
-                mujoco.mjv_initGeom(geom, BOX, size, seg_mid, mat, STRIP_RGBA)
-                geom.emission = 0.05
-                geom.specular = 0.3
-                geom.shininess = 0.2
-                scene.ngeom += 1
+        for box in boxes:
+            if scene.ngeom >= scene.maxgeom:
+                return
+            geom = scene.geoms[scene.ngeom]
+            mujoco.mjv_initGeom(
+                geom,
+                BOX,
+                box.half_size_m,
+                box.center_m,
+                box.rotation.flatten(),
+                np.asarray(box.rgba, dtype=np.float32),
+            )
+            geom.emission = 0.05
+            geom.specular = 0.3
+            geom.shininess = 0.2
+            scene.ngeom += 1
 
 
 # ─────────────────────────────────────────────────────────────────────────────

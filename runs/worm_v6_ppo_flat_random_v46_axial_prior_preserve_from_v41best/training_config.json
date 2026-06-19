@@ -1,0 +1,738 @@
+{
+  "format_version": 1,
+  "created_unix_time": 1780215596.498682,
+  "algorithm": "PPO",
+  "terrain": "flat",
+  "gait_mode": "random",
+  "gait_blend": null,
+  "run_gait_label": "random",
+  "run_label": "flat_random_v46_axial_prior_preserve_from_v41best",
+  "obs_dim": 80,
+  "obs_layout": {
+    "command": [
+      0,
+      3
+    ],
+    "joint_pos": [
+      3,
+      14
+    ],
+    "joint_vel": [
+      14,
+      25
+    ],
+    "previous_action": [
+      25,
+      36
+    ],
+    "segment_gravity": [
+      36,
+      57
+    ],
+    "segment_gyro": [
+      57,
+      78
+    ],
+    "phase_clock": [
+      78,
+      80
+    ]
+  },
+  "num_actuators": 11,
+  "policy_action_dim": 12,
+  "num_imus": 7,
+  "actuator_contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf",
+  "actuator_contract": {
+    "format_version": 1,
+    "name": "worm_v6_actuator_motor_contract",
+    "actuator_count": 11,
+    "normalized_action_range": [
+      -1.0,
+      1.0
+    ],
+    "action_mapping": {
+      "slide_indices": [
+        0,
+        6
+      ],
+      "yaw_indices": [
+        6,
+        11
+      ],
+      "slide_target_m": "clip(action[i] * slide_range_m, slide_min_m, slide_max_m)",
+      "yaw_target_rad": "clip(action[i] * yaw_range_rad, yaw_min_rad, yaw_max_rad)",
+      "slide_range_m": 0.05,
+      "slide_min_m": -0.05,
+      "slide_max_m": 0.0,
+      "yaw_range_rad": 1.57,
+      "yaw_min_rad": -1.57,
+      "yaw_max_rad": 1.57
+    },
+    "actuator_groups": {
+      "slide": {
+        "indices": [
+          0,
+          6
+        ],
+        "joint_names": [
+          "back1",
+          "back2",
+          "back3",
+          "back4",
+          "back5",
+          "back6"
+        ],
+        "joint_type": "prismatic_position_servo",
+        "target_unit": "m",
+        "mechanical_range_m": [
+          -0.05,
+          0.0
+        ],
+        "normalized_command_scale_m": 0.05,
+        "mujoco_position_kp_n_per_m": 800.0,
+        "mujoco_force_limit_n": 50.0,
+        "joint_damping": 10.0,
+        "joint_stiffness": 300.0,
+        "hardware_rule": "Real controller must clip slide targets to [-0.05, 0.0] m before sending commands."
+      },
+      "yaw": {
+        "indices": [
+          6,
+          11
+        ],
+        "joint_names": [
+          "front2",
+          "front3",
+          "front4",
+          "front5",
+          "front6"
+        ],
+        "joint_type": "revolute_position_servo",
+        "target_unit": "rad",
+        "mechanical_range_rad": [
+          -1.57,
+          1.57
+        ],
+        "normalized_command_scale_rad": 1.57,
+        "mujoco_position_kp_nm_per_rad": 200.0,
+        "mujoco_torque_limit_nm": 20.0,
+        "joint_damping": 5.0,
+        "hardware_rule": "Real controller must clip yaw targets to [-1.57, 1.57] rad before sending commands."
+      }
+    },
+    "not_yet_modeled_in_sim": [
+      "motor speed limit",
+      "current and voltage limits",
+      "thermal derating",
+      "gear backlash",
+      "deadband",
+      "vendor controller internal PID"
+    ],
+    "contract_fingerprint": "e0a3640f4c778e407838ee3fe70634c2277a5489349c2150f75f6ac9e9b3bdcf"
+  },
+  "action_adapter": {
+    "version": "cmaes_tri_anchor_auto_gate_directional_v26",
+    "policy_output": "normalized_residual_action_11d_plus_gait_gate_1d",
+    "deployed_action": "clip(gait_prior + residual, -1, 1)",
+    "policy_action_dim": 12,
+    "deployed_action_dim": 11,
+    "gait_prior_scale": 1.0,
+    "policy_residual_scale": 0.35,
+    "command_conditioned_prior_scale": {
+      "enabled": true,
+      "source": "deployable normalized command obs[0:3]",
+      "forward_only_scale": 1.0,
+      "reverse_floor": 0.4,
+      "lateral_floor": 1.0,
+      "yaw_only_floor": 1.0,
+      "reason": "The CMA-ES anchors are strong forward priors. Reverse, and pure yaw commands reduce the prior so the residual policy does not first need to cancel forward drift. Dominant lateral commands now use dedicated V41 lateral primitives and keep full prior scale."
+    },
+    "command_activity_scale": {
+      "enabled": true,
+      "source": "deployable normalized command obs[0:3]",
+      "formula": "s_c = 0 if max(|cmd|)=0; s_c = 1 for pure yaw commands; otherwise clip(0.20 + 0.80 * max(|cmd|), 0, 1)",
+      "applied_to": "composed prior-plus-residual action",
+      "reason": "Discrete direction gates can move in six primitive directions, but continuous velocity tracking also needs zero and low-speed commands to reduce motor amplitude. This keeps the action ABI fixed while making stop and slow commands deployable. Pure yaw commands keep full activity because the in-place yaw prior is not linearly speed-proportional at small turn rates."
+    },
+    "command_directional_prior_transform": {
+      "enabled": true,
+      "source": "deployable normalized command obs[0:3]",
+      "threshold": 0.2,
+      "continuous_vector_prior_blend": {
+        "enabled": false,
+        "status": "experimental_disabled",
+        "reason": "A V14 short run blended signed primitive priors for mixed vx/vy/yaw commands, but the 35-command scan worsened planar RMSE and planar sign rate. Keep V13 as the default accepted adapter until a longer curriculum or model-selection change proves the blend helps."
+      },
+      "reverse": "dominant negative vx reverses phase",
+      "lateral": "dominant vy uses dedicated left/right open-loop lateral primitives searched on the deployable 1 s phase clock",
+      "yaw": "pure yaw commands use an independent in-place yaw prior; mixed yaw commands keep the signed yaw-anchor transform",
+      "inplace_yaw_prior": {
+        "enabled": true,
+        "source": "open-loop MuJoCo search constrained to deployable phase clock",
+        "param_names": [
+          "slide_bias",
+          "slide_amp",
+          "slide_freq",
+          "slide_wave_n",
+          "yaw_amp",
+          "yaw_freq",
+          "yaw_wave_n",
+          "yaw_phase_rad"
+        ],
+        "params": [
+          0.573,
+          0.41,
+          1.188,
+          1.259,
+          0.612,
+          0.352,
+          -0.091,
+          0.623
+        ],
+        "left_right_rule": "cmd_yaw sign multiplies only the yaw joints; slide compression wave is shared for both turn directions"
+      },
+      "lateral_primitives": {
+        "enabled": true,
+        "source": "open-loop MuJoCo lateral primitive search constrained to deployable phase clock",
+        "param_names": [
+          "slide_bias",
+          "slide_amp",
+          "slide_freq",
+          "slide_wave_n",
+          "slide_phase",
+          "yaw_amp",
+          "yaw_freq",
+          "yaw_wave_n",
+          "yaw_phase",
+          "yaw_bias",
+          "yaw_trim_gradient"
+        ],
+        "anchors": {
+          "left": {
+            "source": "flat_omni_v41_lateral_prior_search_left6s",
+            "validation": {
+              "signed_lateral_m_s": 0.07789418867807911,
+              "body_vx_m_s": -0.013611432358963315,
+              "yaw_rate_rad_s": 0.12322999117731077,
+              "seconds": 6.0,
+              "accepted": true
+            },
+            "params": [
+              -0.16168439069782814,
+              0.22441459381006515,
+              1.081554091014169,
+              0.5406491247057135,
+              -2.5410827041471515,
+              0.2148520770425268,
+              0.8036597351620074,
+              -0.8284909199581207,
+              2.041947989004318,
+              0.12645026605709297,
+              0.21854809007045828
+            ]
+          },
+          "right": {
+            "source": "flat_omni_v41_lateral_prior_search_right6s",
+            "validation": {
+              "signed_lateral_m_s": 0.12631675565734124,
+              "body_vx_m_s": 0.010188427029385095,
+              "yaw_rate_rad_s": -0.11304522310354237,
+              "seconds": 6.0,
+              "accepted": true
+            },
+            "params": [
+              -0.5054361187954457,
+              0.0004378962640689175,
+              1.22782626619309,
+              2.2511784615350194,
+              -1.7471121550631785,
+              0.6417442419638648,
+              1.0357562708917787,
+              -0.40805273913296425,
+              -0.688387111640751,
+              0.008020713598054452,
+              -0.3785763291478317
+            ]
+          }
+        },
+        "acceptance": {
+          "signed_lateral_m_s_min": 0.03,
+          "abs_body_vx_m_s_max": 0.08,
+          "abs_yaw_rate_rad_s_max": 0.2,
+          "validation_seconds": 6.0
+        }
+      },
+      "lateral_right_yaw_flip": "negative vy flips only the yaw-anchor sign; the slide phase offset is shared because the V35/V36 prior-only diagnosis showed mixed-centered +pi/2 lateral motion was dominated by forward off-axis speed",
+      "lateral_phase_offset_rad": -1.5707963267948966,
+      "yaw_only_slide_scale": 0.8,
+      "yaw_only_yaw_scale": 5.0,
+      "yaw_right_only_yaw_scale": 5.0,
+      "zero_yaw_forward_phase_offset_rad": 3.141592653589793,
+      "zero_yaw_reverse_phase_offset_rad": 3.141592653589793,
+      "zero_yaw_forward_yaw_scale": 1.15,
+      "zero_yaw_reverse_yaw_scale": 1.25,
+      "zero_yaw_lateral_yaw_scale": 0.65,
+      "zero_yaw_lateral_yaw_trim": 0.24,
+      "v10_reason": "Flat fixed-command diagnostics showed lateral floor 0.80 and extra pure-right-yaw authority reach all six 6 s threshold directions without changing the deployable observation or policy-action ABI. PPO still has to learn yaw-drift suppression for the formal direction gate.",
+      "v11_reason": "Heading-hold training showed the V10 prior still injects too much yaw during zero-yaw translation. V11 keeps the direction transform but attenuates yaw-prior authority for zero-yaw forward/reverse/lateral commands so translation and turning are easier to decouple.",
+      "v12_reason": "Flat V11 diagnostics showed zero-yaw lateral translation needs yaw authority for thrust but also a small heading trim; reverse translation needs an axial phase offset rather than a weak yaw prior. V12 adds command-conditioned trims without changing the 80D observation or 12D policy-action ABI.",
+      "v13_reason": "Continuous command scans showed primitive signs are solved but zero and low-speed commands still over-actuate. V13 adds a command-magnitude activity scale to the composed action so the same 12D policy can represent stop and slow commands.",
+      "v14_reason": "Continuous command scans showed mixed vx/vy/yaw commands were still routed through one dominant primitive. V14 keeps the primitive transforms unchanged for pure commands but linearly blends the six signed primitive priors according to the normalized command vector for arbitrary velocity commands.",
+      "v16_reason": "The first V15 run under the stronger tracking scan kept yaw signs separated but under-produced yaw magnitude. V16 keeps the deployable 80D/12D ABI fixed and raises only the yaw-only prior authority, with symmetric left/right yaw scales, so PPO starts from a usable turn-rate primitive instead of spending early training on basic yaw amplitude.",
+      "v18_reason": "V17 showed yaw signs were learned but pure yaw still translated forward and under-produced turn rate because the yaw-only primitive was a transformed forward CMA-ES anchor. V18 replaces pure yaw commands with an independently searched in-place yaw prior while preserving the 80D observation and 12D policy-action ABI.",
+      "v26_reason": "V40 still failed fixed lateral speed gates. V26 replaces dominant lateral command priors with independently searched left/right lateral primitives that pass 6 s prior-only lateral acceptance while preserving the deployable 80D observation and 12D residual-plus-gate action ABI."
+    },
+    "phase_source": "deployable phase_clock observation",
+    "gait_blend_source": "policy action gate",
+    "gait_gate_mapping": {
+      "raw_action_index": 11,
+      "formula": "learned_gate = clip(0.5 + 0.5 * 3.0 * raw_gate, 0, 1); gait_blend = clip(command_center + 0.70 * (learned_gate - 0.5), 0, 1)",
+      "command_centers": {
+        "axial_translation": 0.35,
+        "axial_translation_slow": 0.35,
+        "axial_translation_fast": 0.5,
+        "axial_fast_threshold_norm": 0.8,
+        "mixed_or_stop": 0.5,
+        "lateral_translation": 0.0,
+        "yaw": 0.85
+      },
+      "reason": "V20/V21 showed the pure latent gate stayed near 0.5 because the low-noise residual PPO policy barely explored the gate dimension. V19 made the gate more sensitive. V20 adds a deployable command-conditioned gate center with a learned residual so axial commands visibly recover worm-like peristalsis while lateral/yaw commands keep snake-like authority. Earlier centered-gate runs restored visual mode separation but reduced forward speed and flipped lateral signs. V22 keeps yaw snake-like but moves lateral back to the mixed anchor and axial closer to the high-speed combined anchor. V23 makes the axial center speed-dependent: slow axial commands stay visibly peristaltic, while full-speed axial commands use the mixed center so tracking is not capped by the slower worm anchor. V25 moves dominant lateral commands back to the worm anchor after prior-only search showed this reduces forward off-axis drift. V26 then replaces that transformed anchor with dedicated searched lateral primitives, so the command center can still make lateral motion visibly worm-like while the prior has enough side-slip authority."
+    },
+    "phase_projection": "phase_cycle_s = (phase mod 2*pi) / (2*pi); CMA-ES frequencies are evaluated on this deployable 1 s clock",
+    "blend_rule": "0.0=peristaltic anchor, 0.5=full combined anchor, 1.0=serpentine anchor; intermediate values are piecewise-linear",
+    "gait_anchors": {
+      "worm": {
+        "source": "cmaes_peristaltic",
+        "best_speed_mm_s": 64.9,
+        "param_names": [
+          "slide_amp",
+          "slide_freq",
+          "slide_wave_n",
+          "yaw_amp",
+          "yaw_freq",
+          "yaw_wave_n",
+          "slide_bias_0",
+          "slide_bias_1",
+          "slide_bias_2",
+          "slide_bias_3",
+          "slide_bias_4",
+          "slide_bias_5",
+          "step_duration",
+          "yaw_slide_coupling"
+        ],
+        "params": [
+          0.0499967771750052,
+          0.99995922729403,
+          0.5053235731460374,
+          0.004576804060495781,
+          0.4269881104325972,
+          2.989422198070506,
+          2.471448492284372,
+          1.8269679928597355,
+          2.4449428584901423,
+          2.856862382888375,
+          -2.9748880169626144,
+          3.108692589704268,
+          0.7476788282885293,
+          0.23400636325858382
+        ]
+      },
+      "mixed": {
+        "source": "cmaes_full",
+        "best_speed_mm_s": 247.97,
+        "param_names": [
+          "slide_amp",
+          "slide_freq",
+          "slide_wave_n",
+          "yaw_amp",
+          "yaw_freq",
+          "yaw_wave_n",
+          "slide_bias_0",
+          "slide_bias_1",
+          "slide_bias_2",
+          "slide_bias_3",
+          "slide_bias_4",
+          "slide_bias_5",
+          "step_duration",
+          "yaw_slide_coupling"
+        ],
+        "params": [
+          0.04655121251582109,
+          0.12480818933935475,
+          2.3746972019013683,
+          0.7167330261210002,
+          0.890250887482642,
+          0.5899389214089962,
+          -0.15881747481015873,
+          -0.061281246575806136,
+          -1.5688957936234118,
+          2.8738159759408957,
+          2.190641561690949,
+          1.6817450467151565,
+          0.6146709498011067,
+          -0.12037408667883753
+        ]
+      },
+      "snake": {
+        "source": "cmaes_serpentine",
+        "best_speed_mm_s": 90.38,
+        "param_names": [
+          "slide_amp",
+          "slide_freq",
+          "slide_wave_n",
+          "yaw_amp",
+          "yaw_freq",
+          "yaw_wave_n",
+          "slide_bias_0",
+          "slide_bias_1",
+          "slide_bias_2",
+          "slide_bias_3",
+          "slide_bias_4",
+          "slide_bias_5",
+          "step_duration",
+          "yaw_slide_coupling"
+        ],
+        "params": [
+          0.03558827382644502,
+          0.4244779404305604,
+          2.702074806396634,
+          0.7150887433302788,
+          0.9861203877623932,
+          0.6086064803771956,
+          -0.8997403641893227,
+          -2.0634603041134065,
+          -1.8685883687077762,
+          0.13412045251706095,
+          -1.2500211112855877,
+          0.08771217797686415,
+          0.6234570692098784,
+          -0.4580381766374815
+        ]
+      }
+    }
+  },
+  "residual_exploration": {
+    "version": "low_noise_residual_v1",
+    "policy": "PPO diagonal Gaussian over normalized residual action",
+    "reason": "Residual exploration must stay small enough that the deployable gait prior remains the dominant initial behavior.",
+    "ent_coef": 0.005,
+    "log_std_init": -2.5,
+    "initial_std": 0.0820849986238988
+  },
+  "reward_contract": {
+    "version": "omni_directional_offaxis_yaw_v24",
+    "forward_direction": "-world_x",
+    "weights": {
+      "vel_track": 3.0,
+      "yaw_track": 3.0,
+      "yaw_align": 4.0,
+      "vel_lin": 6.0,
+      "overspeed": 3.0,
+      "forward_deficit": 0.5,
+      "command_cost": 1.0,
+      "lateral": 4.5,
+      "backward": 0.5,
+      "yaw_error": 6.0,
+      "yaw_drift": 6.0,
+      "yaw_stationary": 8.0,
+      "lateral_only_forward_drift": 5.0,
+      "lateral_only_speed_deficit": 4.0,
+      "planar_component_deficit": 1.5,
+      "gait_gate_target": 3.0,
+      "axial_prior_preserve": 2.0,
+      "energy": 0.001,
+      "smooth": 0.01
+    },
+    "normalization": {
+      "speed_scale_m_s": 0.25,
+      "lateral_speed_scale_m_s": 0.15,
+      "cmaes_full_combined_target_m_s": 0.24797,
+      "body_frame_vx_vy_command_tracking": true,
+      "yaw_tracking_gated_by_forward_progress": true,
+      "cyclic_backslip_is_soft_penalized": true,
+      "yaw_range_m_s_is_authority_matched": true,
+      "off_axis_penalty_tapers_with_planar_command": true,
+      "strong_off_axis_suppression": true,
+      "signed_yaw_alignment_reward": true,
+      "zero_yaw_integrated_drift_penalty": true,
+      "zero_yaw_translation_uses_reset_body_axes": true,
+      "zero_yaw_heading_hold_weight_boost": true,
+      "yaw_drift_tolerance_rad": 0.2,
+      "yaw_only_stationary_speed_penalty": true,
+      "yaw_stationary_tolerance_m_s": 0.02,
+      "pure_lateral_forward_drift_penalty": true,
+      "pure_lateral_forward_tolerance_m_s": 0.04,
+      "pure_lateral_speed_deficit_penalty": true,
+      "pure_lateral_progress_target_m_s": 0.06,
+      "signed_planar_component_deficit_penalty": true,
+      "continuous_omni_repair_oversampling": true,
+      "continuous_omni_mixed_yaw_repair_sampling": true,
+      "mixed_planar_repair_sampling": true,
+      "axis_separation_curriculum": true,
+      "yaw_only_prior_scaling_applied": true,
+      "gait_blend_is_policy_gate": true,
+      "pure_axial_residual_cancellation_penalty": true,
+      "pure_axial_slide_wave_preservation_penalty": true,
+      "command_conditioned_gait_gate_regularizer": {
+        "enabled": true,
+        "worm_target_for_axial_translation": 0.35,
+        "worm_target_for_slow_axial_translation": 0.35,
+        "mixed_target_for_fast_axial_translation": 0.5,
+        "fast_axial_threshold_norm": 0.8,
+        "mixed_target_for_mixed_commands": 0.5,
+        "lateral_target_for_translation": 0.0,
+        "snake_target_for_yaw": 0.85,
+        "reason": "A deployable-command-conditioned regularizer keeps the learned latent gate from collapsing to the combined anchor while still allowing the policy to override it when tracking reward requires another gait. V16 makes the axial target speed-dependent: low-speed axial commands remain visibly worm-like, while full-speed axial commands return to the mixed target to avoid capping forward tracking speed. V20 keeps lateral translation at the current adapter target and adds a separate lateral speed-deficit reward so the policy cannot pass the repair curriculum by barely moving. V21 binds that deficit to signed body-frame lateral velocity instead of off-axis speed. V24 adds pure-axial prior preservation so the learned residual does not erase the deployable peristaltic slide wave."
+      },
+      "command_curriculum_supported": [
+        "straight",
+        "planar",
+        "heading_hold",
+        "heading_omni",
+        "lateral",
+        "lateral_right",
+        "yaw",
+        "yaw_right",
+        "right_recovery",
+        "omni",
+        "continuous_omni",
+        "mixed_planar_repair",
+        "axis_separation"
+      ]
+    }
+  },
+  "deployable_observation_sources": [
+    "body-frame vx command",
+    "body-frame vy command",
+    "yaw-rate command",
+    "learned gait_blend action gate",
+    "actuated joint encoder positions",
+    "actuated joint encoder velocities",
+    "previous applied action",
+    "per-segment IMU projected gravity",
+    "per-segment IMU angular velocity",
+    "phase clock"
+  ],
+  "forbidden_policy_sources": [
+    "base linear velocity",
+    "global position",
+    "global yaw",
+    "MuJoCo freejoint state as policy input",
+    "external localization as policy input"
+  ],
+  "command_ranges": {
+    "cmd_vx_m_s": [
+      -0.25,
+      0.25
+    ],
+    "cmd_vy_m_s": [
+      -0.15,
+      0.15
+    ],
+    "cmd_yaw_rad_s": [
+      -0.5,
+      0.5
+    ]
+  },
+  "command_curriculum": "continuous_omni",
+  "command_resample_prob": null,
+  "eval_command": {
+    "cmd_vx_m_s": 0.25,
+    "cmd_vy_m_s": 0.0,
+    "cmd_yaw_rad_s": 0.0,
+    "command_resample_prob": 0.0
+  },
+  "best_eval_schedule": {
+    "command_resample_prob": 0.0,
+    "cases": [
+      {
+        "case_name": "stop",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "slow_forward",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.0625,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "slow_reverse",
+        "gait_blend": null,
+        "cmd_vx_m_s": -0.0625,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "forward",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.25,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "reverse",
+        "gait_blend": null,
+        "cmd_vx_m_s": -0.25,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "lateral_left",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.15,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "lateral_right",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": -0.15,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "mixed_forward_left",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.125,
+        "cmd_vy_m_s": 0.075,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "mixed_forward_right",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.125,
+        "cmd_vy_m_s": -0.075,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "mixed_reverse_left",
+        "gait_blend": null,
+        "cmd_vx_m_s": -0.125,
+        "cmd_vy_m_s": 0.075,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "mixed_reverse_right",
+        "gait_blend": null,
+        "cmd_vx_m_s": -0.125,
+        "cmd_vy_m_s": -0.075,
+        "cmd_yaw_rad_s": 0.0
+      },
+      {
+        "case_name": "yaw_left",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.5
+      },
+      {
+        "case_name": "yaw_right",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": -0.5
+      },
+      {
+        "case_name": "slow_yaw_left",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.25
+      },
+      {
+        "case_name": "slow_yaw_right",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.0,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": -0.25
+      },
+      {
+        "case_name": "forward_yaw_left",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.15,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": 0.5
+      },
+      {
+        "case_name": "forward_yaw_right",
+        "gait_blend": null,
+        "cmd_vx_m_s": 0.15,
+        "cmd_vy_m_s": 0.0,
+        "cmd_yaw_rad_s": -0.5
+      }
+    ]
+  },
+  "best_selection_contract": {
+    "version": "omni_tracking_scan_v3",
+    "requires_direction_gate": true,
+    "min_turn_delta_rad": 0.05,
+    "straight_tolerance_rad": 0.2,
+    "planar_min_progress_m": 0.02,
+    "planar_stationary_tolerance_m": 0.3,
+    "required_planar_success_rate": 0.85,
+    "required_yaw_success_rate": 0.7,
+    "max_straight_violation_count": 1,
+    "requires_continuous_tracking_metrics": true,
+    "planar_tracking_rmse_target_m_s": 0.1,
+    "yaw_tracking_rmse_target_rad_s": 0.2,
+    "mean_off_axis_speed_target_m_s": 0.08,
+    "zero_command_speed_target_m_s": 0.02,
+    "yaw_only_mean_planar_speed_target_m_s": 0.05,
+    "failed_score_offset": 1000000.0
+  },
+  "control_timing": {
+    "control_dt_s": 0.02,
+    "control_rate_hz": 50.0,
+    "peristaltic_actuation_period_s": 1.0,
+    "phase_freq_hz": 1.0
+  },
+  "sensor_robustness": {
+    "encoder_pos_noise_std": 0.0,
+    "encoder_vel_noise_std": 0.0,
+    "imu_gravity_noise_std": 0.0,
+    "imu_gyro_noise_std": 0.0,
+    "action_delay_steps": 0,
+    "action_saturation": 1.0
+  },
+  "training": {
+    "timesteps": 2000000,
+    "train_chunk_timesteps": 40000,
+    "n_envs": 1,
+    "requested_device": "cpu",
+    "resolved_device": "cpu",
+    "seed": 42,
+    "learning_rate": 3e-05,
+    "n_steps": 4096,
+    "batch_size": 1024,
+    "n_epochs": 10,
+    "gamma": 0.99,
+    "gae_lambda": 0.95,
+    "clip_range": 0.2,
+    "ent_coef": 0.005,
+    "log_std_init": -2.5,
+    "vf_coef": 0.5,
+    "max_grad_norm": 0.5,
+    "policy_net_arch": {
+      "pi": [
+        512,
+        256,
+        128
+      ],
+      "vf": [
+        512,
+        256,
+        128
+      ]
+    },
+    "norm_obs": true,
+    "norm_reward": false,
+    "clip_obs": 10.0,
+    "directional_eval_freq_steps": 20000,
+    "directional_eval_seconds": 6.0
+  },
+  "resume": "runs\\worm_v6_ppo_flat_random_lateral_primitives_v41_from_v40final\\best_model.zip"
+}

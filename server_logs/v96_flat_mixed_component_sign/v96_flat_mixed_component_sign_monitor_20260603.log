@@ -1,0 +1,12 @@
+[2026-06-03T18:20:33+08:00] train pid=2514148 is already stopped
+[2026-06-03T18:20:33+08:00] scan v96_final_model_nominal using runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/final_model.zip
+[2026-06-03T18:20:33+08:00] scan v96_final_model_robust using runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/final_model.zip
+[2026-06-03T18:20:33+08:00] scan v96_progress_best_model_nominal using runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/progress_best_model.zip
+[2026-06-03T18:20:33+08:00] skip v96_best_model_nominal: missing runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/best_model.zip
+[2026-06-03T18:20:33+08:00] skip v96_best_model_robust: missing runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/best_model.zip
+[2026-06-03T18:20:33+08:00] scan v96_progress_best_model_robust using runs/worm_v6_ppo_flat_random_v96_server_mixed_component_sign_from_v95final_np2/progress_best_model.zip
+[2026-06-03T18:24:41+08:00] done v96_final_model_nominal
+[2026-06-03T18:25:12+08:00] done v96_final_model_robust
+[2026-06-03T18:25:12+08:00] done v96_progress_best_model_nominal
+[2026-06-03T18:25:12+08:00] done v96_progress_best_model_robust
+[2026-06-03T18:25:13+08:00] monitor complete scan_status=0

@@ -1,0 +1,95 @@
+{
+  "run": "flat_random_v86b_server_robust_forward_left_from_v85bfinal_np2",
+  "videos": [
+    {
+      "case": "continuous_sweep_24s_1080p",
+      "duration_s": 24.0,
+      "frames": 600,
+      "speed_mm_s": -18.508319975153032,
+      "yaw_rate_rad_s": 0.011176821229880285,
+      "mean_gait_blend": 0.2953360399122494,
+      "mp4": "continuous_sweep_24s_1080p.mp4",
+      "mp4_bytes": 31722176
+    },
+    {
+      "case": "forward_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 69.5490903500691,
+      "yaw_rate_rad_s": 0.038128226797348286,
+      "mean_gait_blend": 0.39603417660377455,
+      "mp4": "forward_12s_1080p.mp4",
+      "mp4_bytes": 15901504
+    },
+    {
+      "case": "hard_forward_left_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": -1.4677841639013822,
+      "yaw_rate_rad_s": 0.11558280125795355,
+      "mean_gait_blend": 0.2469329462447204,
+      "mp4": "hard_forward_left_12s_1080p.mp4",
+      "mp4_bytes": 15516664
+    },
+    {
+      "case": "hard_forward_right_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": -55.702787518062145,
+      "yaw_rate_rad_s": -0.026460672354893727,
+      "mean_gait_blend": 0.21248943995032465,
+      "mp4": "hard_forward_right_12s_1080p.mp4",
+      "mp4_bytes": 15696387
+    },
+    {
+      "case": "lateral_left_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 5.275029662955941,
+      "yaw_rate_rad_s": 0.12670754523835545,
+      "mean_gait_blend": 0.03215553511609323,
+      "mp4": "lateral_left_12s_1080p.mp4",
+      "mp4_bytes": 15496478
+    },
+    {
+      "case": "lateral_right_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": -37.62933346594264,
+      "yaw_rate_rad_s": -0.025489028991716827,
+      "mean_gait_blend": 0.005387212068773806,
+      "mp4": "lateral_right_12s_1080p.mp4",
+      "mp4_bytes": 15430001
+    },
+    {
+      "case": "reverse_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": -24.98180835074196,
+      "yaw_rate_rad_s": 0.06606388829734904,
+      "mean_gait_blend": 0.4911124216605676,
+      "mp4": "reverse_12s_1080p.mp4",
+      "mp4_bytes": 16285466
+    },
+    {
+      "case": "yaw_left_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 8.645617624397376,
+      "yaw_rate_rad_s": 0.07692426053949826,
+      "mean_gait_blend": 0.9008103413186037,
+      "mp4": "yaw_left_12s_1080p.mp4",
+      "mp4_bytes": 9047259
+    },
+    {
+      "case": "yaw_right_12s_1080p",
+      "duration_s": 12.0,
+      "frames": 300,
+      "speed_mm_s": 6.2478611128871995,
+      "yaw_rate_rad_s": -0.07455131658167964,
+      "mean_gait_blend": 0.9064249592423439,
+      "mp4": "yaw_right_12s_1080p.mp4",
+      "mp4_bytes": 9099061
+    }
+  ]
+}

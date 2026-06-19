@@ -1,0 +1,194 @@
+<mujoco model="worm_v6_single_segment_steel_strip_calibration">
+  <extension>
+    <plugin plugin="mujoco.elasticity.cable"/>
+  </extension>
+
+  <compiler angle="radian"/>
+  <option timestep="0.0005" gravity="0 0 0"
+          solver="Newton" iterations="100" tolerance="1e-9"/>
+
+  <default>
+    <geom friction="0.8 0.01 0.001"/>
+  </default>
+
+  <asset>
+    <material name="MatSteel" rgba="0.12 0.12 0.12 1"
+              specular="0.4" shininess="0.5"/>
+    <material name="MatPlate" rgba="0.78 0.76 0.72 1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 -0.5 0.7" dir="0 0 -1" directional="true"/>
+    <camera name="main" pos="0.08 -0.45 0.20"
+            xyaxes="1 0 0 0 0.35 1"/>
+
+    <body name="fixed_plate" pos="0 0 0">
+      <geom type="box"
+            size="0.004 0.07 0.07"
+            mass="0.08" material="MatPlate"/>
+      <site name="fixed_center" pos="0 0 0" size="0.003"/>
+    </body>
+
+    <body name="moving_plate" pos="0.1175 0 0">
+      <joint name="moving_slide" type="slide" axis="-1 0 0"
+             limited="true" range="0 0.06" damping="0.2"/>
+      <geom type="box"
+            size="0.004 0.07 0.07"
+            mass="0.08" material="MatPlate"/>
+      <site name="moving_center" pos="0 0 0" size="0.003"/>
+    </body>
+
+    <body name="strip0_root">
+      <freejoint/>
+      <composite type="cable" prefix="strip0" initial="none"
+                 vertex="0.000000 0.068000 0.000000  0.019583 0.074667 0.000000  0.039167 0.078667 0.000000  0.058750 0.080000 0.000000  0.078333 0.078667 0.000000  0.097917 0.074667 0.000000  0.117500 0.068000 0.000000">
+        <plugin plugin="mujoco.elasticity.cable">
+          <config key="bend" value="1e+08"/>
+          <config key="twist" value="4e+07"/>
+          <config key="vmax" value="0"/>
+        </plugin>
+        <joint armature="0.001" damping="0.02" kind="main"/>
+        <geom type="capsule" size="0.0015"
+              density="7850" material="MatSteel"
+              contype="0" conaffinity="0"/>
+      </composite>
+    </body>
+    <body name="strip1_root">
+      <freejoint/>
+      <composite type="cable" prefix="strip1" initial="none"
+                 vertex="0.000000 0.048083 0.048083  0.019583 0.052797 0.052797  0.039167 0.055626 0.055626  0.058750 0.056569 0.056569  0.078333 0.055626 0.055626  0.097917 0.052797 0.052797  0.117500 0.048083 0.048083">
+        <plugin plugin="mujoco.elasticity.cable">
+          <config key="bend" value="1e+08"/>
+          <config key="twist" value="4e+07"/>
+          <config key="vmax" value="0"/>
+        </plugin>
+        <joint armature="0.001" damping="0.02" kind="main"/>
+        <geom type="capsule" size="0.0015"
+              density="7850" material="MatSteel"
+              contype="0" conaffinity="0"/>
+      </composite>
+    </body>
+    <body name="strip2_root">
+      <freejoint/>
+      <composite type="cable" prefix="strip2" initial="none"
+                 vertex="0.000000 0.000000 0.068000  0.019583 0.000000 0.074667  0.039167 0.000000 0.078667  0.058750 0.000000 0.080000  0.078333 0.000000 0.078667  0.097917 0.000000 0.074667  0.117500 0.000000 0.068000">
+        <plugin plugin="mujoco.elasticity.cable">
+          <config key="bend" value="1e+08"/>
+          <config key="twist" value="4e+07"/>
+          <config key="vmax" value="0"/>
+        </plugin>
+        <joint armature="0.001" damping="0.02" kind="main"/>
+        <geom type="capsule" size="0.0015"
+              density="7850" material="MatSteel"
+              contype="0" conaffinity="0"/>
+      </composite>
+    </body>
+    <body name="strip3_root">
+      <freejoint/>
+      <composite type="cable" prefix="strip3" initial="none"
+                 vertex="0.000000 -0.048083 0.048083  0.019583 -0.052797 0.052797  0.039167 -0.055626 0.055626  0.058750 -0.056569 0.056569  0.078333 -0.055626 0.055626  0.097917 -0.052797 0.052797  0.117500 -0.048083 0.048083">
+        <plugin plugin="mujoco.elasticity.cable">
+          <config key="bend" value="1e+08"/>
+          <config key="twist" value="4e+07"/>
+          <config key="vmax" value="0"/>
+        </plugin>
+        <joint armature="0.001" damping="0.02" kind="main"/>
+        <geom type="capsule" size="0.0015"
+              density="7850" material="MatSteel"
+              contype="0" conaffinity="0"/>
+      </composite>
+    </body>
+    <body name="strip4_root">
+      <freejoint/>
+      <composite type="cable" prefix="strip4" initial="none"
+                 vertex="0.000000 -0.068000 0.000000  0.019583 -0.074667 0.000000  0.039167 -0.078667 0.000000  0.058750 -0.080000 0.000000  0.078333 -0.078667 0.000000  0.097917 -0.074667 0.000000  0.117500 -0.068000 0.000000">
+        <plugin plugin="mujoco.elasticity.cable">
+          <config key="bend" value="1e+08"/>
+          <config key="twist" value="4e+07"/>
+          <config key="vmax" value="0"/>
+        </plugin>
+        <joint armature="0.001" damping="0.02" kind="main"/>
+        <geom type="capsule" size="0.0015"
+              density="7850" material="MatSteel"
+              contype="0" conaffinity="0"/>
+      </composite>
+    </body>
+    <body name="strip5_root">
+      <freejoint/>
+      <composite type="cable" prefix="strip5" initial="none"
+                 vertex="0.000000 -0.048083 -0.048083  0.019583 -0.052797 -0.052797  0.039167 -0.055626 -0.055626  0.058750 -0.056569 -0.056569  0.078333 -0.055626 -0.055626  0.097917 -0.052797 -0.052797  0.117500 -0.048083 -0.048083">
+        <plugin plugin="mujoco.elasticity.cable">
+          <config key="bend" value="1e+08"/>
+          <config key="twist" value="4e+07"/>
+          <config key="vmax" value="0"/>
+        </plugin>
+        <joint armature="0.001" damping="0.02" kind="main"/>
+        <geom type="capsule" size="0.0015"
+              density="7850" material="MatSteel"
+              contype="0" conaffinity="0"/>
+      </composite>
+    </body>
+    <body name="strip6_root">
+      <freejoint/>
+      <composite type="cable" prefix="strip6" initial="none"
+                 vertex="0.000000 -0.000000 -0.068000  0.019583 -0.000000 -0.074667  0.039167 -0.000000 -0.078667  0.058750 -0.000000 -0.080000  0.078333 -0.000000 -0.078667  0.097917 -0.000000 -0.074667  0.117500 -0.000000 -0.068000">
+        <plugin plugin="mujoco.elasticity.cable">
+          <config key="bend" value="1e+08"/>
+          <config key="twist" value="4e+07"/>
+          <config key="vmax" value="0"/>
+        </plugin>
+        <joint armature="0.001" damping="0.02" kind="main"/>
+        <geom type="capsule" size="0.0015"
+              density="7850" material="MatSteel"
+              contype="0" conaffinity="0"/>
+      </composite>
+    </body>
+    <body name="strip7_root">
+      <freejoint/>
+      <composite type="cable" prefix="strip7" initial="none"
+                 vertex="0.000000 0.048083 -0.048083  0.019583 0.052797 -0.052797  0.039167 0.055626 -0.055626  0.058750 0.056569 -0.056569  0.078333 0.055626 -0.055626  0.097917 0.052797 -0.052797  0.117500 0.048083 -0.048083">
+        <plugin plugin="mujoco.elasticity.cable">
+          <config key="bend" value="1e+08"/>
+          <config key="twist" value="4e+07"/>
+          <config key="vmax" value="0"/>
+        </plugin>
+        <joint armature="0.001" damping="0.02" kind="main"/>
+        <geom type="capsule" size="0.0015"
+              density="7850" material="MatSteel"
+              contype="0" conaffinity="0"/>
+      </composite>
+    </body>
+  </worldbody>
+
+  <equality>
+    <weld body1="fixed_plate" body2="strip0B_first" solref="0.002 1"/>
+    <weld body1="moving_plate" body2="strip0B_last" solref="0.002 1"/>
+    <weld body1="fixed_plate" body2="strip1B_first" solref="0.002 1"/>
+    <weld body1="moving_plate" body2="strip1B_last" solref="0.002 1"/>
+    <weld body1="fixed_plate" body2="strip2B_first" solref="0.002 1"/>
+    <weld body1="moving_plate" body2="strip2B_last" solref="0.002 1"/>
+    <weld body1="fixed_plate" body2="strip3B_first" solref="0.002 1"/>
+    <weld body1="moving_plate" body2="strip3B_last" solref="0.002 1"/>
+    <weld body1="fixed_plate" body2="strip4B_first" solref="0.002 1"/>
+    <weld body1="moving_plate" body2="strip4B_last" solref="0.002 1"/>
+    <weld body1="fixed_plate" body2="strip5B_first" solref="0.002 1"/>
+    <weld body1="moving_plate" body2="strip5B_last" solref="0.002 1"/>
+    <weld body1="fixed_plate" body2="strip6B_first" solref="0.002 1"/>
+    <weld body1="moving_plate" body2="strip6B_last" solref="0.002 1"/>
+    <weld body1="fixed_plate" body2="strip7B_first" solref="0.002 1"/>
+    <weld body1="moving_plate" body2="strip7B_last" solref="0.002 1"/>
+  </equality>
+
+  <actuator>
+    <position name="slide_servo" joint="moving_slide"
+              kp="4000" ctrllimited="true"
+              ctrlrange="0 0.06" forcelimited="true"
+              forcerange="-500 500"/>
+  </actuator>
+
+  <sensor>
+    <jointpos name="slide_position" joint="moving_slide"/>
+    <jointvel name="slide_velocity" joint="moving_slide"/>
+    <actuatorfrc name="slide_force" actuator="slide_servo"/>
+  </sensor>
+</mujoco>

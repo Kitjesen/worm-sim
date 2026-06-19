@@ -1,0 +1,2 @@
+segment_id,pose_label,sample_id,acc_x_m_s2,acc_y_m_s2,acc_z_m_s2,gyro_x_rad_s,gyro_y_rad_s,gyro_z_rad_s,temperature_c,note
+0,level,0,0.02,-0.01,-9.81,0.001,0.000,-0.001,25.0,stationary

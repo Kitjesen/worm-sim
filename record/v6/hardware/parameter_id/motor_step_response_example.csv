@@ -1,0 +1,2 @@
+time_s,joint_id,joint_type,command_norm,target_si,position_si,velocity_si,current_a,voltage_v,pwm,load_n_or_nm,note
+0.020,slide_00,slide,-0.5,-0.025,-0.003,-0.12,0.8,12.0,0.35,4.0,loaded_step

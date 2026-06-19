@@ -17,6 +17,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
 from action_adapter_v6 import (  # noqa: E402
+    ACTION_ADAPTER_VERSION,
     action_adapter_contract,
     compose_deployable_action,
     gait_prior_from_phase,
@@ -72,7 +73,7 @@ def expected_full_anchor(phase):
 
 def main():
     contract = action_adapter_contract()
-    assert contract["version"] == "cmaes_tri_anchor_auto_gate_v2"
+    assert contract["version"] == ACTION_ADAPTER_VERSION
     assert contract["policy_action_dim"] == NUM_ACTUATORS + 1
     assert contract["gait_blend_source"] == "policy action gate"
     assert contract["gait_anchors"]["mixed"]["source"] == "cmaes_full"

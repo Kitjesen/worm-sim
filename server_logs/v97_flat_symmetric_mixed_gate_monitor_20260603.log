@@ -1,0 +1,13 @@
+[2026-06-03T18:51:33+08:00] waiting for train pid=3577522
+[2026-06-03T19:05:33+08:00] train pid=3577522 finished
+[2026-06-03T19:05:33+08:00] scan v97_final_model_nominal using runs/worm_v6_ppo_flat_random_v97_server_symmetric_mixed_gate_from_v96progress_np2/final_model.zip
+[2026-06-03T19:05:33+08:00] scan v97_final_model_robust using runs/worm_v6_ppo_flat_random_v97_server_symmetric_mixed_gate_from_v96progress_np2/final_model.zip
+[2026-06-03T19:05:33+08:00] scan v97_progress_best_model_nominal using runs/worm_v6_ppo_flat_random_v97_server_symmetric_mixed_gate_from_v96progress_np2/progress_best_model.zip
+[2026-06-03T19:05:33+08:00] scan v97_progress_best_model_robust using runs/worm_v6_ppo_flat_random_v97_server_symmetric_mixed_gate_from_v96progress_np2/progress_best_model.zip
+[2026-06-03T19:05:33+08:00] skip v97_best_model_nominal: missing runs/worm_v6_ppo_flat_random_v97_server_symmetric_mixed_gate_from_v96progress_np2/best_model.zip
+[2026-06-03T19:05:33+08:00] skip v97_best_model_robust: missing runs/worm_v6_ppo_flat_random_v97_server_symmetric_mixed_gate_from_v96progress_np2/best_model.zip
+[2026-06-03T19:09:32+08:00] done v97_progress_best_model_robust
+[2026-06-03T19:10:07+08:00] done v97_final_model_robust
+[2026-06-03T19:10:08+08:00] done v97_final_model_nominal
+[2026-06-03T19:10:08+08:00] done v97_progress_best_model_nominal
+[2026-06-03T19:10:08+08:00] monitor complete scan_status=0
