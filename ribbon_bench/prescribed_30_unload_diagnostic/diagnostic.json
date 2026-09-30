@@ -1,0 +1,60 @@
+{
+  "source": "D:\\doso\\robot\\ribbon_bench\\prescribed_30_refined\\checkpoint.json",
+  "recovered_energy_j": 0.25995024316443605,
+  "recovered_free_force_n": 3.985754837287914e-09,
+  "recovered_free_moment_nm": 3.061465143894271e-12,
+  "steps": [
+    {
+      "begin": 2.0,
+      "end": 2.0104166666666665,
+      "yaw_deg": 29.687500000000004,
+      "compression_mm": 40.0,
+      "iterations": 58,
+      "free_force_n": 4.988814694684152e-09,
+      "free_moment_nm": 1.2150601705340769e-12,
+      "energy_j": 0.2576179704288033,
+      "wall_seconds": 24.74161359993741
+    },
+    {
+      "begin": 2.0104166666666665,
+      "end": 2.0208333333333335,
+      "yaw_deg": 29.374999999999993,
+      "compression_mm": 40.0,
+      "iterations": 42,
+      "free_force_n": 5.154010551677857e-09,
+      "free_moment_nm": 6.800567053932838e-13,
+      "energy_j": 0.25543080104601057,
+      "wall_seconds": 42.84866919997148
+    },
+    {
+      "begin": 2.0208333333333335,
+      "end": 2.03125,
+      "yaw_deg": 29.0625,
+      "compression_mm": 40.0,
+      "iterations": 47,
+      "free_force_n": 4.620581028902393e-09,
+      "free_moment_nm": 6.054766063523509e-13,
+      "energy_j": 0.2528809268307878,
+      "wall_seconds": 59.484776200028136
+    },
+    {
+      "begin": 2.03125,
+      "end": 2.0416666666666665,
+      "yaw_deg": 28.75,
+      "compression_mm": 40.0,
+      "iterations": 29,
+      "free_force_n": 5.500274902203728e-09,
+      "free_moment_nm": 7.424902706554271e-13,
+      "energy_j": 0.2505774501796903,
+      "wall_seconds": 67.60888189985417
+    },
+    {
+      "begin": 2.0416666666666665,
+      "end": 2.0520833333333335,
+      "yaw_deg": 28.437499999999993,
+      "compression_mm": 40.0,
+      "failure": "Coupled Newton stalled: scaled residual 1.05e+06",
+      "wall_seconds": 77.46627089986578
+    }
+  ]
+}

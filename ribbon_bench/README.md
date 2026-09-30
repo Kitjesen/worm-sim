@@ -23,7 +23,11 @@ python -m venv .venv
 
 已有克隆可在仓库根目录执行 `git submodule update --init --recursive`。Linux/macOS 可使用 `.venv/bin/python` 代替 Windows 解释器路径。具体已验证环境版本见 [publication/environment.json](publication/environment.json)；该文件是发布环境记录，不是跨平台锁文件。
 
-只重画已有结果不需要运行求解器。正式结果、图像及报告引用的历史证据均保留；30°工况仅加载段收敛，报告保留这一限制。`publication/manifest.json` 列出正式图与数据；`probe_prediction/`、`refinement*/`、`mesh_demo/baseline*/`、`mesh_demo/serial*/`、`large_motion_30/` 和各 `checkpoint.json` 是历史诊断或中间记录，不另算完整正式工况。结果中的原绝对路径只作历史来源记录，运行脚本使用此目录内的冻结参数和 CAD 参考。发布适配仅调整路径、文档与归档，不改求解器数学。
+只重画已有结果不需要运行求解器。正式结果、图像及报告引用的历史证据均保留；原论文归档中的30°工况仅加载段收敛，报告保留这一历史限制。`publication/manifest.json` 列出原论文图与数据；`probe_prediction/`、`refinement*/`、`mesh_demo/baseline*/`、`mesh_demo/serial*/`、`large_motion_30/` 和各 `checkpoint.json` 是历史诊断或中间记录，不另算完整正式工况。结果中的原绝对路径只作历史来源记录，运行脚本使用此目录内的冻结参数和 CAD 参考。发布适配仅调整路径、文档与归档，不改求解器数学。
+
+## 后续计算：30°完整卸载
+
+[独立结果与复现说明](prescribed_30_tangent_unload/README.md) 保存2026-09-30追加完成的205个平衡状态及完整回程图。平衡切线预测器配合原Newton校正器完成卸载，主 `actuate.py` 与原论文报告、8套图和归档清单保持不变。[失败诊断](prescribed_30_unload_diagnostic/DIAGNOSIS.md) 与真实恢复种子同时保留；新结果使用[独立SHA清单](prescribed_30_tangent_unload/manifest.json)。该结果仍是规定隔板位姿的准静态算例，不表示绳驱动能到达30°。
 
 ## 运行
 
