@@ -1,0 +1,239 @@
+{
+  "status": "completed_with_verified_input_matching",
+  "frame_index": 12,
+  "frame": {
+    "progress": 2.0,
+    "compression_m": 0.04758545194116482,
+    "yaw_rad": 0.22447581731784977
+  },
+  "scope": "Actual recorded GPU float32 material E/g/H in CPU float64 storage; restored geometry, chain rule, cables and assembly stay float64. One evaluation per variant, including a CPU64 record replay control; no Newton solve or time stepping.",
+  "energy_note": "The material E returned to the gradient/Hessian interface is discarded upstream. Reported GPU steel energy is independently summed from the actual GPU E using unchanged physical scales; system.evaluate energy remains the CPU forward value and is not presented as GPU energy.",
+  "sign_convention": "Internal residuals are +grad(E); physical internal forces and steel-on-plate wrench are their negatives. Absolute error metrics do not depend on this sign.",
+  "gpu": "NVIDIA GeForce RTX 5090",
+  "device": "cuda:0",
+  "upstream_commit": "c9d341164e2927fc24b2c43dff97fcfb492cf700",
+  "gpu_computation_dtype": "float32",
+  "gpu_output_storage_dtype": "float64",
+  "gpu_executed_source_sha256": "585b6ccbc3c04b188dcc8462110418b570970777b4cd10a439bc7f80cc1ff2f8",
+  "gpu_current_source_matches_executed": true,
+  "rows_used": 248,
+  "restored_input_exact_match": true,
+  "assembly_input_checks": [
+    {
+      "strip": 0,
+      "max_absolute_difference": 4.194507154803295e-18,
+      "cpu64_bitwise_equal": false,
+      "gpu_precision_bitwise_equal": true
+    },
+    {
+      "strip": 1,
+      "max_absolute_difference": 3.9302328752599536e-18,
+      "cpu64_bitwise_equal": false,
+      "gpu_precision_bitwise_equal": true
+    },
+    {
+      "strip": 2,
+      "max_absolute_difference": 1.734723475976807e-18,
+      "cpu64_bitwise_equal": false,
+      "gpu_precision_bitwise_equal": true
+    },
+    {
+      "strip": 3,
+      "max_absolute_difference": 2.6834003769016235e-18,
+      "cpu64_bitwise_equal": false,
+      "gpu_precision_bitwise_equal": true
+    },
+    {
+      "strip": 4,
+      "max_absolute_difference": 7.8198081690517e-18,
+      "cpu64_bitwise_equal": false,
+      "gpu_precision_bitwise_equal": true
+    },
+    {
+      "strip": 5,
+      "max_absolute_difference": 3.957337929572091e-18,
+      "cpu64_bitwise_equal": false,
+      "gpu_precision_bitwise_equal": true
+    },
+    {
+      "strip": 6,
+      "max_absolute_difference": 4.607859233063394e-18,
+      "cpu64_bitwise_equal": false,
+      "gpu_precision_bitwise_equal": true
+    },
+    {
+      "strip": 7,
+      "max_absolute_difference": 3.6591823321385775e-18,
+      "cpu64_bitwise_equal": false,
+      "gpu_precision_bitwise_equal": true
+    }
+  ],
+  "assembly_input_tolerance": "64*float64 epsilon*max(1,abs(x)), checked elementwise; all differences reported",
+  "material_calls_per_strip": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "cpu64_record_replay_max_generalized_gradient_error": 1.7774226535038906e-11,
+  "cpu64": {
+    "free_force_n": 5.972460748182584e-09,
+    "free_twist_moment_nm": 7.520081020569169e-13,
+    "plate_potential_gradient_force_n": -2.6501232319731116e-09,
+    "plate_potential_gradient_moment_nm": 1.8979019744680414e-11,
+    "scaled_equilibrium_error": 0.005972460748182584,
+    "meets_existing_equilibrium_tolerances": true
+  },
+  "cpu64_record_replay": {
+    "free_force_n": 5.976512618133256e-09,
+    "free_twist_moment_nm": 7.714881251202899e-13,
+    "plate_potential_gradient_force_n": -2.6494983984548526e-09,
+    "plate_potential_gradient_moment_nm": 1.8971151038993384e-11,
+    "scaled_equilibrium_error": 0.005976512618133256,
+    "meets_existing_equilibrium_tolerances": true
+  },
+  "actual_gpu": {
+    "free_force_n": 1.5170912028850125e-06,
+    "free_twist_moment_nm": 1.2098693973755514e-09,
+    "plate_potential_gradient_force_n": -8.974257639238203e-07,
+    "plate_potential_gradient_moment_nm": 1.7383339892540484e-08,
+    "scaled_equilibrium_error": 1.5170912028850125,
+    "meets_existing_equilibrium_tolerances": false
+  },
+  "errors": {
+    "max_node_force_component_error_n": 1.5162252520184438e-06,
+    "max_free_node_force_component_error_n": 1.5162252520184438e-06,
+    "max_free_twist_moment_error_nm": 1.2097276600592233e-09
+  },
+  "per_strip": [
+    {
+      "strip": 0,
+      "max_node_force_component_error_n": 6.493036823762566e-07,
+      "max_free_node_force_component_error_n": 6.493036823762566e-07,
+      "max_free_twist_moment_error_nm": 3.4594224273404306e-10
+    },
+    {
+      "strip": 1,
+      "max_node_force_component_error_n": 6.020213314528178e-07,
+      "max_free_node_force_component_error_n": 5.814866836928445e-07,
+      "max_free_twist_moment_error_nm": 9.327329759251102e-10
+    },
+    {
+      "strip": 2,
+      "max_node_force_component_error_n": 1.5162252520184438e-06,
+      "max_free_node_force_component_error_n": 1.5162252520184438e-06,
+      "max_free_twist_moment_error_nm": 1.0057647908956469e-09
+    },
+    {
+      "strip": 3,
+      "max_node_force_component_error_n": 1.1509708652823747e-06,
+      "max_free_node_force_component_error_n": 1.1509708652823747e-06,
+      "max_free_twist_moment_error_nm": 3.0427175839661813e-10
+    },
+    {
+      "strip": 4,
+      "max_node_force_component_error_n": 1.3355778420987008e-06,
+      "max_free_node_force_component_error_n": 1.3355778420987008e-06,
+      "max_free_twist_moment_error_nm": 2.515259207511167e-10
+    },
+    {
+      "strip": 5,
+      "max_node_force_component_error_n": 1.0473018177137305e-06,
+      "max_free_node_force_component_error_n": 1.0473018177137305e-06,
+      "max_free_twist_moment_error_nm": 1.2097276600592233e-09
+    },
+    {
+      "strip": 6,
+      "max_node_force_component_error_n": 8.931349757546059e-07,
+      "max_free_node_force_component_error_n": 8.931349757546059e-07,
+      "max_free_twist_moment_error_nm": 1.00183686520261e-09
+    },
+    {
+      "strip": 7,
+      "max_node_force_component_error_n": 5.415164645583559e-07,
+      "max_free_node_force_component_error_n": 5.415164645583559e-07,
+      "max_free_twist_moment_error_nm": 2.708736958692559e-10
+    }
+  ],
+  "steel_on_plate_wrench_cpu64_n_nm": [
+    -6.812914293210387,
+    -0.18864000061138608
+  ],
+  "steel_on_plate_wrench_gpu_n_nm": [
+    -6.812913398434746,
+    -0.18864001797574698
+  ],
+  "plate_force_error_n": 8.947756406918472e-07,
+  "plate_moment_error_nm": 1.7364360872795803e-08,
+  "steel_energy_reference_j": 0.20730094960364978,
+  "steel_energy_actual_gpu_j": 0.2073009531522045,
+  "steel_energy_absolute_error_j": 3.548554727839104e-09,
+  "existing_tolerances": {
+    "free_force_n": 1e-06,
+    "free_twist_moment_nm": 1e-07,
+    "plate_force_n": 1e-05,
+    "plate_moment_nm": 1e-06
+  },
+  "sources": [
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\check_gpu_outputs.py",
+      "sha256": "15c31b65693668a8aef6ab0ae0b6d569f785b4686003365ede91869ac06dca71"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\gpu_probe_20261001\\inputs.npz",
+      "sha256": "20863574b7ce7b23dd8f1f8c8d40d92048415bba70ffc98028bb1b93889ee332"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\gpu_probe_20261001\\inputs.json",
+      "sha256": "2293c49275d33649121daff9d1e67a1671f7662374de387a119d636451416ca1"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\gpu_probe_20261001\\cuda_compiled\\gpu_outputs.npz",
+      "sha256": "a5e79cb511a07f4b1ec4ef47200a447a9e8649dfcc0c25d2616588ad30292bd7"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\gpu_probe_20261001\\cuda_compiled\\summary.json",
+      "sha256": "51c4f655e42e9306df071c9f8983644d5454bc790f0226d9c3374b2f0e81dcaf"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\solver_benchmark_20261001\\fast_1\\results.json",
+      "sha256": "f28d21fb532464dfd387e3ce5c455db85335cdbbdb65a6faefc7935163746f02"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\solver_benchmark_20261001\\fast_1\\parameters.snapshot.json",
+      "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+    },
+    {
+      "path": "D:\\doso\\robot\\worm-sim\\meshes\\longworm2\\longworm2.SLDASM.urdf",
+      "sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\gpu_probe.py",
+      "sha256": "585b6ccbc3c04b188dcc8462110418b570970777b4cd10a439bc7f80cc1ff2f8"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\run.py",
+      "sha256": "94670e07ae5aff95ac42c519b9781843a7f0740629035d7bcf163fe4e471e2c8"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\actuate.py",
+      "sha256": "c06b5699a9e3202e42cf9e75e31a24d1f31c793c779c8a3f31ff92a894fcaadf"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\fast_sano.py",
+      "sha256": "218faeabe8490f7f269f3857ad734eb13656b26ab77bc4284067a4ce76c9d469"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\cable_loads.py",
+      "sha256": "5b4a05a0812b3e1dc0c7b35f93e54a469ce362bd14c5a6490d32ae8c0b3b9c48"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\prescribed_30_unload_diagnostic\\continue.py",
+      "sha256": "eeabd63064c70fac11afae44ca3a4b19e49ba2da938429bec69713cd4c3f9b05"
+    }
+  ]
+}

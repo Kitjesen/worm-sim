@@ -1,5 +1,7 @@
 # 钢片蠕虫机器人：Discrete Elastic Ribbons 台架
 
+**GPU 实测：[RTX 5090 / DirectML 材料计算与完整路径对照](GPU_PROBE.zh-CN.md)**。CUDA FP64通过核验；大批材料调用可加速，当前整条路径的CPU/GPU混合版本在一次对照中较慢，详见原始数据和计时口径。
+
 **2026-10-01：[求解器加速、单片动力学与后续物理核心路线](PHYSICS_CORE.zh-CN.md)**。新增同一Sano公式的闭式材料导数、带状块求解及原版对照；`actuate.py`默认使用`--solver fast`，原路径可通过`--solver reference`运行。旧论文归档和数据保持原样，下面的历史耗时不代表新求解器速度。
 
 **汇报入口：[图像、结果与实现说明](PRESENTATION.zh-CN.md)**，包含全部9套可视化、下载索引、方法说明和可直接使用的讲稿。
