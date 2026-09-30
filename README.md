@@ -8,6 +8,8 @@ Repository: https://github.com/Kitjesen/worm-sim
 
 The separate [steel-ribbon benchmark](ribbon_bench/README.md) contains eight-strip quasi-static simulations, ideal cable actuation, and publication figures. Start with the [Chinese presentation guide and complete figure gallery](ribbon_bench/PRESENTATION.zh-CN.md), covering all nine figure sets and the verified 205-state prescribed 30° return. The [original methods report](ribbon_bench/REPORT.zh-CN.md) preserves the earlier incomplete-unloading record; the follow-up is documented separately. This mechanics study runs alongside the MuJoCo/RL pipeline.
 
+The integrated mechanics follow-up is documented in the [full Chinese simulation report](ribbon_bench/FULL_SIMULATION_REPORT.zh-CN.md) and [run/problem log](ribbon_bench/FULL_SIMULATION_LOG.zh-CN.md). It includes the eight Sano ribbons, CAD rigid-body mass/inertia, four tension-only cables, sampled wide/thick ribbon contact, stick/slip friction, gravity, saved trajectories, and paper-style PNG/SVG/GIF outputs. The current full N33 run is a verified numerical closure, not a calibrated locomotion claim.
+
 ## Current Main Claim
 
 This is now a **snake + worm dual-mode robot project**, not only an open-loop worm gait demo.

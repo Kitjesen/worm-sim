@@ -1,0 +1,326 @@
+"""Minimal full worm-robot dynamics: Sano ribbons, cables, rigid plates, ground.
+
+This is the first integrated verification core.  It uses a dense Newton solve
+for the coupled internal ribbon coordinates and twelve plate pose coordinates;
+the steel/contact Jacobian is assembled analytically, while contact geometric
+second derivatives are deliberately omitted (a documented quasi-Newton term).
+Run ``python full_robot.py --self-check`` before a simulation.
+"""
+from __future__ import annotations
+
+import argparse
+import contextlib
+import hashlib
+import io
+import json
+import math
+import time
+from pathlib import Path
+
+import numpy as np
+from scipy.spatial.transform import Rotation
+
+from full_body_loads import FullBodyCables, read_body_inertias, skew
+from ground_contact import evaluate_contact
+from ribbon_contact_geometry import surface_geometry
+from run import COMMIT, HERE, make_robot, read_project, refresh, strip_geometry
+
+
+def _mass(robot, p):
+    """Diagonal translational/edge-angle mass used by the integrated model."""
+    n = len(robot.node_dof_indices)
+    out = robot.mass_matrix.copy()
+    w, h, rho = p['strip_width_m'], p['strip_thickness_m'], p['steel_density_kg_m3']
+    polar_area = (w*h**3 + h*w**3)/12.
+    out[3*n:] = rho*robot.ref_len*polar_area
+    return out
+
+
+def _plate_contact(plate_radius, thickness, angles=24):
+    """Rim points on the two plate faces; x is plate thickness direction."""
+    theta = np.linspace(0., 2*np.pi, angles, endpoint=False)
+    yz = np.column_stack((plate_radius*np.cos(theta), plate_radius*np.sin(theta)))
+    local = np.vstack((np.column_stack((np.full(angles, -thickness/2), yz)),
+                       np.column_stack((np.full(angles, thickness/2), yz))))
+    return local, np.full(len(local), 1./len(local))
+
+
+def _plate_points(c, R, local, com_local):
+    arm = local-com_local[None, :]
+    points = c[None, :]+arm@R.T
+    jac = np.empty((len(local), 3, 6))
+    jac[:, :, :3] = np.broadcast_to(np.eye(3), (len(local), 3, 3))
+    jac[:, :, 3:] = -np.array([skew(x) for x in (arm@R.T)])
+    return points, jac
+
+
+class FullRobot:
+    """Coupled implicit-Euler simulator with a deliberately small public API."""
+
+    def __init__(self, parameters, delta, *, nodes=9, dt=.002, mu=.4,
+                 normal_stiffness=1e8, tangential_stiffness=2e7,
+                 damping=0., ground_height=0., clearance=2e-5,
+                 cad_path=None, contact_samples=24):
+        self.p, self.delta, self.nodes, self.dt = parameters, np.asarray(delta), nodes, dt
+        self.mu, self.kn, self.kt, self.damping = float(mu), float(normal_stiffness), float(tangential_stiffness), float(damping)
+        self.ground_height = float(ground_height)
+        if nodes < 7 or dt <= 0 or mu < 0 or normal_stiffness <= 0 or tangential_stiffness <= 0:
+            raise ValueError('Invalid nodes, dt, friction or contact stiffness')
+        self.body = read_body_inertias(parameters, cad_path)
+        self.cable = FullBodyCables(parameters, self.body['com_local_m'])
+        self.robots, self.steppers, self.rest, self.widths = [], [], [], []
+        # Lift the CAD reference so the circular plate rims begin just above Z=0.
+        centers = self.body['reference_centers_world_m'].copy()
+        lift = self.p['plate_stop_radius_m'] + self.p['plate_stop_thickness_m']/2 + clearance - np.min(centers[:, 2])
+        self.shift = np.array([0., 0., lift])
+        for strip in range(self.p['strip_count']):
+            rest, width = strip_geometry(parameters, delta, strip, nodes)
+            rest = rest + self.shift
+            robot, stepper = make_robot(parameters, rest, width, 'sano')
+            self.robots.append(robot); self.steppers.append(stepper)
+            self.rest.append(rest); self.widths.append(width)
+        self.rest, self.widths = np.asarray(self.rest), np.asarray(self.widths)
+        # Some CAD ribbons hang below the plate rim.  Lift the whole assembly
+        # once more so the lowest *actual* surface sample starts above z=0;
+        # this avoids injecting a 4 cm artificial impact at t=0.
+        min_surface = min(float(np.min(surface_geometry(r, r.state.q, parameters['strip_width_m'],
+                                                        parameters['strip_thickness_m'])[0][:, 2]))
+                          for r in self.robots)
+        extra = max(0., clearance-min_surface)
+        if extra:
+            self.shift[2] += extra
+            self.rest[:, :, 2] += extra
+            for i, robot in enumerate(self.robots):
+                qq = robot.state.q.copy()
+                xyz = qq[:3*nodes].reshape(nodes, 3); xyz[:, 2] += extra
+                self.robots[i] = refresh(robot, qq)
+        self.nq = self.robots[0].n_dof
+        self.free = self.robots[0].state.free_dof.copy()
+        self.nfree = len(self.free)
+        self.mass_steel = _mass(self.robots[0], parameters)
+        self.fixed = np.setdiff1d(np.arange(self.nq), self.free)
+        self.body_mass = self.body['mass_kg']
+        self.body_inertia_local = self.body['inertia_com_local_kgm2']
+        self.body_plate_centers = centers + self.shift
+        self.body_com = self.body_plate_centers + self.body['com_local_m']
+        self.body_R = self.body['reference_rotations'].copy()
+        self.body_v = np.zeros((2, 3)); self.body_omega = np.zeros((2, 3))
+        self.q = np.array([robot.state.q for robot in self.robots])
+        self.u = np.zeros_like(self.q)
+        self.plate_local, self.plate_weights = _plate_contact(self.p['plate_stop_radius_m'], self.p['plate_stop_thickness_m'], contact_samples)
+        self.steel_history = [None]*8
+        self.plate_history = [None]*2
+        self.steel_oldpoints = [self._steel_points(i, self.q[i]) for i in range(8)]
+        self.plate_oldpoints = [self._plate_points(i)[0] for i in range(2)]
+        c0, R0 = self.body_com.copy(), self.body_R.copy()
+        self.base_cable_lengths = self.cable.evaluate(c0, R0, np.ones(4))['lengths_m']
+        self.last = None
+
+    def _steel_points(self, strip, q):
+        points, _ = surface_geometry(self.robots[strip], q, self.p['strip_width_m'], self.p['strip_thickness_m'])
+        return points
+
+    def _plate_points(self, body):
+        return _plate_points(self.body_com[body], self.body_R[body], self.plate_local,
+                             self.body['com_local_m'][body])
+
+    def _decode(self, z, qold, cold, Rold):
+        """Map internal/free coordinates and plate increments to all ribbon q."""
+        q = np.array(qold, copy=True)
+        q[:, self.free] = qold[:, self.free] + z[:self.nfree][None, :]
+        body_delta = z[self.nfree:].reshape(2, 6)
+        c = cold + body_delta[:, :3]
+        R = Rotation.from_rotvec(body_delta[:, 3:]).as_matrix() @ Rold
+        B = np.zeros((8, self.nq, 12))
+        for strip in range(8):
+            for body, rows, edge in ((0, (0, 1), 0), (1, (self.nodes-2, self.nodes-1), self.nodes-2)):
+                arm = self.rest[strip, list(rows)[0]] - self.body_plate_centers[body] - self.body['com_local_m'][body]
+                arm2 = self.rest[strip, list(rows)[1]] - self.body_plate_centers[body] - self.body['com_local_m'][body]
+                q[strip, 3*np.array(list(rows))[:, None]+np.arange(3)] = c[body] + np.array([R[body]@arm, R[body]@arm2])
+                world_arm = np.array([R[body]@arm, R[body]@arm2])
+                rows_xyz = 3*np.array(list(rows))[:, None]+np.arange(3)
+                for endpoint, rowset in enumerate(rows_xyz):
+                    for coordinate, row in enumerate(rowset):
+                        B[strip, row, body*6+coordinate] = 1.
+                        B[strip, row, body*6+3:body*6+6] = -skew(world_arm[endpoint])[coordinate]
+                # Clamp end twist is the rigid-body rotation about the current tangent.
+                tmp = q[strip].copy()
+                a1, a2 = self.robots[strip].compute_time_parallel(self.robots[strip].state.a1,
+                                                                    self.robots[strip].state.q, tmp)
+                tangent = tmp[3*(edge+1):3*(edge+2)]-tmp[3*edge:3*(edge+1)]
+                tangent /= np.linalg.norm(tangent)
+                desired_width = R[body]@self.widths[strip, edge]
+                normal = np.cross(desired_width, tangent)
+                normal /= np.linalg.norm(normal)
+                q[strip, 3*self.nodes+edge] = math.atan2(normal@a2[edge], normal@a1[edge])
+                B[strip, 3*self.nodes+edge, body*6+3:body*6+6] = tangent
+        return q, c, R, B
+
+    def _elastic(self, strip, q):
+        stepper, oldrobot = self.steppers[strip], self.robots[strip]
+        with contextlib.redirect_stdout(io.StringIO()):
+            stepper._compute_forces_and_jacobian(oldrobot, q, np.zeros(self.nq))
+        grad, hess = stepper._forces.copy(), stepper._jacobian.copy()
+        trial = refresh(oldrobot, q)
+        energy = float(stepper.compute_total_elastic_energy(trial.state))
+        return grad, hess, energy, trial
+
+    def _evaluate(self, z, cable_rest, qold, uold, cold, Rold, commit=False):
+        q, c, R, B = self._decode(z, qold, cold, Rold)
+        total_res = np.zeros(self.nfree+12); total_H = np.zeros((self.nfree+12, self.nfree+12))
+        steel_energy = 0.; max_pen = 0.; contact_force = 0.; statuses = []
+        Aq = np.zeros((self.nq, self.nfree+12)); Aq[self.free, :self.nfree] = np.eye(self.nfree)
+        for strip in range(8):
+            grad, hess, energy, trial = self._elastic(strip, q[strip])
+            points, J = surface_geometry(self.robots[strip], q[strip], self.p['strip_width_m'], self.p['strip_thickness_m'])
+            weights = np.repeat(self.robots[strip].ref_len/12., 12)
+            contact = evaluate_contact(points, self.steel_oldpoints[strip], self.steel_history[strip], dt=self.dt,
+                                       ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
+                                       weights=weights, mu=self.mu)
+            Aq_strip = np.zeros((self.nq, self.nfree+12)); Aq_strip[self.free, :self.nfree] = np.eye(self.nfree); Aq_strip[self.fixed, self.nfree:] = B[strip, self.fixed]
+            rq = grad + self.mass_steel*(q[strip]-qold[strip]-self.dt*uold[strip])/self.dt**2 - np.einsum('pij,pi->j', J, contact['force'])
+            hq = hess + np.diag(self.mass_steel/self.dt**2)
+            Jq = np.einsum('pij,jk->pik', J, Aq_strip)
+            hcontact = np.einsum('pai,pab,pbj->ij', Jq, contact['jacobian'], Jq)
+            total_res += Aq_strip.T@rq; total_H += Aq_strip.T@hq@Aq_strip-hcontact
+            max_pen = max(max_pen, float(max(0., -np.min(contact['gap_m']))))
+            contact_force += float(np.sum(contact['normal_force_n']))
+            statuses.extend(contact['status'].tolist())
+            if commit:
+                if not hasattr(self, '_candidate_steel') or not isinstance(self._candidate_steel, list): self._candidate_steel = []
+                self._candidate_steel.append(contact)
+        body_r = np.zeros(12); body_H = np.zeros((12, 12))
+        cable = self.cable.evaluate(c, R, cable_rest)
+        body_r += cable['gradient']
+        for body in range(2):
+            I = R[body]@self.body_inertia_local[body]@R[body].T
+            dphi = z[self.nfree+6*body+3:self.nfree+6*body+6]
+            body_r[6*body:6*body+3] += self.body_mass[body]*(c[body]-cold[body]-self.dt*self.body_v[body])/self.dt**2
+            body_r[6*body+3:6*body+6] += I@(dphi/self.dt**2-self.body_omega[body]/self.dt) + np.cross(self.body_omega[body], I@self.body_omega[body])
+            body_r[6*body+2] += self.body_mass[body]*9.81
+            body_H[6*body:6*body+3, 6*body:6*body+3] += self.body_mass[body]/self.dt**2*np.eye(3)
+            body_H[6*body+3:6*body+6, 6*body+3:6*body+6] += I/self.dt**2
+            p, Jb = self._plate_points_at(body, c[body], R[body])
+            bc = evaluate_contact(p, self.plate_oldpoints[body], self.plate_history[body], dt=self.dt,
+                                  ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
+                                  weights=self.plate_weights, mu=self.mu)
+            body_r[6*body:6*body+6] -= np.einsum('pij,pi->j', Jb, bc['force'])
+            body_H[6*body:6*body+6, 6*body:6*body+6] -= np.einsum('pai,pab,pbj->ij', Jb, bc['jacobian'], Jb)
+            max_pen = max(max_pen, float(max(0., -np.min(bc['gap_m'])))); contact_force += float(np.sum(bc['normal_force_n'])); statuses.extend(bc['status'].tolist())
+            if commit: self._candidate_plate = getattr(self, '_candidate_plate', []); self._candidate_plate.append(bc)
+        total_res[self.nfree:] += body_r; total_H[self.nfree:, self.nfree:] += body_H
+        if not np.isfinite(total_res).all() or not np.isfinite(total_H).all():
+            raise FloatingPointError('non-finite full-robot residual')
+        info = dict(residual=total_res, hessian=total_H, energy_j=steel_energy+cable['energy_j'], steel_energy_j=steel_energy,
+                    cable_energy_j=cable['energy_j'], tensions_n=cable['tensions_n'], cable_lengths_m=cable['lengths_m'],
+                    max_penetration_m=max_pen, contact_normal_force_n=contact_force, statuses=statuses, q=q, c=c, R=R, B=B)
+        return info
+
+    def _plate_points_at(self, body, c, R):
+        return _plate_points(c, R, self.plate_local, self.body['com_local_m'][body])
+
+    def step(self, cable_rest):
+        qold, uold, cold, Rold = self.q.copy(), self.u.copy(), self.body_com.copy(), self.body_R.copy()
+        z = np.r_[self.dt*uold[:, self.free].mean(axis=0) if False else np.zeros(self.nfree), np.zeros(12)]
+        # A full velocity predictor is useful for the internal coordinates.
+        z[:self.nfree] = self.dt*uold[:, self.free].mean(axis=0)
+        z[self.nfree:self.nfree+3] = self.dt*self.body_v[0]
+        z[self.nfree+6:self.nfree+9] = self.dt*self.body_v[1]
+        z[self.nfree+3:self.nfree+6] = self.dt*self.body_omega[0]
+        z[self.nfree+9:self.nfree+12] = self.dt*self.body_omega[1]
+        last = None
+        for iteration in range(30):
+            ev = self._evaluate(z, cable_rest, qold, uold, cold, Rold)
+            scaled = max(np.max(np.abs(ev['residual'][:self.nfree]))/1e-5,
+                         np.max(np.abs(ev['residual'][self.nfree:]))/1e-5)
+            last = ev
+            if scaled <= 1.:
+                self._evaluate(z, cable_rest, qold, uold, cold, Rold, commit=True)
+                self.q, self.u = ev['q'], (ev['q']-qold)/self.dt
+                self.body_com, self.body_R = ev['c'], ev['R']
+                self.body_v = (self.body_com-cold)/self.dt
+                self.body_omega = Rotation.from_matrix(self.body_R@Rold.swapaxes(1,2)).as_rotvec()/self.dt
+                self.robots = [refresh(r, self.q[i]).update(u=self.u[i], a=np.zeros(self.nq)) for i, r in enumerate(self.robots)]
+                self.steel_history = [x['history'] for x in self._candidate_steel[-8:]]
+                self.plate_history = [x['history'] for x in self._candidate_plate[-2:]]
+                self.steel_oldpoints = [self._steel_points(i, self.q[i]) for i in range(8)]
+                self.plate_oldpoints = [self._plate_points(i)[0] for i in range(2)]
+                info = {k: v for k, v in ev.items() if k not in ('q','c','R','B','hessian','residual','statuses')}
+                info.update(iterations=iteration, residual_max=float(np.max(np.abs(ev['residual']))),
+                            body_com=self.body_com.tolist(), body_R=self.body_R.tolist(),
+                            status_counts={name: ev['statuses'].count(name) for name in sorted(set(ev['statuses']))})
+                self.last = info
+                return info
+            try:
+                dz = np.linalg.solve(ev['hessian'], -ev['residual'])
+            except np.linalg.LinAlgError:
+                dz = np.linalg.lstsq(ev['hessian'] + 1e-8*np.eye(len(z)), -ev['residual'], rcond=None)[0]
+            if not np.isfinite(dz).all():
+                raise FloatingPointError('non-finite Newton increment')
+            fraction = min(1., .002/max(np.max(np.abs(dz[:self.nfree])), 1e-12))
+            accepted = False
+            for _ in range(12):
+                trial = self._evaluate(z+fraction*dz, cable_rest, qold, uold, cold, Rold)
+                if np.linalg.norm(trial['residual']) < np.linalg.norm(ev['residual']):
+                    z += fraction*dz; accepted = True; break
+                fraction *= .5
+            if not accepted:
+                raise RuntimeError(f'Newton line search stalled at residual {scaled:g}')
+        raise RuntimeError(f'Newton limit at residual {max(np.abs(last["residual"])):g}')
+
+
+def _command(base, t, duration, amplitude):
+    phase = 2*np.pi*t/max(duration, 1e-12)
+    shape = .5*(1+np.sin(phase+np.arange(4)*np.pi/2))
+    return np.maximum(base-amplitude*shape, 0.)
+
+
+def self_check():
+    p, delta, provenance = read_project(HERE/'output/parameters.snapshot.json')
+    sim = FullRobot(p, delta, nodes=9, dt=.002, contact_samples=12)
+    assert len(sim.q) == 8 and sim.nfree == len(sim.free)
+    zero = sim.step(sim.base_cable_lengths+.01)
+    assert np.isfinite(zero['residual_max']) and np.isfinite(sim.body_com).all()
+    assert zero['max_penetration_m'] < 1e-3
+    report = dict(status='passed', nodes=9, strips=8, residual_n=float(zero['residual_max']),
+                  max_penetration_m=float(zero['max_penetration_m']), contact_force_n=float(zero['contact_normal_force_n']),
+                  masses_kg=sim.body_mass.tolist(), scope='One implicit full-robot step; no gait or calibration')
+    print(json.dumps(report, indent=2)); return report
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--parameters', type=Path, default=HERE/'output/parameters.snapshot.json')
+    ap.add_argument('--nodes', type=int, default=9); ap.add_argument('--steps', type=int, default=10)
+    ap.add_argument('--dt', type=float, default=.002); ap.add_argument('--duration', type=float, default=.02)
+    ap.add_argument('--command-mm', type=float, default=.5); ap.add_argument('--output', type=Path, default=HERE/'full_robot_demo')
+    ap.add_argument('--self-check', action='store_true')
+    args = ap.parse_args()
+    if args.self_check: self_check(); return
+    if args.steps < 1 or args.nodes < 7 or args.command_mm < 0: ap.error('invalid simulation arguments')
+    p, delta, provenance = read_project(args.parameters)
+    sim = FullRobot(p, delta, nodes=args.nodes, dt=args.dt, cad_path=provenance['source_urdf'])
+    out = args.output; out.mkdir(parents=True, exist_ok=True)
+    start = time.perf_counter(); rows = []; q_frames = []; body_frames = []; rotation_frames = []
+    for i in range(args.steps+1):
+        t = i*args.duration/max(args.steps, 1)
+        rest = _command(sim.base_cable_lengths, t, args.duration, args.command_mm/1000.)
+        if i: info = sim.step(rest)
+        else: info = dict(iterations=0, residual_max=0., max_penetration_m=0., contact_normal_force_n=0.,
+                          cable_energy_j=0., tensions_n=np.zeros(4), body_com=sim.body_com.tolist())
+        rows.append(dict(time_s=t, **{k: (v.tolist() if isinstance(v, np.ndarray) else v) for k,v in info.items()}))
+        q_frames.append(sim.q.copy()); body_frames.append(sim.body_com.copy()); rotation_frames.append(sim.body_R.copy())
+        print(json.dumps(rows[-1], allow_nan=False), flush=True)
+    result = dict(status='completed', metadata=dict(**provenance, nodes=args.nodes, strips=8, dt_s=args.dt,
+        duration_s=args.duration, command_amplitude_mm=args.command_mm, model='Sano steel + CAD rigid bodies + ideal tension-only cables + sampled plane penalty/friction contact',
+        contact='12 surface samples per steel edge plus 2x rim samples per plate; no continuous CCD; quasi-Newton contact geometric Hessian',
+        vendor_commit=COMMIT, source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()), frames=rows,
+        wall_seconds=time.perf_counter()-start)
+    (out/'summary.json').write_text(json.dumps(result, indent=2, allow_nan=False), encoding='utf-8')
+    np.savez_compressed(out/'trajectory.npz', q=np.asarray(q_frames), body_com=np.asarray(body_frames), body_R=np.asarray(rotation_frames),
+                        rest_nodes_m=sim.rest, strip_width_m=p['strip_width_m'], strip_thickness_m=p['strip_thickness_m'])
+    print(json.dumps({'saved': str(out/'summary.json'), 'wall_seconds': result['wall_seconds']}))
+
+
+if __name__ == '__main__':
+    main()

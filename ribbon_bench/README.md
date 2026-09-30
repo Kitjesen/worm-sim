@@ -112,6 +112,19 @@ foreach ($nodes in 33, 65, 129) {
 接触势能及其力、力矩、雅可比实际进入平衡方程。它不包含钢片互碰、绳—钢片、地面或完整 CAD 接触。
 所有这些算例仍是准静态：计算每个收绳量下的平衡位置，未计算速度、惯性或回弹振动。
 
+## 整机动力学与地面接触
+
+`full_robot.py` 是后续物理核心的首个闭环版本：八片 Sano 钢带、两块 CAD 质量/惯量刚体端板、四根张力单向绳、重力，以及带历史的 stick/slip/liftoff 平地接触在隐式 Euler 中联立求解。钢带接触使用实际 16 mm 宽、0.15 mm 厚的表面采样；端板使用圆周采样包络。它允许微小罚接触穿透，当前耦合 Newton 为 CPU 双精度稠密版本。
+
+完整过程、参数口径、问题和论文对照见 [FULL_SIMULATION_REPORT.zh-CN.md](FULL_SIMULATION_REPORT.zh-CN.md) 与 [FULL_SIMULATION_LOG.zh-CN.md](FULL_SIMULATION_LOG.zh-CN.md)。已保存的 N9/N33 轨迹、PNG/SVG 论文图、GIF 和指标图位于 `full_robot_n9_cmd5/` 与 `full_robot_n33_cmd5_full/`。N33 的 20 ms 运行约 28.1 s，最大 Newton 残差 `4.44e-6`，最大罚穿透 `56.9 µm`；这是数值闭环证据，尚不是实物标定或净爬行结论。
+
+```powershell
+$env:PYTHONPATH = 'vendor/discrete-elastic-ribbon/src'
+.\.venv\Scripts\python.exe full_robot.py --self-check
+.\.venv\Scripts\python.exe full_robot.py --nodes 33 --steps 10 --duration .02 --dt .002 --command-mm 5 --output full_robot_n33_cmd5_full
+.\.venv\Scripts\python.exe render_full_robot.py --input full_robot_n33_cmd5_full --output full_robot_n33_cmd5_full/full_robot_paper.png
+```
+
 ```powershell
 # 沿用上面的 OPENBLAS/OMP/MKL 单线程设置
 .\.venv\Scripts\python.exe actuate.py --nodes 33 --steps 6 --compression-mm 40 --yaw-deg 30 --output actuated_demo --render
