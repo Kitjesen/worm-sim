@@ -2,3 +2,4 @@
 __pycache__/
 probe/
 *.pyc
+!presentation/sano_ribbon_one_page.pptx

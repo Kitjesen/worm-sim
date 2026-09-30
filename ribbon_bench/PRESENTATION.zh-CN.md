@@ -4,6 +4,8 @@
 
 建议先讲四绳驱动，再讲30°规定姿态对照，最后讲分辨率和验证。全部素材、数据和代码在当前仓库的 `ribbon_bench/` 内；文末提供逐项下载入口。
 
+[一页汇报 PPT：离散方法与 Sano 模型](presentation/sano_ribbon_one_page.pptx) · [PNG 预览](presentation/sano_ribbon_one_page.png)。PPT 含原始 GIF、可编辑文字及带来源的演讲备注。
+
 ## 1. 这张动画是什么
 
 ![四根理想绳驱动八片钢带的准静态形变](publication/figures/fig08_cable_driven.gif)
