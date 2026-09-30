@@ -6,6 +6,8 @@ The current main line is **V6 deployable bimodal locomotion**: one robot body ca
 
 Repository: https://github.com/Kitjesen/worm-sim
 
+The separate [steel-ribbon benchmark](ribbon_bench/README.md) contains eight-strip quasi-static simulations, ideal cable actuation, publication figures, and a [complete Chinese methods and results report](ribbon_bench/REPORT.zh-CN.md). It is a mechanics study alongside the MuJoCo/RL pipeline; the report documents the current modeling limits and the incomplete 30° unloading case.
+
 ## Current Main Claim
 
 This is now a **snake + worm dual-mode robot project**, not only an open-loop worm gait demo.

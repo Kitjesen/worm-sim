@@ -1,0 +1,2077 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="longworm2.SLDASM">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.0247242643005074 -2.07710584843035E-13 -0.000161759054530333"
+        rpy="0 0 0" />
+      <mass
+        value="0.421740424441456" />
+      <inertia
+        ixx="0.000694979882468852"
+        ixy="-3.43287416165925E-21"
+        ixz="7.24569228952413E-09"
+        iyy="0.000431168926395382"
+        iyz="6.12171263750218E-21"
+        izz="0.000437659954233767" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="w1-1_Link">
+    <inertial>
+      <origin
+        xyz="1.08801856413265E-14 3.04131719808254E-14 2.16007767228632E-14"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="3.13329122863316E-23"
+        ixz="-1.21648511011028E-22"
+        iyy="1.1581669813018E-06"
+        iyz="1.81066389501972E-23"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w1-1_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w1-1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w1-1"
+    type="revolute">
+    <origin
+      xyz="0.00249999999999995 0.0617601286223757 -0.071558087240969"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="w1-1_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w1-2_Link">
+    <inertial>
+      <origin
+        xyz="1.08801856413265E-14 2.9989899452687E-14 2.03240202445443E-14"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="5.6360585296768E-24"
+        ixz="8.02481819372663E-23"
+        iyy="1.1581669813018E-06"
+        iyz="1.24695358854782E-23"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w1-2_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w1-2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w1-2"
+    type="revolute">
+    <origin
+      xyz="0.00250000000000006 -0.061760128621962 -0.0715580872409634"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="w1-2_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="back1_Link">
+    <inertial>
+      <origin
+        xyz="0.00563747824696625 -8.59419391284477E-07 0.00860287206294876"
+        rpy="0 0 0" />
+      <mass
+        value="0.54284014666095" />
+      <inertia
+        ixx="0.000136997260417335"
+        ixy="-3.28799640980678E-09"
+        ixz="-2.45398279682895E-07"
+        iyy="0.000116033877132068"
+        iyz="1.44421923346131E-08"
+        izz="5.10589482767015E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back1_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.776470588235294 0.756862745098039 0.737254901960784 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="back1"
+    type="prismatic">
+    <origin
+      xyz="-0.151 0 -0.0015352"
+      rpy="0 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="back1_Link" />
+    <axis
+      xyz="-0.99984 0 -0.018019" />
+    <limit
+      lower="-0.05"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w1-3_Link">
+    <inertial>
+      <origin
+        xyz="1.21014309684142E-14 2.97539770599542E-14 1.77149961366752E-14"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="3.13329122863316E-23"
+        ixz="-1.21648511011028E-22"
+        iyy="1.1581669813018E-06"
+        iyz="1.81066389501972E-23"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w1-3_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w1-3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w1-3"
+    type="revolute">
+    <origin
+      xyz="-0.000500000000000167 0.0617601286221688 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back1_Link" />
+    <child
+      link="w1-3_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w1-4_Link">
+    <inertial>
+      <origin
+        xyz="1.21014309684142E-14 2.99760216648792E-14 1.77427517122908E-14"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="-1.51050940641891E-23"
+        ixz="-1.0537871385271E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-3.36331304810563E-23"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w1-4_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w1-4_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w1-4"
+    type="revolute">
+    <origin
+      xyz="-0.000500000000000056 -0.0617601286221691 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back1_Link" />
+    <child
+      link="w1-4_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="front2_Link">
+    <inertial>
+      <origin
+        xyz="-0.0129696719874267 -6.11280770793088E-10 -0.000148924915715078"
+        rpy="0 0 0" />
+      <mass
+        value="0.0655692709973457" />
+      <inertia
+        ixx="4.53813611204454E-05"
+        ixy="1.21867547085637E-13"
+        ixz="7.19798006186176E-09"
+        iyy="2.74467734034707E-05"
+        iyz="1.56150219334163E-13"
+        izz="2.66452408682436E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front2_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="front2"
+    type="revolute">
+    <origin
+      xyz="-0.0579999999999931 0 -0.0010452742535536"
+      rpy="0 0 0" />
+    <parent
+      link="back1_Link" />
+    <child
+      link="front2_Link" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w2-1_Link">
+    <inertial>
+      <origin
+        xyz="2.22044604925031E-16 3.08642000845794E-14 -2.84772205816353E-14"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="3.14880086511853E-23"
+        ixz="-1.21642048662492E-22"
+        iyy="1.1581669813018E-06"
+        iyz="1.80290907677704E-23"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w2-1_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w2-1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w2-1"
+    type="revolute">
+    <origin
+      xyz="-0.0140000000000003 0.0617601286220562 -0.0689776402647631"
+      rpy="0 0 0" />
+    <parent
+      link="front2_Link" />
+    <child
+      link="w2-1_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w2-2_Link">
+    <inertial>
+      <origin
+        xyz="-3.33066907387547E-16 3.77475828372553E-14 2.692290834716E-15"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="-2.60584589037555E-23"
+        ixz="-1.75393339426476E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-3.53727498605078E-23"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w2-2_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w2-2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w2-2"
+    type="revolute">
+    <origin
+      xyz="-0.0139999999999992 -0.0617601286222913 -0.0689776402647976"
+      rpy="0 0 0" />
+    <parent
+      link="front2_Link" />
+    <child
+      link="w2-2_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="back2_Link">
+    <inertial>
+      <origin
+        xyz="0.00563747824694816 -8.59417394482448E-07 0.00860287206332325"
+        rpy="0 0 0" />
+      <mass
+        value="0.542840146660939" />
+      <inertia
+        ixx="0.000136997260417333"
+        ixy="-3.28799640991211E-09"
+        ixz="-2.45398279683093E-07"
+        iyy="0.000116033877132066"
+        iyz="1.4442192335441E-08"
+        izz="5.10589482767007E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back2_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.776470588235294 0.756862745098039 0.737254901960784 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="back2"
+    type="prismatic">
+    <origin
+      xyz="-0.1175 0 0.0010453"
+      rpy="0 0 0" />
+    <parent
+      link="front2_Link" />
+    <child
+      link="back2_Link" />
+    <axis
+      xyz="-0.99984 0 -0.018019" />
+    <limit
+      lower="-0.05"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w2-3_Link">
+    <inertial>
+      <origin
+        xyz="0 3.79696274421804E-14 -1.38777878078145E-17"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="1.12737657086959E-23"
+        ixz="-1.06281477016677E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-7.8335774957651E-24"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w2-3_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w2-3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w2-3"
+    type="revolute">
+    <origin
+      xyz="-0.000499999999999945 0.0617601286221688 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back2_Link" />
+    <child
+      link="w2-3_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w2-4_Link">
+    <inertial>
+      <origin
+        xyz="-2.22044604925031E-16 3.79696274421804E-14 -1.38777878078145E-17"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.7383601947827E-07"
+        ixy="-1.39048893828173E-23"
+        ixz="6.06821023496675E-23"
+        iyy="1.1581669813018E-06"
+        iyz="2.36231987406696E-23"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w2-4_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w2-4_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w2-4"
+    type="revolute">
+    <origin
+      xyz="-0.000499999999999945 -0.0617601286221689 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back2_Link" />
+    <child
+      link="w2-4_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="front3_Link">
+    <inertial>
+      <origin
+        xyz="-0.0129696719872623 -6.10948160117974E-10 -0.000148924915256688"
+        rpy="0 0 0" />
+      <mass
+        value="0.0655692709973447" />
+      <inertia
+        ixx="4.53813611204438E-05"
+        ixy="1.21867442127258E-13"
+        ixz="7.19798006185745E-09"
+        iyy="2.74467734034699E-05"
+        iyz="1.56151161757409E-13"
+        izz="2.66452408682428E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front3_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="front3"
+    type="revolute">
+    <origin
+      xyz="-0.0580000000001704 0 -0.00104527425371986"
+      rpy="0 0 0" />
+    <parent
+      link="back2_Link" />
+    <child
+      link="front3_Link" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w3-1_Link">
+    <inertial>
+      <origin
+        xyz="1.49213974509621E-13 1.44557976700099E-13 -5.57283386104501E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="-1.3441317804728E-19"
+        ixz="-1.06669218086351E-22"
+        iyy="1.1581669813018E-06"
+        iyz="5.67663135310251E-19"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w3-1_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w3-1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w3-1"
+    type="revolute">
+    <origin
+      xyz="-0.0139999999999787 0.0617601286220289 -0.0689776402639123"
+      rpy="0 0 0" />
+    <parent
+      link="front3_Link" />
+    <child
+      link="w3-1_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w3-2_Link">
+    <inertial>
+      <origin
+        xyz="1.82964754458226E-13 1.47090672975025E-13 -7.02424229892529E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.0087713266888227" />
+      <inertia
+        ixx="6.7383601947827E-07"
+        ixy="-1.3444608710587E-19"
+        ixz="-7.26271277356628E-23"
+        iyy="1.1581669813018E-06"
+        iyz="5.69205873216154E-19"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w3-2_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w3-2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w3-2"
+    type="revolute">
+    <origin
+      xyz="-0.0140000000000131 -0.0617601286223127 -0.0689776402639314"
+      rpy="0 0 0" />
+    <parent
+      link="front3_Link" />
+    <child
+      link="w3-2_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="back3_Link">
+    <inertial>
+      <origin
+        xyz="0.00563747824710803 -8.59417441668661E-07 0.00860287206290755"
+        rpy="0 0 0" />
+      <mass
+        value="0.542840146660954" />
+      <inertia
+        ixx="0.000136997260417335"
+        ixy="-3.28799640385625E-09"
+        ixz="-2.4539827968321E-07"
+        iyy="0.000116033877132068"
+        iyz="1.44421924104466E-08"
+        izz="5.10589482767012E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back3_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.776470588235294 0.756862745098039 0.737254901960784 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="back3"
+    type="prismatic">
+    <origin
+      xyz="-0.1175 0 0.0010453"
+      rpy="0 0 0" />
+    <parent
+      link="front3_Link" />
+    <child
+      link="back3_Link" />
+    <axis
+      xyz="-0.99984 0 -0.018019" />
+    <limit
+      lower="-0.05"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w3-3_Link">
+    <inertial>
+      <origin
+        xyz="1.48769885299771E-13 1.17912624109096E-13 -5.57172363802039E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="-1.3441317804728E-19"
+        ixz="-1.06669218086351E-22"
+        iyy="1.1581669813018E-06"
+        iyz="5.67663135310251E-19"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w3-3_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w3-3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w3-3"
+    type="revolute">
+    <origin
+      xyz="-0.000499999999999723 0.0617601286221689 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back3_Link" />
+    <child
+      link="w3-3_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w3-4_Link">
+    <inertial>
+      <origin
+        xyz="1.83186799063151E-13 1.17975074154231E-13 -7.01945446213159E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="-1.34461053534188E-19"
+        ixz="-1.11268067642394E-22"
+        iyy="1.1581669813018E-06"
+        iyz="5.67681759325374E-19"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w3-4_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w3-4_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w3-4"
+    type="revolute">
+    <origin
+      xyz="-0.000499999999999723 -0.0617601286221687 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back3_Link" />
+    <child
+      link="w3-4_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="front4_Link">
+    <inertial>
+      <origin
+        xyz="-0.0129696719878483 -6.13021933562607E-10 -0.000148924915893793"
+        rpy="0 0 0" />
+      <mass
+        value="0.0655692709973449" />
+      <inertia
+        ixx="4.53813611204439E-05"
+        ixy="1.21872482866539E-13"
+        ixz="7.19798006185284E-09"
+        iyy="2.744677340347E-05"
+        iyz="1.56139773048919E-13"
+        izz="2.66452408682429E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front4_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front4_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="front4"
+    type="revolute">
+    <origin
+      xyz="-0.0579999999994398 0 -0.00104527425386469"
+      rpy="0 0 0" />
+    <parent
+      link="back3_Link" />
+    <child
+      link="front4_Link" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w4-1_Link">
+    <inertial>
+      <origin
+        xyz="-3.40172334745148E-13 -1.47275247552869E-12 -1.77392128763998E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="7.58731957626879E-19"
+        ixz="-1.06281486895499E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-6.30607350251811E-18"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w4-1_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w4-1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w4-1"
+    type="revolute">
+    <origin
+      xyz="-0.0140000000000797 0.061760128621154 -0.0689776402640939"
+      rpy="0 0 0" />
+    <parent
+      link="front4_Link" />
+    <child
+      link="w4-1_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w4-2_Link">
+    <inertial>
+      <origin
+        xyz="-5.3357318563485E-13 -1.47040712938917E-12 -1.65041591504433E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.0087713266888227" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="7.58687807860877E-19"
+        ixz="-7.37995993401117E-23"
+        iyy="1.1581669813018E-06"
+        iyz="-6.31174153912708E-18"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w4-2_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w4-2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w4-2"
+    type="revolute">
+    <origin
+      xyz="-0.0139999999998519 -0.0617601286231844 -0.0689776402640969"
+      rpy="0 0 0" />
+    <parent
+      link="front4_Link" />
+    <child
+      link="w4-2_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="back4_Link">
+    <inertial>
+      <origin
+        xyz="0.00563747824649208 -8.59416989176451E-07 0.00860287206243435"
+        rpy="0 0 0" />
+      <mass
+        value="0.54284014666096" />
+      <inertia
+        ixx="0.000136997260417336"
+        ixy="-3.28799644593354E-09"
+        ixz="-2.45398279683083E-07"
+        iyy="0.000116033877132069"
+        iyz="1.44421914883897E-08"
+        izz="5.10589482767011E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back4_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.776470588235294 0.756862745098039 0.737254901960784 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back4_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="back4"
+    type="prismatic">
+    <origin
+      xyz="-0.1175 0 0.0010453"
+      rpy="0 0 0" />
+    <parent
+      link="front4_Link" />
+    <child
+      link="back4_Link" />
+    <axis
+      xyz="0.99984 0 0.018019" />
+    <limit
+      lower="0"
+      upper="0.05"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w4-3_Link">
+    <inertial>
+      <origin
+        xyz="-3.40172334745148E-13 -1.3068920945436E-12 -1.77406700441196E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="7.58731957626879E-19"
+        ixz="-1.06281486895499E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-6.30607350251811E-18"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w4-3_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w4-3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w4-3"
+    type="revolute">
+    <origin
+      xyz="-0.000500000000000389 0.0617601286221688 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back4_Link" />
+    <child
+      link="w4-3_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w4-4_Link">
+    <inertial>
+      <origin
+        xyz="-5.33795230239775E-13 -1.30692678901312E-12 -1.65811808727767E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.7383601947827E-07"
+        ixy="7.58706778971777E-19"
+        ixz="6.06820924712224E-23"
+        iyy="1.1581669813018E-06"
+        iyz="-6.30604204574162E-18"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w4-4_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w4-4_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w4-4"
+    type="revolute">
+    <origin
+      xyz="-0.000499999999999501 -0.0617601286221689 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back4_Link" />
+    <child
+      link="w4-4_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="front5_Link">
+    <inertial>
+      <origin
+        xyz="-0.0129696719880228 -6.12787468337594E-10 -0.000148924916654084"
+        rpy="0 0 0" />
+      <mass
+        value="0.0655692709973448" />
+      <inertia
+        ixx="4.53813611204439E-05"
+        ixy="1.21839486441038E-13"
+        ixz="7.19798006184471E-09"
+        iyy="2.74467734034699E-05"
+        iyz="1.56134339786029E-13"
+        izz="2.66452408682429E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front5_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front5_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="front5"
+    type="revolute">
+    <origin
+      xyz="-0.0579999999998222 0 -0.00104527425369971"
+      rpy="0 0 0" />
+    <parent
+      link="back4_Link" />
+    <child
+      link="front5_Link" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w5-1_Link">
+    <inertial>
+      <origin
+        xyz="-4.78284079008517E-13 -2.20259227523556E-12 -2.34354202710563E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="9.99755765349793E-19"
+        ixz="-1.06669237712756E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-9.58431790409454E-18"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w5-1_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w5-1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w5-1"
+    type="revolute">
+    <origin
+      xyz="-0.0140000000000076 0.061760128620218 -0.0689776402646061"
+      rpy="0 0 0" />
+    <parent
+      link="front5_Link" />
+    <child
+      link="w5-1_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w5-2_Link">
+    <inertial>
+      <origin
+        xyz="-7.33857419277228E-13 -2.20075346835102E-12 1.01293973209238E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="9.99718720619717E-19"
+        ixz="-2.74671551845738E-23"
+        iyy="1.1581669813018E-06"
+        iyz="-9.58868062675085E-18"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w5-2_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w5-2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w5-2"
+    type="revolute">
+    <origin
+      xyz="-0.0139999999999454 -0.06176012862412 -0.0689776402646086"
+      rpy="0 0 0" />
+    <parent
+      link="front5_Link" />
+    <child
+      link="w5-2_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="back5_Link">
+    <inertial>
+      <origin
+        xyz="0.00563747824633287 -8.59416867390189E-07 0.00860287206224176"
+        rpy="0 0 0" />
+      <mass
+        value="0.542840146660964" />
+      <inertia
+        ixx="0.000136997260417337"
+        ixy="-3.28799645810266E-09"
+        ixz="-2.45398279683184E-07"
+        iyy="0.00011603387713207"
+        iyz="1.44421910483179E-08"
+        izz="5.1058948276701E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back5_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.776470588235294 0.756862745098039 0.737254901960784 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back5_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="back5"
+    type="prismatic">
+    <origin
+      xyz="-0.1175 0 0.0010453"
+      rpy="0 0 0" />
+    <parent
+      link="front5_Link" />
+    <child
+      link="back5_Link" />
+    <axis
+      xyz="-0.99984 0 -0.018019" />
+    <limit
+      lower="-0.05"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w5-3_Link">
+    <inertial>
+      <origin
+        xyz="-4.78284079008517E-13 -1.9856546962238E-12 -2.34354896599953E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="9.99755765349793E-19"
+        ixz="-1.06669237712756E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-9.58431790409454E-18"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w5-3_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w5-3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w5-3"
+    type="revolute">
+    <origin
+      xyz="-0.000500000000000167 0.0617601286221689 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back5_Link" />
+    <child
+      link="w5-3_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w5-4_Link">
+    <inertial>
+      <origin
+        xyz="-7.33857419277228E-13 -1.98574490184455E-12 1.00724983909117E-13"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="9.99738999364453E-19"
+        ixz="1.20224674287076E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-9.58394909916996E-18"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w5-4_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w5-4_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w5-4"
+    type="revolute">
+    <origin
+      xyz="-0.000499999999999723 -0.0617601286221685 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back5_Link" />
+    <child
+      link="w5-4_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="front6_Link">
+    <inertial>
+      <origin
+        xyz="-0.0129696719881549 -6.11570240630077E-10 -0.000148924915999826"
+        rpy="0 0 0" />
+      <mass
+        value="0.0655692709973449" />
+      <inertia
+        ixx="4.53813611204439E-05"
+        ixy="1.21830448989253E-13"
+        ixz="7.19798006183669E-09"
+        iyy="2.744677340347E-05"
+        iyz="1.56134863584827E-13"
+        izz="2.66452408682429E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front6_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/front6_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="front6"
+    type="revolute">
+    <origin
+      xyz="-0.0579999999998977 0 -0.00104527425366694"
+      rpy="0 0 0" />
+    <parent
+      link="back5_Link" />
+    <child
+      link="front6_Link" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w6-1_Link">
+    <inertial>
+      <origin
+        xyz="-6.73683331342545E-13 -2.01810790301238E-12 -1.2292875051223E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="4.73588710758753E-19"
+        ixz="-1.06281486063754E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-9.25228826900139E-18"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w6-1_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w6-1_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w6-1"
+    type="revolute">
+    <origin
+      xyz="-0.0139999999998834 0.061760128619664 -0.0689776402655615"
+      rpy="0 0 0" />
+    <parent
+      link="front6_Link" />
+    <child
+      link="w6-1_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w6-2_Link">
+    <inertial>
+      <origin
+        xyz="-7.94475596421762E-13 -2.01758054707568E-12 1.13217768493712E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.0087713266888227" />
+      <inertia
+        ixx="6.7383601947827E-07"
+        ixy="4.73535991050929E-19"
+        ixz="-3.59638234795073E-23"
+        iyy="1.1581669813018E-06"
+        iyz="-9.26819452234926E-18"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w6-2_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w6-2_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w6-2"
+    type="revolute">
+    <origin
+      xyz="-0.0140000000000187 -0.0617601286246741 -0.0689776402655624"
+      rpy="0 0 0" />
+    <parent
+      link="front6_Link" />
+    <child
+      link="w6-2_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="back6_Link">
+    <inertial>
+      <origin
+        xyz="0.00807008198953874 -9.14901917805494E-07 0.00905917391522169"
+        rpy="0 0 0" />
+      <mass
+        value="0.509918971126834" />
+      <inertia
+        ixx="0.000119832320398814"
+        ixy="-3.28799643414527E-09"
+        ixz="-2.45398279683031E-07"
+        iyy="9.97915909507041E-05"
+        iyz="1.4442191298535E-08"
+        izz="4.55461267370526E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back6_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.776470588235294 0.756862745098039 0.737254901960784 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/back6_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="back6"
+    type="prismatic">
+    <origin
+      xyz="-0.1175 0 0.0010453"
+      rpy="0 0 0" />
+    <parent
+      link="front6_Link" />
+    <child
+      link="back6_Link" />
+    <axis
+      xyz="-0.99984 0 -0.018019" />
+    <limit
+      lower="-0.05"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w6-3_Link">
+    <inertial>
+      <origin
+        xyz="-6.73683331342545E-13 -1.91440613361848E-12 -1.22960669424188E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.73836019478271E-07"
+        ixy="4.73588710758753E-19"
+        ixz="-1.06281486063754E-22"
+        iyy="1.1581669813018E-06"
+        iyz="-9.25228826900139E-18"
+        izz="6.7383601947827E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w6-3_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w6-3_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w6-3"
+    type="revolute">
+    <origin
+      xyz="-0.000499999999999945 0.061760128622169 -0.0700229145182258"
+      rpy="0 0 0" />
+    <parent
+      link="back6_Link" />
+    <child
+      link="w6-3_Link" />
+    <axis
+      xyz="0 -1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="w6-4_Link">
+    <inertial>
+      <origin
+        xyz="-7.94475596421762E-13 -1.91441307251239E-12 1.13006826119033E-12"
+        rpy="0 0 0" />
+      <mass
+        value="0.00877132668882271" />
+      <inertia
+        ixx="6.7383601947827E-07"
+        ixy="4.73563532103674E-19"
+        ixz="6.06820933027746E-23"
+        iyy="1.1581669813018E-06"
+        iyz="-9.25259288434111E-18"
+        izz="6.73836019478271E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w6-4_Link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://longworm2.SLDASM/meshes/w6-4_Link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="w6-4"
+    type="revolute">
+    <origin
+      xyz="-0.000499999999999501 -0.0617601286221683 -0.0700229145182259"
+      rpy="0 0 0" />
+    <parent
+      link="back6_Link" />
+    <child
+      link="w6-4_Link" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="0"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+</robot>

@@ -1,0 +1,58 @@
+{
+  "workers": 4,
+  "numerical_library_threads": 1,
+  "cpu": "AMD Ryzen AI 9 HX 370",
+  "groups": [
+    {
+      "nodes": 33,
+      "segments": 32,
+      "strips": 8,
+      "frames": 25,
+      "solve_seconds": 110.2294811999891,
+      "render_seconds": 12.251890199957415,
+      "max_free_force_residual_n": 1.0342975476085314e-08,
+      "max_force_balance_n": 8.343678738167853e-15,
+      "peak_total_axial_force_n": 3.537379047958825,
+      "subdivisions": 449,
+      "identical_to_serial": true,
+      "preview": "D:\\doso\\robot\\ribbon_bench\\mesh_demo\\n33\\preview.png",
+      "animation": "D:\\doso\\robot\\ribbon_bench\\mesh_demo\\n33\\simulation.gif"
+    },
+    {
+      "nodes": 65,
+      "segments": 64,
+      "strips": 8,
+      "frames": 25,
+      "solve_seconds": 553.5168117000721,
+      "render_seconds": 12.39907869999297,
+      "max_free_force_residual_n": 5.1145652157913446e-08,
+      "max_force_balance_n": 3.444555276460196e-14,
+      "peak_total_axial_force_n": 3.332942310588278,
+      "subdivisions": 672,
+      "identical_to_serial": true,
+      "preview": "D:\\doso\\robot\\ribbon_bench\\mesh_demo\\n65\\preview.png",
+      "animation": "D:\\doso\\robot\\ribbon_bench\\mesh_demo\\n65\\simulation.gif"
+    },
+    {
+      "nodes": 129,
+      "segments": 128,
+      "strips": 8,
+      "frames": 25,
+      "solve_seconds": 853.804293199908,
+      "render_seconds": 13.623516399879009,
+      "max_free_force_residual_n": 4.1482276791349193e-07,
+      "max_force_balance_n": 1.0873658290878388e-13,
+      "peak_total_axial_force_n": 3.2423747500187226,
+      "subdivisions": 654,
+      "identical_to_serial": null,
+      "preview": "D:\\doso\\robot\\ribbon_bench\\mesh_demo\\n129\\preview.png",
+      "animation": "D:\\doso\\robot\\ribbon_bench\\mesh_demo\\n129\\simulation.gif"
+    }
+  ],
+  "preview": "D:\\doso\\robot\\ribbon_bench\\mesh_demo\\preview.png",
+  "animation": "D:\\doso\\robot\\ribbon_bench\\mesh_demo\\comparison.gif",
+  "comparison_render_seconds": 28.066534099867567,
+  "animation_duration_seconds": 5.0,
+  "total_solve_seconds": 1517.5505860999692,
+  "total_render_seconds": 66.34101939969696
+}

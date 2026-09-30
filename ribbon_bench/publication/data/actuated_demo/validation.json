@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "full_8_strips": true,
+  "nodes": 33,
+  "states": 25,
+  "solve_seconds": 63.291279199998826,
+  "actual_peak_compression_mm": 47.58545194096218,
+  "actual_peak_yaw_deg": 12.861516935484293,
+  "peak_tensions_n": [
+    0.0,
+    0.0,
+    3.4068501618098046,
+    3.4068501618098046
+  ],
+  "minimum_plate_gap_mm": 38.20943680390404,
+  "max_free_force_residual_n": 9.621298584505666e-07,
+  "max_free_moment_residual_nm": 1.298279001665792e-10,
+  "max_plate_force_residual_n": 1.7035891477501508e-06,
+  "max_plate_moment_residual_nm": 8.042988546008711e-09,
+  "contact_engaged": false,
+  "max_return_shape_error_m": 2.1871393585115584e-14,
+  "gif_frames": 25
+}
