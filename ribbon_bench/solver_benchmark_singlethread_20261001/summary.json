@@ -1,0 +1,63 @@
+{
+  "status": "passed",
+  "nodes": 33,
+  "strips": 8,
+  "states": 25,
+  "repeats": 1,
+  "seconds": {
+    "reference": [
+      51.08139680000022
+    ],
+    "fast": [
+      32.166549399960786
+    ]
+  },
+  "median_seconds": {
+    "reference": 51.08139680000022,
+    "fast": 32.166549399960786
+  },
+  "median_speedup": 1.5880284877576112,
+  "timing_scope": "CLI loading path including checkpoint serialization, excluding imports/initialization/rendering",
+  "hardware": "AMD64 Family 26 Model 36 Stepping 0, AuthenticAMD",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "numpy": "2.5.3",
+  "validation": [
+    {
+      "status": "passed",
+      "max_absolute_differences": {
+        "nodes_m": 2.1453117060588056e-12,
+        "width_directors": 2.3231916390642482e-11,
+        "compression_m": 7.027642356938202e-13,
+        "yaw_rad": 2.5450030971541082e-11,
+        "energy_j": 1.7241416627733486e-12,
+        "back_support_force_n": 4.953974119814575e-09,
+        "front_support_force_n": 1.2511804925452452e-09,
+        "tensions_n": 8.548717289613705e-11,
+        "total_energy_j": 3.0531133177191805e-16
+      },
+      "limits": {
+        "nodes_m": 1e-06,
+        "width_directors": 0.0001,
+        "compression_m": 1e-06,
+        "yaw_rad": 1e-05,
+        "energy_j": 1e-07,
+        "back_support_force_n": 0.0002,
+        "front_support_force_n": 0.0002,
+        "tensions_n": 0.0002,
+        "total_energy_j": 1e-06
+      }
+    }
+  ],
+  "thread_environment": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1"
+  },
+  "source_sha256": {
+    "actuate.py": "c06b5699a9e3202e42cf9e75e31a24d1f31c793c779c8a3f31ff92a894fcaadf",
+    "fast_sano.py": "218faeabe8490f7f269f3857ad734eb13656b26ab77bc4284067a4ce76c9d469",
+    "benchmark_solver.py": "2ca6613be6399912ff832f42337ba727630fef5b8f0f7b8a8396bbf1db810464"
+  }
+}

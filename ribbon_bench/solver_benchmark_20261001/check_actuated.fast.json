@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "nodes": 9,
+  "strips": 8,
+  "checks": "cable/stop derivatives; coupled equilibrium; coupled and prescribed banded/dense directions; full virtual work; cable release",
+  "virtual_work_absolute_errors": [
+    1.0439283543828282e-05,
+    1.0695649166336807e-07,
+    3.829126349330636e-08
+  ],
+  "return_shape_error_m": 1.1340771220569987e-11,
+  "plate_force_residual_n": -7.256994357464076e-08,
+  "plate_moment_residual_nm": -8.338016455065032e-10
+}

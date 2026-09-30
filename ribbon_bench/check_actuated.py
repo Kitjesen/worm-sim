@@ -23,6 +23,17 @@ def check():
     shifts = [rng.normal(size=len(f))*np.where(f < 27, 2e-6, 2e-4) for f in system.free]
     robots, plate = system.moved(robots, plate, shifts, np.array([2e-5, .003]))
     base = system.evaluate(robots, plate, command)
+    # Both vector (prescribed) and multi-RHS (coupled Schur) banded solves
+    # must reproduce the independent dense direction at a deformed state.
+    for prescribed in (False, True):
+        fast_internal, fast_plate = system.direction(base, 1e-5, prescribed)
+        system.solver = 'reference'
+        try:
+            dense_internal, dense_plate = system.direction(base, 1e-5, prescribed)
+        finally:
+            system.solver = 'fast'
+        for fast, dense in zip(fast_internal+[fast_plate], dense_internal+[dense_plate]):
+            assert np.allclose(fast, dense, rtol=1e-8, atol=1e-11), (fast, dense)
     directions = [rng.normal(size=len(f))*np.where(f < 27, 1e-4, .01) for f in system.free]
     errors = []
     for internal, dp in (([np.zeros(len(f)) for f in system.free], np.array([.01, 0.])),
@@ -42,7 +53,7 @@ def check():
     return_error = max(float(np.max(np.linalg.norm(r.state.q[:27].reshape(9, 3)-x, axis=1)))
                        for r, x in zip(unloaded, system.rest))
     assert return_error < 1e-6
-    report = dict(status='passed', nodes=9, strips=8, checks='cable/stop derivatives; coupled equilibrium; full virtual work; cable release',
+    report = dict(status='passed', nodes=9, strips=8, checks='cable/stop derivatives; coupled equilibrium; coupled and prescribed banded/dense directions; full virtual work; cable release',
                   virtual_work_absolute_errors=errors, return_shape_error_m=return_error,
                   plate_force_residual_n=float(rest['gp'][0]), plate_moment_residual_nm=float(rest['gp'][1]))
     (HERE/'check_actuated.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
