@@ -1,6 +1,7 @@
 # 钢片蠕虫机器人：Discrete Elastic Ribbons 台架
 
-完整过程、方法、图注与结果见 [REPORT.zh-CN.md](REPORT.zh-CN.md)。
+**汇报入口：[图像、结果与实现说明](PRESENTATION.zh-CN.md)**，包含全部9套可视化、下载索引、方法说明和可直接使用的讲稿。
+原阶段完整过程见 [REPORT.zh-CN.md](REPORT.zh-CN.md)，该报告保留当时卸载失败的历史；最新30°完整回程见[后续计算](prescribed_30_tangent_unload/README.md)。
 论文插图集中保存在 `publication/figures/`：300 dpi PNG、保留文字的 SVG、原帧序列 GIF。
 图中的工况说明已移至报告图注；`publication/` 同时保存源数据、参数、代码快照和 SHA-256 清单。
 旧图保留在 `publication/original_figures/`。运行 `python publish_results.py` 可重新归档已经渲染的结果，不会重新求解物理。
@@ -128,9 +129,9 @@ foreach ($nodes in 33, 65, 129) {
 
 `--prescribed` 会固定两块板的位姿并让绳松弛，结果中的板力/力矩为外部夹具所需反力，不能当作绳驱结果。
 已有 `prescribed_30_refined/loading_results.json` 和动画仅包含验证通过的 13 个加载状态，
-0→40 mm→30° 加载求解用时 446.9 秒；随后尝试卸载未收敛，未生成完整往返 `results.json`。
+该原运行的0→40 mm→30°加载用时446.9秒；当时卸载未收敛，因此该目录未生成完整往返 `results.json`。
 论文版动画移除了说明文字；对应报告图注明确标注仅加载，不倒放加载帧冒充卸载计算。上面的 `--loading-only` 命令只重复加载，
-不尝试回程。单独的 30→29.99° 小步卸载检查通过，但尚未验证完整卸载路径。
+不尝试回程。此后的切线预测延拓已完成[205状态完整回程](prescribed_30_tangent_unload/README.md)，新结果单独保存，原加载段及失败记录保留。
 
 目标受力检查：该 40 mm / 30° 平衡分支需要 `4.43534 N` 轴向力与 `0.437504 N·m` 偏转力矩。
 允许正负张力时的精确解为 `[-3.40970, -3.40970, 5.64171, 5.64171] N`；

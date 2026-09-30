@@ -6,7 +6,7 @@ The current main line is **V6 deployable bimodal locomotion**: one robot body ca
 
 Repository: https://github.com/Kitjesen/worm-sim
 
-The separate [steel-ribbon benchmark](ribbon_bench/README.md) contains eight-strip quasi-static simulations, ideal cable actuation, publication figures, and a [complete Chinese methods and results report](ribbon_bench/REPORT.zh-CN.md). It is a mechanics study alongside the MuJoCo/RL pipeline; the report documents the current modeling limits and the incomplete 30° unloading case.
+The separate [steel-ribbon benchmark](ribbon_bench/README.md) contains eight-strip quasi-static simulations, ideal cable actuation, and publication figures. Start with the [Chinese presentation guide and complete figure gallery](ribbon_bench/PRESENTATION.zh-CN.md), covering all nine figure sets and the verified 205-state prescribed 30° return. The [original methods report](ribbon_bench/REPORT.zh-CN.md) preserves the earlier incomplete-unloading record; the follow-up is documented separately. This mechanics study runs alongside the MuJoCo/RL pipeline.
 
 ## Current Main Claim
 
