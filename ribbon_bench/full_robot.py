@@ -23,6 +23,8 @@ from scipy.spatial.transform import Rotation
 
 from full_body_loads import FullBodyCables, read_body_inertias, skew
 from fast_sano import install_fast_sano
+from cuda_sano import install_cuda_sano
+from gpu_geometry_contact import contact_batch, surface_geometry_batch
 from ground_contact import evaluate_contact
 from ribbon_contact_geometry import surface_geometry
 from run import COMMIT, HERE, make_robot, read_project, refresh, strip_geometry
@@ -93,6 +95,9 @@ class FullRobot:
             rest = rest + self.shift
             robot, stepper = make_robot(parameters, rest, width, 'sano')
             install_fast_sano(stepper)
+            if self.solve_backend == 'cuda':
+                energy = stepper._TimeStepper__elastic_energies[0]
+                install_cuda_sano(energy, self.device)
             self.robots.append(robot); self.steppers.append(stepper)
             self.rest.append(rest); self.widths.append(width)
         self.rest, self.widths = np.asarray(self.rest), np.asarray(self.widths)
@@ -128,6 +133,13 @@ class FullRobot:
         self.local_bandwidth = min(10, self.nfree-1)
         self.mass_steel = _mass(self.robots[0], parameters)
         self.fixed = np.setdiff1d(np.arange(self.nq), self.free)
+        self._surface_dofs = []
+        for robot in self.robots:
+            edges = np.asarray(robot.edges[:len(robot.state.a1)], dtype=int)
+            self._surface_dofs.append(np.column_stack((
+                3*edges[:, 0, None]+np.arange(3),
+                3*edges[:, 1, None]+np.arange(3),
+                3*len(robot.node_dof_indices)+np.arange(len(edges)))))
         self.body_mass = self.body['mass_kg']
         self.body_inertia_local = self.body['inertia_com_local_kgm2']
         self.body_plate_centers = centers + self.shift
@@ -195,26 +207,105 @@ class FullRobot:
         # forward and temporary robot refresh on every line-search trial.
         return stepper._forces.copy(), stepper._jacobian.copy()
 
+    def _cuda_strip_contact(self, q, qold, B, commit=False):
+        """Evaluate all ribbon surfaces/contact on CUDA and reduce locally."""
+        torch = self.torch
+        device = self.device
+        qd = torch.as_tensor(np.ascontiguousarray(q), dtype=torch.float64, device=device)
+        qold_d = torch.as_tensor(np.ascontiguousarray(qold), dtype=torch.float64, device=device)
+        reference_a1 = torch.as_tensor(np.stack([r.state.a1 for r in self.robots]),
+                                        dtype=torch.float64, device=device)
+        points, local = surface_geometry_batch(
+            self.robots[0], qd, self.p['strip_width_m'], self.p['strip_thickness_m'],
+            device=device, reference_q=qold_d, reference_a1=reference_a1)
+        oldpoints = torch.as_tensor(np.ascontiguousarray(np.stack(self.steel_oldpoints)),
+                                    dtype=torch.float64, device=device)
+        history_elastic = torch.zeros((8, points.shape[1], 2), dtype=torch.float64, device=device)
+        history_active = torch.zeros((8, points.shape[1]), dtype=torch.bool, device=device)
+        for strip, history in enumerate(self.steel_history):
+            if history is not None:
+                history_elastic[strip] = torch.as_tensor(history['elastic_slip_m'], dtype=torch.float64, device=device)
+                history_active[strip] = torch.as_tensor(history['active'], dtype=torch.bool, device=device)
+        weights = torch.as_tensor(np.repeat(self.robots[0].ref_len/12., 12),
+                                  dtype=torch.float64, device=device)
+        contact = contact_batch(points, oldpoints, history_elastic, history_active,
+                                dt=self.dt, ground_height=self.ground_height,
+                                normal_stiffness=self.kn, tangential_stiffness=self.kt,
+                                weights=weights, mu=self.mu)
+        Aq = np.zeros((8, self.nq, self.nfree+12))
+        Aq[:, self.free, :self.nfree] = np.eye(self.nfree)[None, :, :]
+        Aq[:, self.fixed, self.nfree:] = B[:, self.fixed, :]
+        local_maps = torch.as_tensor(np.stack([
+            Aq[strip][self._surface_dofs[strip]] for strip in range(8)]),
+            dtype=torch.float64, device=device)
+        local_jac = local.reshape(8, -1, 12, 3, 7)
+        Jq = torch.einsum('sepik,sekm->sepim', local_jac, local_maps)
+        Jq = Jq.reshape(8, -1, 3, self.nfree+12)
+        contact_residual = torch.einsum('spij,spi->sj', Jq, contact['force'])
+        contact_hessian = torch.einsum('spai,spab,spbj->sij', Jq, contact['jacobian'], Jq)
+        residual_np = contact_residual.cpu().numpy()
+        hessian_np = contact_hessian.cpu().numpy()
+        gap_np = contact['gap_m'].cpu().numpy()
+        normal_np = contact['normal_force_n'].cpu().numpy()
+        active_np = contact['active'].cpu().numpy()
+        slip_np = contact['slip'].cpu().numpy()
+        if commit:
+            force_np = contact['force'].cpu().numpy()
+            jacobian_np = contact['jacobian'].cpu().numpy()
+            elastic_np = contact['history_elastic_m'].cpu().numpy()
+            plastic_np = contact['plastic_increment_m'].cpu().numpy()
+            detached_np = contact['detached'].cpu().numpy()
+        reduced = []
+        for strip in range(8):
+            active = active_np[strip]
+            slip = slip_np[strip]
+            if self.mu == 0.:
+                status = np.where(active, 'frictionless', 'separated')
+            else:
+                status = np.where(slip, 'slip', np.where(active, 'stick', 'separated'))
+            item = dict(
+                contact_residual=residual_np[strip],
+                contact_hessian=hessian_np[strip],
+                gap_m=gap_np[strip],
+                normal_force_n=normal_np[strip],
+                status=status)
+            if commit:
+                item.update(
+                    force=force_np[strip], jacobian=jacobian_np[strip],
+                    history=dict(elastic_slip_m=elastic_np[strip],
+                                 active=active.copy()),
+                    plastic_increment_m=plastic_np[strip], detached=detached_np[strip])
+            reduced.append(item)
+        return reduced
+
     def _evaluate(self, z, cable_rest, qold, uold, cold, Rold, commit=False, dense=False):
         q, c, R, B = self._decode(z, qold, cold, Rold)
+        cuda_contact = self._cuda_strip_contact(q, qold, B, commit) if self.solve_backend == 'cuda' else None
         total_res = np.zeros(self.nsteel+12)
         strip_hessians, strip_upper, strip_lower = [], [], []
         body_H = np.zeros((12, 12)); body_r = np.zeros(12)
         steel_energy = 0.; max_pen = 0.; contact_force = 0.; statuses = []
         for strip in range(8):
             grad, hess = self._elastic(strip, q[strip])
-            points, J = surface_geometry(self.robots[strip], q[strip], self.p['strip_width_m'], self.p['strip_thickness_m'])
-            weights = np.repeat(self.robots[strip].ref_len/12., 12)
-            contact = evaluate_contact(points, self.steel_oldpoints[strip], self.steel_history[strip], dt=self.dt,
-                                       ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
-                                       weights=weights, mu=self.mu)
             Aq_strip = np.zeros((self.nq, self.nfree+12)); Aq_strip[self.free, :self.nfree] = np.eye(self.nfree); Aq_strip[self.fixed, self.nfree:] = B[strip, self.fixed]
-            rq = grad + self.mass_steel*(q[strip]-qold[strip]-self.dt*uold[strip])/self.dt**2 - np.einsum('pij,pi->j', J, contact['force'], optimize=True)
+            if cuda_contact is None:
+                points, J = surface_geometry(self.robots[strip], q[strip], self.p['strip_width_m'], self.p['strip_thickness_m'])
+                weights = np.repeat(self.robots[strip].ref_len/12., 12)
+                contact = evaluate_contact(points, self.steel_oldpoints[strip], self.steel_history[strip], dt=self.dt,
+                                           ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
+                                           weights=weights, mu=self.mu)
+                contact_residual = np.einsum('pij,pi->j', J, contact['force'], optimize=True)
+                Jq = np.einsum('pij,jk->pik', J, Aq_strip)
+                contact_hessian = np.einsum('pai,pab,pbj->ij', Jq, contact['jacobian'], Jq, optimize=True)
+            else:
+                contact = cuda_contact[strip]
+                contact_residual = contact['contact_residual']
+                contact_hessian = contact['contact_hessian']
+            base_rq = grad + self.mass_steel*(q[strip]-qold[strip]-self.dt*uold[strip])/self.dt**2
             hq = hess + np.diag(self.mass_steel/self.dt**2)
-            Jq = np.einsum('pij,jk->pik', J, Aq_strip)
-            hcontact = np.einsum('pai,pab,pbj->ij', Jq, contact['jacobian'], Jq, optimize=True)
-            local_res = Aq_strip.T@rq
-            local_H = Aq_strip.T@hq@Aq_strip-hcontact
+            local_res = (Aq_strip.T@base_rq-contact_residual if cuda_contact is not None
+                         else Aq_strip.T@(base_rq-contact_residual))
+            local_H = Aq_strip.T@hq@Aq_strip-contact_hessian
             lo = strip*self.nfree; hi = lo+self.nfree
             total_res[lo:hi] += local_res[:self.nfree]
             body_r += local_res[self.nfree:]
@@ -349,7 +440,7 @@ class FullRobot:
         return np.r_[dz_steel, db]
 
     def _solve_schur_cuda(self, evaluation):
-        """CUDA FP64 local-block solve; geometry and contact remain on CPU."""
+        """CUDA FP64 local-block solve; ribbon geometry/contact are batched on device."""
         started = time.perf_counter()
         torch = self.torch
         body = self.nsteel
@@ -405,7 +496,7 @@ class FullRobot:
         z[self.nsteel+9:self.nsteel+12] = self.dt*self.body_omega[1]
         last = None
         ev = None
-        for iteration in range(30):
+        for iteration in range(60 if self.solve_backend == 'cuda' else 30):
             # Reuse the accepted line-search evaluation.  Recomputing the
             # same residual at the top of the next Newton iteration doubles
             # the expensive eight-strip force/Hessian assembly.
@@ -513,7 +604,11 @@ def main():
         solve_backend=args.solve_backend, cuda_device=args.cuda_device,
         local_solver='scipy.solve_banded' if args.solve_backend == 'cpu' else 'torch.linalg.solve_ex(reused_buffers)',
         local_bandwidth=sim.local_bandwidth,
-        material_derivative='fast_sano.closed_form_numpy',
+        material_derivative=('cuda_sano.closed_form_fp64+cpu_strain_derivative'
+                             if args.solve_backend == 'cuda' else 'fast_sano.closed_form_numpy'),
+        material_assembly='cuda_sano.chain_rule_scatter' if args.solve_backend == 'cuda' else 'vendor_numpy_chain_rule',
+        geometry_contact=('cuda.fp64.batch_surface_jacobian+contact_history'
+                          if args.solve_backend == 'cuda' else 'numpy.surface_geometry+evaluate_contact'),
         solve_seconds=sim.solve_seconds, vendor_commit=COMMIT,
         source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()), frames=rows,
         wall_seconds=time.perf_counter()-start)
