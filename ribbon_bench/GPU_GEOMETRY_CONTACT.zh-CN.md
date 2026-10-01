@@ -12,7 +12,7 @@
 4. 用局部 Jacobian 把接触力和接触切线直接收缩到钢带自由度与端板 12 个自由度；
 5. 只把每片的小型残差/Hessian 块回传给 CPU Schur 接口。接受时间步时才回传完整接触历史。
 
-Sano 材料路径使用 `cuda_sano.py`：闭式能量、材料梯度/Hessian、链式法则 `einsum` 和全局 `scatter_add` 在 GPU。当前 vendor 的 `get_strain` 与 `grad_hess_strain` 仍在 CPU，这是下一阶段要继续迁移的部分；端板只有少量接触采样点，当前仍用 CPU 几何和接触调用。
+Sano 材料路径使用 `cuda_sano.py`：应变值、vendor 兼容的应变梯度/Hessian、闭式材料导数、链式法则 `einsum` 和全局 `scatter_add` 在 GPU。端板的采样点、刚体 Jacobian 和接触本构也在同一 CUDA batch 中计算；CPU 只接收紧凑的局部块，供现有 Schur 接口求解并在接受步后提交历史。
 
 ## 数值验收
 
@@ -25,7 +25,7 @@ Sano 材料路径使用 `cuda_sano.py`：闭式能量、材料梯度/Hessian、�
 | 接触力 | `0` |
 | 接触 Jacobian | `0` |
 
-`cuda_sano.py` 的 N9 单片链式装配自检通过，力最大绝对误差 `1.26e-29`，Hessian 最大绝对误差 `3.73e-9`（相对约 `1.2e-10`）。项目原有 `full_robot.py --self-check` 仍通过，残差 `3.636e-7 N`，最大穿透 `1.402e-7 m`。
+`cuda_sano.py` 的 N9 单片链式装配自检通过，力最大绝对误差 `2.17e-11 N`，Hessian 最大绝对误差 `2.79e-9`。随机扰动的 N9/N17/N33 应变、梯度和 Hessian 最大绝对误差分别为 `4.44e-16`、`2.84e-13`、`4.58e-10`。项目原有 `full_robot.py --self-check` 仍通过，残差 `3.636e-7 N`，最大穿透 `1.402e-7 m`。
 
 ## RTX 5090 实测
 
@@ -55,4 +55,4 @@ export PYTHONPATH=vendor/discrete-elastic-ribbon/src
 python full_robot.py --nodes 33 --steps 1 --duration .002 --command-mm 0 --solve-backend cuda --output /tmp/gpu_n33
 ```
 
-带较大收绳时，N17 已通过 38 次 Newton 迭代；N33 大收绳仍需要自适应收绳步长和线搜索参数标定，因此当前零驱动基准用于验证迁移正确性，不作为机器人爬行性能结论。
+带较大收绳时，N17 已通过 38 次 Newton 迭代。加入 `--max-command-step-mm 0.1` 后，0.5 mm 收绳被拆成 6 个隐式子步，N33 也能稳定通过。迁移端板几何后的 RTX 5090 对照耗时为 CPU/CUDA `9.39/7.99 s`，最后子步 Newton 迭代 `7/7`，最大残差 `4.219e-6/4.218e-6`，最大穿透 `4.715e-6/4.715e-6 m`。轨迹最大差异为节点 `1.64e-14`、端板 COM `1.25e-16`、端板旋转矩阵 `3.11e-15`。结果保存在 `gpu_full_robot_20261001/adaptive_n33_cpu_v2` 和 `adaptive_n33_cuda_v3`；这仍是数值稳定性验证，不是爬行性能结论。

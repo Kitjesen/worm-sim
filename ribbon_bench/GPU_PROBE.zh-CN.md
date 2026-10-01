@@ -2,7 +2,7 @@
 
 日期：2026-10-01。材料微基准与一对完整路径对照均已完成。完整路径的逐帧物理对照通过，但本次 CUDA 材料版本用时 **36.325 s**，CPU 版本 **31.462 s**，约慢 **15.46%**；此次接入没有取得整段加速。
 
-**最新迁移阶段（同日追加）：** `full_robot.py` 已接入 `cuda_sano.py` 与 `gpu_geometry_contact.py`。8 片钢带的表面几何/Jacobian、平面罚接触、黏着/滑动历史以及接触广义力和切线收缩使用 FP64 Torch CUDA batch；Sano 的闭式材料能量、梯度、Hessian 和全局 scatter 也在 GPU。上游 `get_strain`/`grad_hess_strain` 仍由 vendor CPU 计算，端板的少量采样接触仍走 CPU。RTX 5090 单步零驱动基准：N9 2.03 s、N17 1.99 s、N33 2.11 s（CUDA，8 片，dt=2 ms），同机 CPU 约 1.27/2.27/4.92 s；N33 约 2.3×。这组数据是迁移后的新路径，不能与下面旧的“CUDA 材料 + CPU 求解器”25 状态路径混用。
+**最新迁移阶段（同日追加）：** `full_robot.py` 已接入 `cuda_sano.py` 与 `gpu_geometry_contact.py`。8 片钢带的 Sano 应变/梯度/Hessian、表面几何/Jacobian、平面罚接触、黏着/滑动历史、端板采样几何/接触本构以及接触广义力和切线收缩使用 FP64 Torch CUDA batch；CPU 只接收紧凑 Schur 块并提交接受步历史。RTX 5090 单步零驱动基准：N9 2.03 s、N17 1.99 s、N33 2.11 s（CUDA，8 片，dt=2 ms），同机 CPU 约 1.27/2.27/4.92 s；N33 约 2.3×。这组数据是迁移后的新路径，不能与下面旧的“CUDA 材料 + CPU 求解器”25 状态路径混用。
 
 本实验回答两个不同问题：Sano 材料能量、梯度和 Hessian 能否在 GPU 上正确计算，以及把这部分接入现有求解器后，整段准静态路径是否更快。**材料微基准的加速不能直接解释为整个机器人仿真加速。** 当前实现没有训练或调用神经网络。
 
@@ -95,11 +95,11 @@ GPU 路径计时前已完成 8 次常量上传，路径内没有重复上传常�
 
 全路径计时使用 `actuate` 的路径计时器，排除导入、初始化、CUDA 预热和绘图；材料输入输出传输发生在求解过程中，计入路径耗时。单次全路径对照与微基准的九次取中位数是两种统计口径，不能混称为重复验证的总体加速率。
 
-早期逐片上传材料的对照中，CPU / CUDA 耗时比为 **0.866**，CUDA 路径约慢 **15.46%**；该数字保留用于说明传输开销，不能与本页顶部采用几何/接触 batch 的最新基准混用。当前仍以 CPU 精确求解器作为小系统可信基准；下一阶段需要把 vendor 应变导数、端板接触和 Newton 状态也设备驻留，才能继续扩大收益。
+早期逐片上传材料的对照中，CPU / CUDA 耗时比为 **0.866**，CUDA 路径约慢 **15.46%**；该数字保留用于说明传输开销，不能与本页顶部采用几何/接触 batch 的最新基准混用。当前仍以 CPU 精确求解器作为小系统可信基准；新阶段已经把 vendor 应变导数和端板采样几何/接触本构设备化，后续收益重点转向设备驻留的绳索与 Newton 收敛状态。
 
 ## 纯 RTX 5090 的时间估算与加速路线
 
-这里的“纯 GPU”定义为：钢带几何、Sano 材料、绳索、接触历史、全局装配、Newton 迭代和线性求解都在 CUDA 上，时间步之间不把状态往返 CPU；只在保存轨迹时读回结果。当前已完成的是 CUDA Schur 混合版本：8 个局部块和 12×12 Schur 在线性代数中使用 RTX 5090，几何、Sano 材料、接触与线搜索仍在 CPU。因此下面同时报告实测混合时间和纯 GPU 的后续目标，不能把混合时间写成纯 GPU 结果。
+这里的“纯 GPU”定义为：钢带几何、Sano 材料、绳索、接触历史、全局装配、Newton 迭代和线性求解都在 CUDA 上，时间步之间不把状态往返 CPU；只在保存轨迹时读回结果。当前已完成的是 CUDA 混合版本：Sano 应变/导数、8 片表面与端板几何/接触及局部材料链式装配使用 RTX 5090，CPU 仍接收紧凑 Schur 块、做线性求解和状态提交。因此下面同时报告实测混合时间和纯 GPU 的后续目标，不能把混合时间写成纯 GPU 结果。
 
 首版共享钢带增量的整机 CPU 数字（N9/N17/N33 为 4.70/7.40/28.12 s）已作废，不能代表 8 片独立钢带。旧的 CUDA Schur 基线单步为 N9 **1.23/1.64 s**、N17 **1.98/2.41 s**、N33 **3.59/4.01 s**（CPU/CUDA），仍保留作线性代数对照。新的 CUDA batch 进一步迁移了钢带表面几何和接触，详见顶部追加的 N9/N17/N33 单步结果；两组数字不能混用。
 
@@ -109,7 +109,7 @@ GPU 路径计时前已完成 8 次常量上传，路径内没有重复上传常�
 T_\mathrm{run}=N_\mathrm{step}N_\mathrm{Newton}\left(T_\mathrm{geom}+T_\mathrm{material}+T_\mathrm{contact}+T_\mathrm{assemble}+T_\mathrm{solve}+T_\mathrm{line\ search}\right)+T_\mathrm{I/O}.
 \]
 
-当前每一步通常需要 10–20 次 Newton/线搜索评估；N33 的正确模型每次是 948 维系统。删除无用能量计算后，N33 CPU 单步约 3.6 s，冷启动 CUDA 约 4.0 s；同进程 warm-up 后，CUDA 局部 solve 约 16.6 ms，而 `evaluate` 仍约 1.46 s，说明主要成本仍在 CPU 钢带材料链式装配、几何和接触。纯 GPU 版本需要将这些状态一起设备驻留；在实现前只能把 N33 约 **数秒/步**、N65 约 **几十秒/10 步**、N129 约 **数分钟/10 步**作为工程目标，不能写成实测论文结果。
+当前每一步通常需要 10–20 次 Newton/线搜索评估；N33 的正确模型每次是 948 维系统。删除无用能量计算后，N33 CPU 单步约 3.6 s，冷启动 CUDA 约 4.0 s；新路径已将主要材料、几何和接触计算设备化，但紧凑块回传、CPU Schur 和状态提交仍有同步成本。纯 GPU 版本需要将这些剩余状态一起设备驻留；在实现前只能把 N33 约 **数秒/步**、N65 约 **几十秒/10 步**、N129 约 **数分钟/10 步**作为工程目标，不能写成实测论文结果。
 
 早期同一 RTX 5090 主机上的 N33 十步完整对照为 CPU Schur **418.29 s**、CUDA Schur **393.86 s**，加速比 **1.062×**；节点轨迹最大差 `2.77e-11 m`，端板 COM 最大差 `1.51e-13 m`。该长时程结果仍可用于追踪 CUDA Schur 的一致性；最新单步基准见上表，端到端瓶颈仍在 CPU 几何、接触和 Newton 评估。
 
@@ -117,7 +117,7 @@ T_\mathrm{run}=N_\mathrm{step}N_\mathrm{Newton}\left(T_\mathrm{geom}+T_\mathrm{m
 
 1. 已完成每片局部 Hessian 的节点重排和半带宽 10 带状存储、接触收缩优化、闭式 Sano batch、无用能量计算删除，以及 CUDA RHS/设备缓冲区复用；CPU 自检与 dense Schur 增量相对误差小于 `1e-8`。
 2. 把八条钢带、表面接触点和材料行按 batch 向量化，固定节点数和形状，使用 CUDA compiled/fused kernel。
-3. 将接触历史、stick/slip mask、绳索导数和 Newton 线搜索状态留在设备端；每次 Newton 只做设备内残差范数和收敛判断，避免同步。
+3. 已将钢带/端板接触历史和 stick/slip mask 送入设备 batch；下一步把绳索导数、Schur 右端项与 Newton 线搜索状态留在设备端，每次 Newton 只做设备内残差范数和收敛判断，避免同步。
 4. N65 以上再做 16–64 个机器人环境的 batch；多环境才足以摊薄 RTX 5090 的启动成本。单个 N33 环境即使纯 GPU 仍可能不如 CPU 双精度。
 5. 先以 FP64 作为可信基准。已有 CUDA FP32 峰值装配残差为 `1.517e-6 N`，超过项目 `1e-6 N` 门槛；可以用 FP32 几何加 FP64 累加/迭代修正做实验，但不能直接替代 FP64 物理结果。
 
@@ -140,4 +140,4 @@ python cuda_solver_probe.py --compare gpu_reproduce/full_cpu/results.json gpu_re
 
 后端适用范围参考 [微软 DirectML 安装说明](https://learn.microsoft.com/en-us/windows/ai/directml/pytorch-windows)与 [torch-directml 包元数据](https://pypi.org/project/torch-directml/)；本实验实际依赖版本以各份摘要为准。材料来源固定为 [Discrete Elastic Ribbons 提交 c9d3411](https://github.com/StructuresComp/discrete-elastic-ribbon/tree/c9d341164e2927fc24b2c43dff97fcfb492cf700)，具体闭式实现和验证入口见 [CPU 物理核心说明](PHYSICS_CORE.zh-CN.md)。
 
-本轮不测自由爬行、惯性振动、真实绳孔接触或神经网络代理。钢带表面接触和摩擦历史已经进入 GPU batch；vendor 应变导数、端板接触、绳索和 Newton 状态仍需继续设备化，并在非零收绳轨迹上做完整 CPU/GPU 对照。
+本轮不测自由爬行、惯性振动、真实绳孔接触或神经网络代理。钢带与端板几何、接触历史及 Sano 应变导数已经进入 GPU batch；绳索和 Newton 收敛状态仍需继续设备驻留，并在更长非零收绳轨迹上做完整 CPU/GPU 对照。

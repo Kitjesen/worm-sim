@@ -155,6 +155,7 @@ class FullRobot:
         self.plate_oldpoints = [self._plate_points(i)[0] for i in range(2)]
         c0, R0 = self.body_com.copy(), self.body_R.copy()
         self.base_cable_lengths = self.cable.evaluate(c0, R0, np.ones(4))['lengths_m']
+        self._last_cable_rest = self.base_cable_lengths.copy()
         self.last = None
 
     def _steel_points(self, strip, q):
@@ -278,6 +279,54 @@ class FullRobot:
             reduced.append(item)
         return reduced
 
+    def _cuda_plate_contact(self, body, c, R, commit=False):
+        """Run the plate's small sampled contact law on the same CUDA kernel."""
+        torch = self.torch
+        device = self.device
+        # Keep the plate sample geometry and its rigid-body Jacobian on device;
+        # only the six-by-six reduction is copied back for the CPU Schur solve.
+        local = torch.as_tensor(self.plate_local, dtype=torch.float64, device=device)
+        com_local = torch.as_tensor(self.body['com_local_m'][body], dtype=torch.float64, device=device)
+        c_d = torch.as_tensor(c, dtype=torch.float64, device=device)
+        R_d = torch.as_tensor(R, dtype=torch.float64, device=device)
+        arm = local - com_local[None, :]
+        world_arm = arm @ R_d.T
+        current = (c_d[None, :] + world_arm)[None]
+        x, y, z = world_arm.unbind(-1)
+        zero = torch.zeros_like(x)
+        skew_world = torch.stack((torch.stack((zero, -z, y), dim=-1),
+                                  torch.stack((z, zero, -x), dim=-1),
+                                  torch.stack((-y, x, zero), dim=-1)), dim=-2)
+        eye = torch.eye(3, dtype=torch.float64, device=device).expand(len(self.plate_local), -1, -1)
+        Jd = torch.cat((eye, -skew_world), dim=-1)
+        old = torch.as_tensor(self.plate_oldpoints[body][None], dtype=torch.float64, device=device)
+        history = self.plate_history[body]
+        elastic = None if history is None else torch.as_tensor(history['elastic_slip_m'][None], dtype=torch.float64, device=device)
+        active = None if history is None else torch.as_tensor(history['active'][None], dtype=torch.bool, device=device)
+        weights = torch.as_tensor(self.plate_weights, dtype=torch.float64, device=device)
+        contact = contact_batch(current, old, elastic, active, dt=self.dt,
+                                ground_height=self.ground_height, normal_stiffness=self.kn,
+                                tangential_stiffness=self.kt, weights=weights, mu=self.mu)
+        force = contact['force'][0]
+        jacobian = contact['jacobian'][0]
+        residual = torch.einsum('pij,pi->j', Jd, force).cpu().numpy()
+        hessian = torch.einsum('pai,pab,pbj->ij', Jd, jacobian, Jd).cpu().numpy()
+        gap = contact['gap_m'][0].cpu().numpy()
+        normal = contact['normal_force_n'][0].cpu().numpy()
+        active_np = contact['active'][0].cpu().numpy()
+        slip_np = contact['slip'][0].cpu().numpy()
+        status = (np.where(active_np, 'frictionless', 'separated') if self.mu == 0.
+                  else np.where(slip_np, 'slip', np.where(active_np, 'stick', 'separated')))
+        out = dict(contact_residual=residual, contact_hessian=hessian,
+                   gap_m=gap, normal_force_n=normal, status=status)
+        if commit:
+            out.update(force=force.cpu().numpy(), jacobian=jacobian.cpu().numpy(),
+                       history=dict(elastic_slip_m=contact['history_elastic_m'][0].cpu().numpy(),
+                                    active=active_np.copy()),
+                       plastic_increment_m=contact['plastic_increment_m'][0].cpu().numpy(),
+                       detached=contact['detached'][0].cpu().numpy())
+        return out
+
     def _evaluate(self, z, cable_rest, qold, uold, cold, Rold, commit=False, dense=False):
         q, c, R, B = self._decode(z, qold, cold, Rold)
         cuda_contact = self._cuda_strip_contact(q, qold, B, commit) if self.solve_backend == 'cuda' else None
@@ -329,12 +378,17 @@ class FullRobot:
             body_r[6*body+2] += self.body_mass[body]*9.81
             body_H[6*body:6*body+3, 6*body:6*body+3] += self.body_mass[body]/self.dt**2*np.eye(3)
             body_H[6*body+3:6*body+6, 6*body+3:6*body+6] += I/self.dt**2
-            p, Jb = self._plate_points_at(body, c[body], R[body])
-            bc = evaluate_contact(p, self.plate_oldpoints[body], self.plate_history[body], dt=self.dt,
-                                  ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
-                                  weights=self.plate_weights, mu=self.mu)
-            body_r[6*body:6*body+6] -= np.einsum('pij,pi->j', Jb, bc['force'], optimize=True)
-            body_H[6*body:6*body+6, 6*body:6*body+6] -= np.einsum('pai,pab,pbj->ij', Jb, bc['jacobian'], Jb, optimize=True)
+            if self.solve_backend == 'cuda':
+                bc = self._cuda_plate_contact(body, c[body], R[body], commit)
+            else:
+                p, Jb = self._plate_points_at(body, c[body], R[body])
+                bc = evaluate_contact(p, self.plate_oldpoints[body], self.plate_history[body], dt=self.dt,
+                                      ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
+                                      weights=self.plate_weights, mu=self.mu)
+                bc['contact_residual'] = np.einsum('pij,pi->j', Jb, bc['force'], optimize=True)
+                bc['contact_hessian'] = np.einsum('pai,pab,pbj->ij', Jb, bc['jacobian'], Jb, optimize=True)
+            body_r[6*body:6*body+6] -= bc['contact_residual']
+            body_H[6*body:6*body+6, 6*body:6*body+6] -= bc['contact_hessian']
             max_pen = max(max_pen, float(max(0., -np.min(bc['gap_m'])))); contact_force += float(np.sum(bc['normal_force_n'])); statuses.extend(bc['status'].tolist())
             if commit: self._candidate_plate = getattr(self, '_candidate_plate', []); self._candidate_plate.append(bc)
         total_res[self.nsteel:] += body_r
@@ -545,6 +599,27 @@ class FullRobot:
                 raise RuntimeError(f'Newton line search stalled at residual {scaled:g}')
         raise RuntimeError(f'Newton limit at residual {max(np.abs(last["residual"])):g}')
 
+    def step_adaptive(self, cable_rest, max_rest_step_m=1e-4):
+        """Split an abrupt cable command into smaller implicit-Euler substeps."""
+        target = np.asarray(cable_rest, dtype=float)
+        start = self._last_cable_rest
+        if max_rest_step_m <= 0.:
+            count = 1
+        else:
+            count = max(1, int(np.ceil(np.max(np.abs(target-start))/max_rest_step_m)))
+        nominal_dt = self.dt
+        info = None
+        try:
+            for index in range(1, count+1):
+                self.dt = nominal_dt/count
+                rest = start + (target-start)*(index/count)
+                info = self.step(rest)
+        finally:
+            self.dt = nominal_dt
+        self._last_cable_rest = target.copy()
+        info['command_substeps'] = count
+        return info
+
 
 def _command(base, t, duration, amplitude):
     phase = 2*np.pi*t/max(duration, 1e-12)
@@ -576,6 +651,7 @@ def main():
     ap.add_argument('--nodes', type=int, default=9); ap.add_argument('--steps', type=int, default=10)
     ap.add_argument('--dt', type=float, default=.002); ap.add_argument('--duration', type=float, default=.02)
     ap.add_argument('--command-mm', type=float, default=.5); ap.add_argument('--output', type=Path, default=HERE/'full_robot_demo')
+    ap.add_argument('--max-command-step-mm', type=float, default=.1)
     ap.add_argument('--solve-backend', choices=('cpu', 'cuda'), default='cpu')
     ap.add_argument('--cuda-device', type=int, default=0)
     ap.add_argument('--self-check', action='store_true')
@@ -590,7 +666,7 @@ def main():
     for i in range(args.steps+1):
         t = i*args.duration/max(args.steps, 1)
         rest = _command(sim.base_cable_lengths, t, args.duration, args.command_mm/1000.)
-        if i: info = sim.step(rest)
+        if i: info = sim.step_adaptive(rest, args.max_command_step_mm/1000.)
         else: info = dict(iterations=0, residual_max=0., max_penetration_m=0., contact_normal_force_n=0.,
                           cable_energy_j=0., tensions_n=np.zeros(4), body_com=sim.body_com.tolist())
         rows.append(dict(time_s=t, **{k: (v.tolist() if isinstance(v, np.ndarray) else v) for k,v in info.items()}))
@@ -600,14 +676,15 @@ def main():
         steel_dof_per_strip=sim.nfree, steel_dof_total=sim.nsteel, newton_dof=sim.nsteel+12,
         independent_strip_coordinates=True, dt_s=args.dt,
         duration_s=args.duration, command_amplitude_mm=args.command_mm, model='Sano steel + CAD rigid bodies + ideal tension-only cables + sampled plane penalty/friction contact',
+        max_command_step_mm=args.max_command_step_mm,
         contact='12 surface samples per steel edge plus 2x rim samples per plate; no continuous CCD; quasi-Newton contact geometric Hessian',
         solve_backend=args.solve_backend, cuda_device=args.cuda_device,
         local_solver='scipy.solve_banded' if args.solve_backend == 'cpu' else 'torch.linalg.solve_ex(reused_buffers)',
         local_bandwidth=sim.local_bandwidth,
-        material_derivative=('cuda_sano.closed_form_fp64+cpu_strain_derivative'
+        material_derivative=('cuda_sano.closed_form_fp64+cuda_strain_derivatives'
                              if args.solve_backend == 'cuda' else 'fast_sano.closed_form_numpy'),
         material_assembly='cuda_sano.chain_rule_scatter' if args.solve_backend == 'cuda' else 'vendor_numpy_chain_rule',
-        geometry_contact=('cuda.fp64.batch_surface_jacobian+contact_history'
+        geometry_contact=('cuda.fp64.batch_surface_jacobian+plate_contact_history'
                           if args.solve_backend == 'cuda' else 'numpy.surface_geometry+evaluate_contact'),
         solve_seconds=sim.solve_seconds, vendor_commit=COMMIT,
         source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()), frames=rows,

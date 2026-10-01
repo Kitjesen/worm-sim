@@ -20,6 +20,27 @@
     "n17": 2.57,
     "n33": 3.15
   },
+  "adaptive_n33_command_mm_0_5": {
+    "max_command_step_mm": 0.1,
+    "substeps": 6,
+    "wall_seconds": {"cpu": 9.385584203526378, "cuda": 7.99455551803112},
+    "last_substep_iterations": {"cpu": 7, "cuda": 7},
+    "max_residual": {"cpu": 4.219045657001151e-06, "cuda": 4.217599985663844e-06},
+    "max_penetration_m": {"cpu": 4.714956841505059e-06, "cuda": 4.714956841501671e-06},
+    "trajectory_max_abs_difference": {
+      "q": 1.6431300764452317e-14,
+      "body_com_m": 1.249000902703301e-16,
+      "body_rotation": 3.105588702867479e-15
+    },
+    "cuda_scope": "Sano strain/gradient/Hessian, steel surface geometry/contact, plate sample geometry/contact law, and CUDA Schur"
+  },
+  "sano_strain_derivative_parity": {
+    "nodes": [9, 17, 33],
+    "max_abs_strain": 4.440892098500626e-16,
+    "max_abs_gradient": 2.8421709430404007e-13,
+    "max_abs_hessian": 4.5838532969355583e-10,
+    "state": "random 0.002 m perturbation; FP64 CPU device check"
+  },
   "parity": {
     "surface_point_max_abs_m": 6.94e-18,
     "local_jacobian_max_abs": 2.22e-16,
@@ -27,5 +48,5 @@
     "contact_jacobian_max_abs": 0.0,
     "notes": "Whole-step values are single cold-start runs; geometry/contact parity includes perturbed ribbon states and separated/stick/slip cases."
   },
-  "scope": "CUDA material chain assembly + 8-ribbon surface geometry/contact batch; vendor strain derivatives and small plate contact remain CPU."
+  "scope": "CUDA Sano strain/gradient/Hessian and material chain assembly + 8-ribbon surface/plate geometry/contact batch; CPU retains only compact Schur reductions and state/history commit."
 }

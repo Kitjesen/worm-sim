@@ -114,7 +114,7 @@ foreach ($nodes in 33, 65, 129) {
 
 ## 整机动力学与地面接触
 
-`full_robot.py` 是后续物理核心的首个闭环版本：八片彼此独立的 Sano 钢带、两块 CAD 质量/惯量刚体端板、四根张力单向绳、重力，以及带历史的 stick/slip/liftoff 平地接触在隐式 Euler 中联立求解。钢带接触使用实际 16 mm 宽、0.15 mm 厚的表面采样；端板使用圆周采样包络。Newton 采用八个局部钢带块与 12×12 Schur 补；`--solve-backend cuda` 可把这部分 FP64 线性代数放到 CUDA，几何、材料和接触仍在 CPU。
+`full_robot.py` 是后续物理核心的首个闭环版本：八片彼此独立的 Sano 钢带、两块 CAD 质量/惯量刚体端板、四根张力单向绳、重力，以及带历史的 stick/slip/liftoff 平地接触在隐式 Euler 中联立求解。钢带接触使用实际 16 mm 宽、0.15 mm 厚的表面采样；端板使用圆周采样包络。Newton 采用八个局部钢带块与 12×12 Schur 补；`--solve-backend cuda` 会把 Sano 应变/导数、钢带与端板几何/接触以及局部线性代数放到 CUDA，CPU 只保留紧凑 Schur 接口与接受步提交。
 
 完整过程、参数口径、问题和论文对照见 [FULL_SIMULATION_REPORT.zh-CN.md](FULL_SIMULATION_REPORT.zh-CN.md) 与 [FULL_SIMULATION_LOG.zh-CN.md](FULL_SIMULATION_LOG.zh-CN.md)。最新独立钢带基准位于 `gpu_full_robot_20261001/optimized_n9_cpu/`、`optimized_n17_cpu/` 和 `optimized_n33_cpu/`；N9/N17/N33 CPU 单步约 1.23/1.98/3.59 s，CUDA 单步约 1.64/2.41/4.01 s。旧 `fast_n*` 目录只用于追溯。
 
@@ -125,7 +125,7 @@ $env:PYTHONPATH = 'vendor/discrete-elastic-ribbon/src'
 .\.venv\Scripts\python.exe render_full_robot.py --input full_robot_n9_independent_probe --output full_robot_n9_independent_probe/full_robot_paper.png
 ```
 
-在 RTX 5090 上将同一命令增加 `--solve-backend cuda` 可测 CUDA Schur；摘要会记录 `solve_backend`、`newton_dof` 和 `solve_seconds`。当前 CUDA 只迁移局部线性代数，几何、材料和接触仍在 CPU，不能称为纯 GPU 物理核心。
+在 RTX 5090 上将同一命令增加 `--solve-backend cuda` 可测当前 CUDA 混合物理核心；摘要会记录 `solve_backend`、`newton_dof` 和 `solve_seconds`。Sano 应变/导数、钢带与端板几何/接触和局部线性代数在 CUDA，CPU 只保留紧凑 Schur 接口与接受步状态提交；绳索和 Newton 收敛状态仍未完全设备驻留，因此仍不称为纯 GPU 求解器。
 
 ```powershell
 # 沿用上面的 OPENBLAS/OMP/MKL 单线程设置
