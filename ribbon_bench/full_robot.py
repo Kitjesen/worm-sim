@@ -1,7 +1,7 @@
 """Minimal full worm-robot dynamics: Sano ribbons, cables, rigid plates, ground.
 
-This is the first integrated verification core.  It uses a dense Newton solve
-for the coupled internal ribbon coordinates and twelve plate pose coordinates;
+This is the first integrated verification core.  It uses local banded Newton
+solves for each ribbon and a 12-DOF Schur solve for the coupled plate poses;
 the steel/contact Jacobian is assembled analytically, while contact geometric
 second derivatives are deliberately omitted (a documented quasi-Newton term).
 Run ``python full_robot.py --self-check`` before a simulation.
@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+from scipy.linalg import solve_banded
 from scipy.spatial.transform import Rotation
 
 from full_body_loads import FullBodyCables, read_body_inertias, skew
@@ -111,6 +112,17 @@ class FullRobot:
         self.nfree = len(self.free)
         # Each of the eight steel strips has its own internal coordinates.
         self.nsteel = self.p['strip_count'] * self.nfree
+        # Reorder each local block by node (x, y, z, twist).  The Sano
+        # nearest-neighbour stencil then has a fixed half-bandwidth of ten;
+        # the solver below keeps the original coordinate order at its API.
+        keys = []
+        for local, global_dof in enumerate(self.free):
+            if global_dof < 3*nodes:
+                keys.append((int(global_dof)//3, int(global_dof)%3, local))
+            else:
+                keys.append((int(global_dof)-3*nodes, 3, local))
+        self.local_perm = np.asarray([local for _, _, local in sorted(keys)], dtype=int)
+        self.local_bandwidth = min(10, self.nfree-1)
         self.mass_steel = _mass(self.robots[0], parameters)
         self.fixed = np.setdiff1d(np.arange(self.nq), self.free)
         self.body_mass = self.body['mass_kg']
@@ -270,12 +282,11 @@ class FullRobot:
         strip_upper = evaluation['strip_upper']
         strip_lower = evaluation['strip_lower']
         body_hessian = evaluation['body_hessian']
-        y0 = np.zeros(self.nsteel)
-        X = np.zeros((self.nsteel, 12))
+        local_solutions = []
         coupling = np.zeros((12, 12))
         body_rhs = -residual[body:].copy()
 
-        def solve(A, b):
+        def solve_dense(A, b):
             try:
                 out = np.linalg.solve(A, b)
             except np.linalg.LinAlgError:
@@ -290,13 +301,28 @@ class FullRobot:
             A = strip_hessians[strip]
             C = strip_upper[strip]
             L = strip_lower[strip]
-            y0[lo:hi] = solve(A, -residual[lo:hi])
-            X[lo:hi] = solve(A, C)
-            coupling += L@X[lo:hi]
-            body_rhs -= L@y0[lo:hi]
+            p = self.local_perm
+            Aperm = A[np.ix_(p, p)]
+            n = len(p); bw = self.local_bandwidth
+            ab = np.zeros((2*bw+1, n), dtype=A.dtype)
+            for col in range(n):
+                start, stop = max(0, col-bw), min(n, col+bw+1)
+                ab[bw+start-col:bw+stop-col, col] = Aperm[start:stop, col]
+            rhs = np.column_stack((-residual[lo:hi][p], C[p, :]))
+            try:
+                solved = solve_banded((bw, bw), ab, rhs, check_finite=False)
+            except (np.linalg.LinAlgError, ValueError):
+                solved = np.linalg.lstsq(Aperm + 1e-8*np.eye(n), rhs, rcond=None)[0]
+            if not np.isfinite(solved).all():
+                raise np.linalg.LinAlgError('non-finite local banded Schur solve')
+            y0p, Xp = solved[:, 0], solved[:, 1:]
+            local_solutions.append((y0p, Xp))
+            Lp = L[:, p]
+            coupling += Lp@Xp
+            body_rhs -= Lp@y0p
         schur = body_hessian-coupling
         try:
-            db = solve(schur, body_rhs)
+            db = solve_dense(schur, body_rhs)
         except np.linalg.LinAlgError:
             # Keep a diagnostic fallback for nonsmooth contact states; the
             # normal path remains the local-block Schur solve.
@@ -308,7 +334,17 @@ class FullRobot:
                 hessian[body:, lo:hi] = strip_lower[strip]
             hessian[body:, body:] = body_hessian
             return np.linalg.lstsq(hessian + 1e-8*np.eye(len(hessian)), -residual, rcond=None)[0]
-        return np.r_[y0-X@db, db]
+        dz_steel = np.zeros(self.nsteel)
+        for strip in range(8):
+            lo = strip*self.nfree
+            hi = lo+self.nfree
+            p = self.local_perm
+            y0p, Xp = local_solutions[strip]
+            local = y0p - Xp@db
+            block = dz_steel[lo:hi]
+            block[p] = local
+            dz_steel[lo:hi] = block
+        return np.r_[dz_steel, db]
 
     def _solve_schur_cuda(self, evaluation):
         """CUDA FP64 local-block solve; geometry and contact remain on CPU."""
@@ -445,6 +481,8 @@ def main():
         duration_s=args.duration, command_amplitude_mm=args.command_mm, model='Sano steel + CAD rigid bodies + ideal tension-only cables + sampled plane penalty/friction contact',
         contact='12 surface samples per steel edge plus 2x rim samples per plate; no continuous CCD; quasi-Newton contact geometric Hessian',
         solve_backend=args.solve_backend, cuda_device=args.cuda_device,
+        local_solver='scipy.solve_banded' if args.solve_backend == 'cpu' else 'torch.linalg.solve',
+        local_bandwidth=sim.local_bandwidth,
         solve_seconds=sim.solve_seconds, vendor_commit=COMMIT,
         source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()), frames=rows,
         wall_seconds=time.perf_counter()-start)
