@@ -71,6 +71,7 @@ class FullRobot:
         self.solve_seconds = 0.
         self.cuda_device = int(cuda_device)
         self.torch = None
+        self._cuda_buffers = None
         if solve_backend == 'cuda':
             import torch
             if not torch.cuda.is_available():
@@ -190,10 +191,9 @@ class FullRobot:
         stepper, oldrobot = self.steppers[strip], self.robots[strip]
         with contextlib.redirect_stdout(io.StringIO()):
             stepper._compute_forces_and_jacobian(oldrobot, q, np.zeros(self.nq))
-        grad, hess = stepper._forces.copy(), stepper._jacobian.copy()
-        trial = refresh(oldrobot, q)
-        energy = float(stepper.compute_total_elastic_energy(trial.state))
-        return grad, hess, energy, trial
+        # Newton uses only force and tangent; avoid a duplicate material
+        # forward and temporary robot refresh on every line-search trial.
+        return stepper._forces.copy(), stepper._jacobian.copy()
 
     def _evaluate(self, z, cable_rest, qold, uold, cold, Rold, commit=False, dense=False):
         q, c, R, B = self._decode(z, qold, cold, Rold)
@@ -202,7 +202,7 @@ class FullRobot:
         body_H = np.zeros((12, 12)); body_r = np.zeros(12)
         steel_energy = 0.; max_pen = 0.; contact_force = 0.; statuses = []
         for strip in range(8):
-            grad, hess, energy, trial = self._elastic(strip, q[strip])
+            grad, hess = self._elastic(strip, q[strip])
             points, J = surface_geometry(self.robots[strip], q[strip], self.p['strip_width_m'], self.p['strip_thickness_m'])
             weights = np.repeat(self.robots[strip].ref_len/12., 12)
             contact = evaluate_contact(points, self.steel_oldpoints[strip], self.steel_history[strip], dt=self.dt,
@@ -354,18 +354,41 @@ class FullRobot:
         torch = self.torch
         body = self.nsteel
         residual = evaluation['residual']
-        A = torch.as_tensor(np.stack(evaluation['strip_hessians']), dtype=torch.float64, device=self.device)
-        C = torch.as_tensor(np.stack(evaluation['strip_upper']), dtype=torch.float64, device=self.device)
-        L = torch.as_tensor(np.stack(evaluation['strip_lower']), dtype=torch.float64, device=self.device)
-        rs = torch.as_tensor(residual[:self.nsteel].reshape(8, self.nfree), dtype=torch.float64, device=self.device)
-        rb = torch.as_tensor(residual[body:], dtype=torch.float64, device=self.device)
-        y0 = torch.linalg.solve(A, -rs[..., None])[..., 0]
-        X = torch.linalg.solve(A, C)
-        schur = torch.as_tensor(evaluation['body_hessian'], dtype=torch.float64, device=self.device) - torch.sum(L@X, dim=0)
+        # Reuse device allocations across Newton iterations.  These small
+        # matrices are too cheap to justify repeated CUDA allocator work.
+        shapes = ((8, self.nfree, self.nfree), (8, self.nfree, 12),
+                  (8, 12, self.nfree), (8, self.nfree), (12,), (12, 12),
+                  (8, self.nfree, 13))
+        cache = self._cuda_buffers
+        if cache is None or cache['A'].shape != shapes[0]:
+            cache = {name: torch.empty(shape, dtype=torch.float64, device=self.device)
+                     for name, shape in zip(('A', 'C', 'L', 'rs', 'rb', 'body_hessian', 'rhs'), shapes)}
+            self._cuda_buffers = cache
+        # copy_ keeps the reusable device storage while accepting the NumPy
+        # arrays produced by the CPU geometry/contact assembly.
+        cache['A'].copy_(torch.from_numpy(np.ascontiguousarray(np.stack(evaluation['strip_hessians']))))
+        cache['C'].copy_(torch.from_numpy(np.ascontiguousarray(np.stack(evaluation['strip_upper']))))
+        cache['L'].copy_(torch.from_numpy(np.ascontiguousarray(np.stack(evaluation['strip_lower']))))
+        cache['rs'].copy_(torch.from_numpy(np.ascontiguousarray(residual[:self.nsteel].reshape(8, self.nfree))))
+        cache['rb'].copy_(torch.from_numpy(np.ascontiguousarray(residual[body:])))
+        cache['body_hessian'].copy_(torch.from_numpy(np.ascontiguousarray(evaluation['body_hessian'])))
+        A, C, L = cache['A'], cache['C'], cache['L']
+        rs, rb = cache['rs'], cache['rb']
+        # Solve the residual and all 12 plate-coupling right-hand sides in
+        # one batched factorization.  The CPU banded path already does this;
+        # keeping the same RHS layout avoids factoring each local block twice.
+        # ``solve`` performs an eager CUDA error check.  ``solve_ex`` keeps
+        # the info tensor on-device; the final NumPy finite check below is the
+        # single required host-side validation.
+        cache['rhs'][..., 0].copy_(rs).neg_()
+        cache['rhs'][..., 1:].copy_(C)
+        solved, _ = torch.linalg.solve_ex(A, cache['rhs'], check_errors=False)
+        y0 = solved[..., 0]
+        X = solved[..., 1:]
+        schur = cache['body_hessian'] - torch.sum(L@X, dim=0)
         rhs = -rb - torch.sum(torch.matmul(L, y0[..., None])[..., 0], dim=0)
-        db = torch.linalg.solve(schur, rhs)
+        db, _ = torch.linalg.solve_ex(schur, rhs, check_errors=False)
         dz = torch.cat(((y0-torch.matmul(X, db[..., None])[..., 0]).reshape(-1), db)).cpu().numpy()
-        torch.cuda.synchronize(self.device)
         self.solve_seconds += time.perf_counter()-started
         if not np.isfinite(dz).all():
             raise FloatingPointError('non-finite CUDA Schur increment')
@@ -381,8 +404,13 @@ class FullRobot:
         z[self.nsteel+3:self.nsteel+6] = self.dt*self.body_omega[0]
         z[self.nsteel+9:self.nsteel+12] = self.dt*self.body_omega[1]
         last = None
+        ev = None
         for iteration in range(30):
-            ev = self._evaluate(z, cable_rest, qold, uold, cold, Rold)
+            # Reuse the accepted line-search evaluation.  Recomputing the
+            # same residual at the top of the next Newton iteration doubles
+            # the expensive eight-strip force/Hessian assembly.
+            if ev is None:
+                ev = self._evaluate(z, cable_rest, qold, uold, cold, Rold)
             scaled = max(np.max(np.abs(ev['residual'][:self.nsteel]))/1e-5,
                          np.max(np.abs(ev['residual'][self.nsteel:]))/1e-5)
             last = ev
@@ -420,7 +448,7 @@ class FullRobot:
             for _ in range(12):
                 trial = self._evaluate(z+fraction*dz, cable_rest, qold, uold, cold, Rold)
                 if np.linalg.norm(trial['residual']) < np.linalg.norm(ev['residual']):
-                    z += fraction*dz; accepted = True; break
+                    z += fraction*dz; ev = trial; accepted = True; break
                 fraction *= .5
             if not accepted:
                 raise RuntimeError(f'Newton line search stalled at residual {scaled:g}')
@@ -483,7 +511,7 @@ def main():
         duration_s=args.duration, command_amplitude_mm=args.command_mm, model='Sano steel + CAD rigid bodies + ideal tension-only cables + sampled plane penalty/friction contact',
         contact='12 surface samples per steel edge plus 2x rim samples per plate; no continuous CCD; quasi-Newton contact geometric Hessian',
         solve_backend=args.solve_backend, cuda_device=args.cuda_device,
-        local_solver='scipy.solve_banded' if args.solve_backend == 'cpu' else 'torch.linalg.solve',
+        local_solver='scipy.solve_banded' if args.solve_backend == 'cpu' else 'torch.linalg.solve_ex(reused_buffers)',
         local_bandwidth=sim.local_bandwidth,
         material_derivative='fast_sano.closed_form_numpy',
         solve_seconds=sim.solve_seconds, vendor_commit=COMMIT,

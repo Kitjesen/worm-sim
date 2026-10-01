@@ -116,7 +116,7 @@ foreach ($nodes in 33, 65, 129) {
 
 `full_robot.py` 是后续物理核心的首个闭环版本：八片彼此独立的 Sano 钢带、两块 CAD 质量/惯量刚体端板、四根张力单向绳、重力，以及带历史的 stick/slip/liftoff 平地接触在隐式 Euler 中联立求解。钢带接触使用实际 16 mm 宽、0.15 mm 厚的表面采样；端板使用圆周采样包络。Newton 采用八个局部钢带块与 12×12 Schur 补；`--solve-backend cuda` 可把这部分 FP64 线性代数放到 CUDA，几何、材料和接触仍在 CPU。
 
-完整过程、参数口径、问题和论文对照见 [FULL_SIMULATION_REPORT.zh-CN.md](FULL_SIMULATION_REPORT.zh-CN.md) 与 [FULL_SIMULATION_LOG.zh-CN.md](FULL_SIMULATION_LOG.zh-CN.md)。优化后的独立钢带基准位于 `gpu_full_robot_20261001/fast_n9_cpu/`、`fast_n17_cpu/` 和 `fast_n33_cpu/`；N9/N17/N33 CPU 单步约 2.36/3.55/7.18 s，CUDA 单步约 2.84/3.88/7.51 s。旧目录只用于追溯，不能作为正确模型的最新性能结论。
+完整过程、参数口径、问题和论文对照见 [FULL_SIMULATION_REPORT.zh-CN.md](FULL_SIMULATION_REPORT.zh-CN.md) 与 [FULL_SIMULATION_LOG.zh-CN.md](FULL_SIMULATION_LOG.zh-CN.md)。最新独立钢带基准位于 `gpu_full_robot_20261001/optimized_n9_cpu/`、`optimized_n17_cpu/` 和 `optimized_n33_cpu/`；N9/N17/N33 CPU 单步约 1.23/1.98/3.59 s，CUDA 单步约 1.64/2.41/4.01 s。旧 `fast_n*` 目录只用于追溯。
 
 ```powershell
 $env:PYTHONPATH = 'vendor/discrete-elastic-ribbon/src'
