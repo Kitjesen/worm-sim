@@ -60,9 +60,21 @@ class FullRobot:
     def __init__(self, parameters, delta, *, nodes=9, dt=.002, mu=.4,
                  normal_stiffness=1e8, tangential_stiffness=2e7,
                  damping=0., ground_height=0., clearance=2e-5,
-                 cad_path=None, contact_samples=24):
+                 cad_path=None, contact_samples=24, solve_backend='cpu', cuda_device=0):
         self.p, self.delta, self.nodes, self.dt = parameters, np.asarray(delta), nodes, dt
         self.mu, self.kn, self.kt, self.damping = float(mu), float(normal_stiffness), float(tangential_stiffness), float(damping)
+        if solve_backend not in ('cpu', 'cuda'):
+            raise ValueError('solve_backend must be cpu or cuda')
+        self.solve_backend = solve_backend
+        self.solve_seconds = 0.
+        self.cuda_device = int(cuda_device)
+        self.torch = None
+        if solve_backend == 'cuda':
+            import torch
+            if not torch.cuda.is_available():
+                raise RuntimeError('CUDA solve backend requested but CUDA is unavailable')
+            self.torch = torch
+            self.device = torch.device('cuda', self.cuda_device)
         self.ground_height = float(ground_height)
         if nodes < 7 or dt <= 0 or mu < 0 or normal_stiffness <= 0 or tangential_stiffness <= 0:
             raise ValueError('Invalid nodes, dt, friction or contact stiffness')
@@ -169,9 +181,11 @@ class FullRobot:
         energy = float(stepper.compute_total_elastic_energy(trial.state))
         return grad, hess, energy, trial
 
-    def _evaluate(self, z, cable_rest, qold, uold, cold, Rold, commit=False):
+    def _evaluate(self, z, cable_rest, qold, uold, cold, Rold, commit=False, dense=False):
         q, c, R, B = self._decode(z, qold, cold, Rold)
-        total_res = np.zeros(self.nsteel+12); total_H = np.zeros((self.nsteel+12, self.nsteel+12))
+        total_res = np.zeros(self.nsteel+12)
+        strip_hessians, strip_upper, strip_lower = [], [], []
+        body_H = np.zeros((12, 12)); body_r = np.zeros(12)
         steel_energy = 0.; max_pen = 0.; contact_force = 0.; statuses = []
         for strip in range(8):
             grad, hess, energy, trial = self._elastic(strip, q[strip])
@@ -180,20 +194,26 @@ class FullRobot:
             contact = evaluate_contact(points, self.steel_oldpoints[strip], self.steel_history[strip], dt=self.dt,
                                        ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
                                        weights=weights, mu=self.mu)
-            base = strip*self.nfree
-            Aq_strip = np.zeros((self.nq, self.nsteel+12)); Aq_strip[self.free, base:base+self.nfree] = np.eye(self.nfree); Aq_strip[self.fixed, self.nsteel:] = B[strip, self.fixed]
+            Aq_strip = np.zeros((self.nq, self.nfree+12)); Aq_strip[self.free, :self.nfree] = np.eye(self.nfree); Aq_strip[self.fixed, self.nfree:] = B[strip, self.fixed]
             rq = grad + self.mass_steel*(q[strip]-qold[strip]-self.dt*uold[strip])/self.dt**2 - np.einsum('pij,pi->j', J, contact['force'])
             hq = hess + np.diag(self.mass_steel/self.dt**2)
             Jq = np.einsum('pij,jk->pik', J, Aq_strip)
             hcontact = np.einsum('pai,pab,pbj->ij', Jq, contact['jacobian'], Jq)
-            total_res += Aq_strip.T@rq; total_H += Aq_strip.T@hq@Aq_strip-hcontact
+            local_res = Aq_strip.T@rq
+            local_H = Aq_strip.T@hq@Aq_strip-hcontact
+            lo = strip*self.nfree; hi = lo+self.nfree
+            total_res[lo:hi] += local_res[:self.nfree]
+            body_r += local_res[self.nfree:]
+            body_H += local_H[self.nfree:, self.nfree:]
+            strip_hessians.append(local_H[:self.nfree, :self.nfree])
+            strip_upper.append(local_H[:self.nfree, self.nfree:])
+            strip_lower.append(local_H[self.nfree:, :self.nfree])
             max_pen = max(max_pen, float(max(0., -np.min(contact['gap_m']))))
             contact_force += float(np.sum(contact['normal_force_n']))
             statuses.extend(contact['status'].tolist())
             if commit:
                 if not hasattr(self, '_candidate_steel') or not isinstance(self._candidate_steel, list): self._candidate_steel = []
                 self._candidate_steel.append(contact)
-        body_r = np.zeros(12); body_H = np.zeros((12, 12))
         cable = self.cable.evaluate(c, R, cable_rest)
         body_r += cable['gradient']
         for body in range(2):
@@ -212,16 +232,106 @@ class FullRobot:
             body_H[6*body:6*body+6, 6*body:6*body+6] -= np.einsum('pai,pab,pbj->ij', Jb, bc['jacobian'], Jb)
             max_pen = max(max_pen, float(max(0., -np.min(bc['gap_m'])))); contact_force += float(np.sum(bc['normal_force_n'])); statuses.extend(bc['status'].tolist())
             if commit: self._candidate_plate = getattr(self, '_candidate_plate', []); self._candidate_plate.append(bc)
-        total_res[self.nsteel:] += body_r; total_H[self.nsteel:, self.nsteel:] += body_H
-        if not np.isfinite(total_res).all() or not np.isfinite(total_H).all():
+        total_res[self.nsteel:] += body_r
+        if not np.isfinite(total_res).all() or not all(np.isfinite(x).all() for x in strip_hessians+strip_upper+strip_lower+[body_H]):
             raise FloatingPointError('non-finite full-robot residual')
-        info = dict(residual=total_res, hessian=total_H, energy_j=steel_energy+cable['energy_j'], steel_energy_j=steel_energy,
+        total_H = None
+        if dense:
+            total_H = np.zeros((self.nsteel+12, self.nsteel+12))
+            for strip in range(8):
+                lo = strip*self.nfree; hi = lo+self.nfree
+                total_H[lo:hi, lo:hi] = strip_hessians[strip]
+                total_H[lo:hi, self.nsteel:] = strip_upper[strip]
+                total_H[self.nsteel:, lo:hi] = strip_lower[strip]
+            total_H[self.nsteel:, self.nsteel:] = body_H
+        info = dict(residual=total_res, hessian=total_H, strip_hessians=strip_hessians,
+                    strip_upper=strip_upper, strip_lower=strip_lower, body_hessian=body_H,
+                    energy_j=steel_energy+cable['energy_j'], steel_energy_j=steel_energy,
                     cable_energy_j=cable['energy_j'], tensions_n=cable['tensions_n'], cable_lengths_m=cable['lengths_m'],
                     max_penetration_m=max_pen, contact_normal_force_n=contact_force, statuses=statuses, q=q, c=c, R=R, B=B)
         return info
 
     def _plate_points_at(self, body, c, R):
         return _plate_points(c, R, self.plate_local, self.body['com_local_m'][body])
+
+    def _solve_schur(self, evaluation):
+        """Solve the block-diagonal strip / 12-DOF plate Newton system.
+
+        The eight strip blocks have no direct cross-coupling; all cross-strip
+        coupling passes through the rigid plates.  Solving the local blocks
+        first reduces the dense solve from ``(8*nfree+12)^3`` to eight local
+        solves plus one 12-by-12 Schur solve.
+        """
+        if self.solve_backend == 'cuda':
+            return self._solve_schur_cuda(evaluation)
+        body = self.nsteel
+        residual = evaluation['residual']
+        strip_hessians = evaluation['strip_hessians']
+        strip_upper = evaluation['strip_upper']
+        strip_lower = evaluation['strip_lower']
+        body_hessian = evaluation['body_hessian']
+        y0 = np.zeros(self.nsteel)
+        X = np.zeros((self.nsteel, 12))
+        coupling = np.zeros((12, 12))
+        body_rhs = -residual[body:].copy()
+
+        def solve(A, b):
+            try:
+                out = np.linalg.solve(A, b)
+            except np.linalg.LinAlgError:
+                out = np.linalg.lstsq(A + 1e-8*np.eye(len(A)), b, rcond=None)[0]
+            if not np.isfinite(out).all():
+                raise np.linalg.LinAlgError('non-finite local Schur solve')
+            return out
+
+        for strip in range(8):
+            lo = strip*self.nfree
+            hi = lo+self.nfree
+            A = strip_hessians[strip]
+            C = strip_upper[strip]
+            L = strip_lower[strip]
+            y0[lo:hi] = solve(A, -residual[lo:hi])
+            X[lo:hi] = solve(A, C)
+            coupling += L@X[lo:hi]
+            body_rhs -= L@y0[lo:hi]
+        schur = body_hessian-coupling
+        try:
+            db = solve(schur, body_rhs)
+        except np.linalg.LinAlgError:
+            # Keep a diagnostic fallback for nonsmooth contact states; the
+            # normal path remains the local-block Schur solve.
+            hessian = np.zeros((self.nsteel+12, self.nsteel+12))
+            for strip in range(8):
+                lo = strip*self.nfree; hi = lo+self.nfree
+                hessian[lo:hi, lo:hi] = strip_hessians[strip]
+                hessian[lo:hi, body:] = strip_upper[strip]
+                hessian[body:, lo:hi] = strip_lower[strip]
+            hessian[body:, body:] = body_hessian
+            return np.linalg.lstsq(hessian + 1e-8*np.eye(len(hessian)), -residual, rcond=None)[0]
+        return np.r_[y0-X@db, db]
+
+    def _solve_schur_cuda(self, evaluation):
+        """CUDA FP64 local-block solve; geometry and contact remain on CPU."""
+        started = time.perf_counter()
+        torch = self.torch
+        body = self.nsteel
+        residual = evaluation['residual']
+        A = torch.as_tensor(np.stack(evaluation['strip_hessians']), dtype=torch.float64, device=self.device)
+        C = torch.as_tensor(np.stack(evaluation['strip_upper']), dtype=torch.float64, device=self.device)
+        L = torch.as_tensor(np.stack(evaluation['strip_lower']), dtype=torch.float64, device=self.device)
+        rs = torch.as_tensor(residual[:self.nsteel].reshape(8, self.nfree), dtype=torch.float64, device=self.device)
+        rb = torch.as_tensor(residual[body:], dtype=torch.float64, device=self.device)
+        y0 = torch.linalg.solve(A, -rs[..., None])[..., 0]
+        X = torch.linalg.solve(A, C)
+        schur = torch.as_tensor(evaluation['body_hessian'], dtype=torch.float64, device=self.device) - torch.sum(L@X, dim=0)
+        rhs = -rb - torch.sum(torch.matmul(L, y0[..., None])[..., 0], dim=0)
+        db = torch.linalg.solve(schur, rhs)
+        dz = torch.cat(((y0-torch.matmul(X, db[..., None])[..., 0]).reshape(-1), db)).cpu().numpy()
+        torch.cuda.synchronize(self.device)
+        self.solve_seconds += time.perf_counter()-started
+        if not np.isfinite(dz).all():
+            raise FloatingPointError('non-finite CUDA Schur increment')
+        return dz
 
     def step(self, cable_rest):
         qold, uold, cold, Rold = self.q.copy(), self.u.copy(), self.body_com.copy(), self.body_R.copy()
@@ -249,16 +359,14 @@ class FullRobot:
                 self.plate_history = [x['history'] for x in self._candidate_plate[-2:]]
                 self.steel_oldpoints = [self._steel_points(i, self.q[i]) for i in range(8)]
                 self.plate_oldpoints = [self._plate_points(i)[0] for i in range(2)]
-                info = {k: v for k, v in ev.items() if k not in ('q','c','R','B','hessian','residual','statuses')}
+                info = {k: v for k, v in ev.items() if k not in ('q','c','R','B','hessian','residual','statuses',
+                                                                  'strip_hessians','strip_upper','strip_lower','body_hessian')}
                 info.update(iterations=iteration, residual_max=float(np.max(np.abs(ev['residual']))),
                             body_com=self.body_com.tolist(), body_R=self.body_R.tolist(),
                             status_counts={name: ev['statuses'].count(name) for name in sorted(set(ev['statuses']))})
                 self.last = info
                 return info
-            try:
-                dz = np.linalg.solve(ev['hessian'], -ev['residual'])
-            except np.linalg.LinAlgError:
-                dz = np.linalg.lstsq(ev['hessian'] + 1e-8*np.eye(len(z)), -ev['residual'], rcond=None)[0]
+            dz = self._solve_schur(ev)
             if not np.isfinite(dz).all():
                 raise FloatingPointError('non-finite Newton increment')
             # Cap both strip displacement and rigid-body translation/rotation in one
@@ -291,6 +399,11 @@ def self_check():
     p, delta, provenance = read_project(HERE/'output/parameters.snapshot.json')
     sim = FullRobot(p, delta, nodes=9, dt=.002, contact_samples=12)
     assert len(sim.q) == 8 and sim.nfree == len(sim.free) and sim.nsteel == 8*sim.nfree
+    qold, uold, cold, Rold = sim.q.copy(), sim.u.copy(), sim.body_com.copy(), sim.body_R.copy()
+    probe = sim._evaluate(np.zeros(sim.nsteel+12), sim.base_cable_lengths+.01, qold, uold, cold, Rold, dense=True)
+    dz_schur = sim._solve_schur(probe)
+    dz_dense = np.linalg.solve(probe['hessian'], -probe['residual'])
+    assert np.linalg.norm(dz_schur-dz_dense)/max(np.linalg.norm(dz_dense), 1e-12) < 1e-8
     zero = sim.step(sim.base_cable_lengths+.01)
     assert np.isfinite(zero['residual_max']) and np.isfinite(sim.body_com).all()
     assert zero['max_penetration_m'] < 1e-3
@@ -306,12 +419,15 @@ def main():
     ap.add_argument('--nodes', type=int, default=9); ap.add_argument('--steps', type=int, default=10)
     ap.add_argument('--dt', type=float, default=.002); ap.add_argument('--duration', type=float, default=.02)
     ap.add_argument('--command-mm', type=float, default=.5); ap.add_argument('--output', type=Path, default=HERE/'full_robot_demo')
+    ap.add_argument('--solve-backend', choices=('cpu', 'cuda'), default='cpu')
+    ap.add_argument('--cuda-device', type=int, default=0)
     ap.add_argument('--self-check', action='store_true')
     args = ap.parse_args()
     if args.self_check: self_check(); return
     if args.steps < 1 or args.nodes < 7 or args.command_mm < 0: ap.error('invalid simulation arguments')
     p, delta, provenance = read_project(args.parameters)
-    sim = FullRobot(p, delta, nodes=args.nodes, dt=args.dt, cad_path=provenance['source_urdf'])
+    sim = FullRobot(p, delta, nodes=args.nodes, dt=args.dt, cad_path=provenance['source_urdf'],
+                    solve_backend=args.solve_backend, cuda_device=args.cuda_device)
     out = args.output; out.mkdir(parents=True, exist_ok=True)
     start = time.perf_counter(); rows = []; q_frames = []; body_frames = []; rotation_frames = []
     for i in range(args.steps+1):
@@ -328,7 +444,9 @@ def main():
         independent_strip_coordinates=True, dt_s=args.dt,
         duration_s=args.duration, command_amplitude_mm=args.command_mm, model='Sano steel + CAD rigid bodies + ideal tension-only cables + sampled plane penalty/friction contact',
         contact='12 surface samples per steel edge plus 2x rim samples per plate; no continuous CCD; quasi-Newton contact geometric Hessian',
-        vendor_commit=COMMIT, source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()), frames=rows,
+        solve_backend=args.solve_backend, cuda_device=args.cuda_device,
+        solve_seconds=sim.solve_seconds, vendor_commit=COMMIT,
+        source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()), frames=rows,
         wall_seconds=time.perf_counter()-start)
     (out/'summary.json').write_text(json.dumps(result, indent=2, allow_nan=False), encoding='utf-8')
     np.savez_compressed(out/'trajectory.npz', q=np.asarray(q_frames), body_com=np.asarray(body_frames), body_R=np.asarray(rotation_frames),
