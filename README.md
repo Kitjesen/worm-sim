@@ -10,6 +10,10 @@ The separate [steel-ribbon benchmark](ribbon_bench/README.md) contains eight-str
 
 The integrated mechanics follow-up is documented in the [full Chinese simulation report](ribbon_bench/FULL_SIMULATION_REPORT.zh-CN.md) and [run/problem log](ribbon_bench/FULL_SIMULATION_LOG.zh-CN.md). It includes the eight independent Sano ribbons, CAD rigid-body mass/inertia, four tension-only cables, sampled wide/thick ribbon contact, stick/slip friction, gravity, saved trajectories, and paper-style PNG/SVG/GIF outputs. The independent N9/N17 one-step baselines are verified numerical closures; the old shared-ribbon full N33 run is retained only for traceability and is not a physical result.
 
+**Latest mechanics demo (2026-10-02): [five coupled segments with Sano ribbons, CUDA, cables and ground contact](ribbon_bench/FIVE_SEGMENT_DEMO.zh-CN.md).** This trajectory solves 40 ribbons at 33 nodes each, 20 tension-only cables, and 10 CAD plates in six rigid bodies with the four connecting yaw joints locked. RTX 5090 computed 0.2 s of dynamics in 504.8 s. The saved animation shows the computed contraction and contact response; end-segment overshoot remains under investigation and stable locomotion has not been validated.
+
+![Five-segment ribbon dynamics](ribbon_bench/gpu_chain_20261002/chain_n33_cuda_motion/robot_motion.gif)
+
 ## Current Main Claim
 
 This is now a **snake + worm dual-mode robot project**, not only an open-loop worm gait demo.

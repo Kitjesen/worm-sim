@@ -1,6 +1,10 @@
 # 钢片蠕虫机器人：Discrete Elastic Ribbons 台架
 
-**GPU 实测：[RTX 5090 / DirectML 材料计算与完整路径对照](GPU_PROBE.zh-CN.md)**。CUDA FP64通过核验；大批材料调用可加速。当前优化后的整机混合路径已归档，单环境 CUDA 仍略慢于 CPU，详见原始数据和计时口径。
+**最新五体节演示（2026-10-02）：[完整方法、结果及汇报图](FIVE_SEGMENT_DEMO.zh-CN.md)**。40 片钢带 × 33 节点、20 根绳索、10 块 CAD 端板联立计算，包含惯性、自重和地面黏着／滑动／离地切换。RTX 5090 计算 0.2 s 物理过程用了 504.8 s；五节 N17 的 CPU/CUDA 全轨迹对照通过。节间关节暂锁定，端节有动态过冲，尚未验证稳定爬行。
+
+![五体节最新物理求解动画](gpu_chain_20261002/chain_n33_cuda_motion/robot_motion.gif)
+
+**早期 GPU 实测：[RTX 5090 / DirectML 材料计算与完整路径对照](GPU_PROBE.zh-CN.md)**。CUDA FP64通过核验；大批材料调用可加速。该文保留早期混合路径的 CPU/CUDA 对照及计时口径，不代表上面五体节配置的运行时间。
 
 **2026-10-01：[求解器加速、单片动力学与后续物理核心路线](PHYSICS_CORE.zh-CN.md)**。新增同一Sano公式的闭式材料导数、带状块求解及原版对照；`actuate.py`默认使用`--solver fast`，原路径可通过`--solver reference`运行。旧论文归档和数据保持原样，下面的历史耗时不代表新求解器速度。
 

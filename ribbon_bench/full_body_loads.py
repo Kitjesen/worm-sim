@@ -110,6 +110,104 @@ def read_body_inertias(p, urdf_path=None, include_locked_wheels=True):
                 reference_rotations=np.array([np.eye(3), back_rotation]), provenance=provenance)
 
 
+def read_chain_inertias(p, segments, cad_path=None):
+    """Aggregate CAD segments 2..N+1 with their inter-segment yaw joints locked at zero.
+
+    A chain has 2*N physical plates but N+1 dynamic bodies: adjacent back/front
+    plates remain 74.5 mm apart and are merged into one body for this first
+    straight-chain verification.  No plate or wheel mass is counted twice.
+    """
+    if isinstance(segments, bool) or not isinstance(segments, (int, np.integer)) or not 1 <= segments <= 5:
+        raise ValueError('CAD chain supports an integer segment count from 1 to 5')
+    path = Path(cad_path) if cad_path is not None else URDF
+    raw = path.read_bytes()
+    tree = ET.fromstring(raw)
+    links = {link.get('name'): link for link in tree.findall('link')}
+    joints = {joint.find('child').get('link'): joint for joint in tree.findall('joint')}
+    plate_centers = np.asarray([p['front_plate_center_m'], p['back_plate_center_m']], dtype=np.float64)
+    if plate_centers.shape != (2, 3) or not np.isfinite(plate_centers).all():
+        raise ValueError('Need two finite plate-center vectors')
+    # The existing ribbon geometry is expressed in the front2 link axes.
+    poses = {'front2_Link': (np.zeros(3), np.eye(3))}
+    plates = []
+    for segment in range(2, segments+2):
+        for side in ('front', 'back'):
+            name = f'{side}{segment}_Link'
+            if name not in poses:
+                joint = joints[name]
+                parent = joint.find('parent').get('link')
+                if parent not in poses:
+                    raise ValueError(f'Unexpected CAD chain parent for {name}')
+                offset, rotation = _origin(joint.find('origin'))
+                parent_c, parent_R = poses[parent]
+                poses[name] = (parent_c+parent_R@offset, parent_R@rotation)
+            plates.append(name)
+    body_roots = ['front2_Link']+[f'back{i}_Link' for i in range(2, segments+2)]
+    body_groups = [['front2_Link']]
+    for i in range(2, segments+1):
+        body_groups.append([f'back{i}_Link', f'front{i+1}_Link'])
+    body_groups.append([f'back{segments+1}_Link'])
+    centers_world = {name: poses[name][0]+poses[name][1]@plate_centers[0 if name.startswith('front') else 1]
+                     for name in plates}
+    masses, coms, inertias, components = [], [], [], []
+    plate_bodies = {}
+    for body_index, (root, group) in enumerate(zip(body_roots, body_groups)):
+        body_center, body_R = centers_world[root], poses[root][1]
+        parts = []
+        for plate in group:
+            plate_bodies[plate] = body_index
+            plate_c, plate_R = poses[plate]
+            segment = int(plate[5 if plate.startswith('front') else 4:-5])
+            wheel_ids = (1, 2) if plate.startswith('front') else (3, 4)
+            names = [plate]+[f'w{segment}-{wheel}_Link' for wheel in wheel_ids]
+            for name in names:
+                offset, rotation = np.zeros(3), np.eye(3)
+                if name != plate:
+                    joint = joints[name]
+                    limit = joint.find('limit')
+                    locked = (joint.get('type') == 'fixed' or
+                              (joint.get('type') in ('revolute', 'prismatic') and limit is not None
+                               and float(limit.get('lower')) == float(limit.get('upper')) == 0.))
+                    if joint.find('parent').get('link') != plate or not locked:
+                        raise ValueError(f'{name} is not a locked direct child of {plate}')
+                    offset, rotation = _origin(joint.find('origin'))
+                mass, com, inertia = _inertial(links[name])
+                part_c = plate_c+plate_R@(offset+rotation@com)
+                part_R = body_R.T@plate_R@rotation
+                local_c = body_R.T@(part_c-body_center)
+                parts.append((name, mass, local_c, part_R@inertia@part_R.T))
+        total = sum(part[1] for part in parts)
+        com = sum(m*x for _, m, x, _ in parts)/total
+        inertia = sum(I+m*(np.dot(x-com, x-com)*np.eye(3)-np.outer(x-com, x-com))
+                      for _, m, x, I in parts)
+        if np.linalg.eigvalsh(inertia)[0] <= 0:
+            raise ValueError('Non-positive aggregate chain inertia')
+        masses.append(total); coms.append(com); inertias.append(inertia)
+        components.append([dict(link=name, mass_kg=m, com_local_m=x.tolist(), inertia_com_local_kgm2=I.tolist())
+                           for name, m, x, I in parts])
+    body_centers = np.array([centers_world[name] for name in body_roots])
+    body_rotations = np.array([poses[name][1] for name in body_roots])
+    body_indices = np.array([plate_bodies[name] for name in plates], dtype=int)
+    plate_local_centers = np.array([body_rotations[b].T@(centers_world[name]-body_centers[b])
+                                   for name, b in zip(plates, body_indices)])
+    plate_local_rotations = np.array([body_rotations[b].T@poses[name][1] for name, b in zip(plates, body_indices)])
+    segment_translations = np.array([poses[f'front{i}_Link'][0] for i in range(2, segments+2)])
+    segment_rotations = np.array([poses[f'front{i}_Link'][1] for i in range(2, segments+2)])
+    provenance = dict(urdf_path=str(path), urdf_sha256=hashlib.sha256(raw).hexdigest(),
+        body_links=body_groups, body_origin_links=body_roots, plate_links=plates, components=components,
+        include_locked_wheels=True, omitted_wheel_links=[],
+        assumption='CAD inter-segment yaw joints locked at zero; wheels with zero joint limits locked; no wheel spin or one-way clutch dynamics',
+        locked_intersegment_joint_names=[f'front{i}' for i in range(3, segments+2)],
+        omitted='CAD segment 1, unselected subsequent segments, separate steel ribbons, unmodeled fasteners/cables/guide additions; servo internals remain as exported in plate-link inertials',
+        aggregation='Each actual plate and wheel is used once; adjacent back/front plates retain their CAD spacing and share one dynamic body; parallel-axis sum at aggregate COM')
+    return dict(mass_kg=np.asarray(masses), com_local_m=np.asarray(coms),
+                inertia_com_local_kgm2=np.asarray(inertias),
+                reference_centers_world_m=body_centers, reference_rotations=body_rotations,
+                plate_body_indices=body_indices, plate_centers_local_m=plate_local_centers,
+                plate_R_local=plate_local_rotations, segment_translation_world_m=segment_translations,
+                segment_rotations_world=segment_rotations, provenance=provenance)
+
+
 class FullBodyCables:
     def __init__(self, p, origin_offsets_local=None):
         """Optional origins relative to plate centers; pass CAD COM offsets for COM coordinates.
@@ -217,10 +315,31 @@ def self_check():
             expected += part['inertia_com_local_kgm2']+part['mass_kg']*(np.dot(x, x)*np.eye(3)-np.outer(x, x))
         np.testing.assert_allclose(inertia+mass*(np.dot(com, com)*np.eye(3)-np.outer(com, com)), expected, atol=1e-18, rtol=1e-12)
         assert np.linalg.eigvalsh(inertia)[0] > 0
+    single = read_chain_inertias(p, 1)
+    for key in ('mass_kg', 'com_local_m', 'inertia_com_local_kgm2', 'reference_centers_world_m', 'reference_rotations'):
+        np.testing.assert_allclose(single[key], bodies[key], atol=1e-16, rtol=1e-12)
+    chain = read_chain_inertias(p, 5)
+    assert chain['plate_body_indices'].tolist() == [0, 1, 1, 2, 2, 3, 3, 4, 4, 5]
+    used_parts = [part['link'] for group in chain['provenance']['components'] for part in group]
+    assert len(used_parts) == 30 and len(set(used_parts)) == 30
+    np.testing.assert_allclose(np.diff(chain['segment_translation_world_m'][:, 0]), -.1755, atol=1e-12, rtol=0)
+    reference_cables = FullBodyCables(p).evaluate(bodies['reference_centers_world_m'], bodies['reference_rotations'], np.ones(4))['routes_m']
+    chain_com = chain['reference_centers_world_m']+np.einsum('bij,bj->bi', chain['reference_rotations'], chain['com_local_m'])
+    for segment in range(5):
+        cable = FullBodyCables(p)
+        cable.front_offsets = chain['plate_centers_local_m'][2*segment]+cable.front_offsets@chain['plate_R_local'][2*segment].T-chain['com_local_m'][segment]
+        cable.back_offsets = chain['plate_centers_local_m'][2*segment+1]+cable.back_offsets@chain['plate_R_local'][2*segment+1].T-chain['com_local_m'][segment+1]
+        routes = cable.evaluate(chain_com[segment:segment+2], chain['reference_rotations'][segment:segment+2], np.ones(4))['routes_m']
+        np.testing.assert_allclose(routes, reference_cables+chain['segment_translation_world_m'][segment], atol=1e-12, rtol=0)
+    for body, (mass, com, inertia, parts) in enumerate(zip(chain['mass_kg'], chain['com_local_m'], chain['inertia_com_local_kgm2'], chain['provenance']['components'])):
+        expected = sum(np.asarray(part['inertia_com_local_kgm2'])+part['mass_kg']*(np.dot(part['com_local_m'], part['com_local_m'])*np.eye(3)-np.outer(part['com_local_m'], part['com_local_m'])) for part in parts)
+        np.testing.assert_allclose(inertia+mass*(np.dot(com, com)*np.eye(3)-np.outer(com, com)), expected, atol=1e-17, rtol=1e-12)
+        assert np.linalg.eigvalsh(inertia)[0] > 0
     report = dict(status='passed', gradient_fd_relative_error=ge, hessian_fd_relative_error=he,
                   force_balance_n=float(force_balance), moment_balance_nm=float(moment_balance),
                   mass_kg=bodies['mass_kg'].tolist(), com_local_m=bodies['com_local_m'].tolist(),
-                  inertia_com_local_kgm2=bodies['inertia_com_local_kgm2'].tolist(), provenance=bodies['provenance'])
+                  inertia_com_local_kgm2=bodies['inertia_com_local_kgm2'].tolist(), provenance=bodies['provenance'],
+                  five_segment_chain_masses_kg=chain['mass_kg'].tolist(), chain_physical_plates=10, chain_dynamic_bodies=6)
     print(json.dumps(report, indent=2))
     return report
 

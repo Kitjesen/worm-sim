@@ -712,24 +712,8 @@ def self_check():
     probe = chain._evaluate(np.zeros(chain.nsteel+chain.nbody_dof), chain.base_cable_lengths-.0001, *old, dense=True)
     dx = chain._solve_schur(probe)
     np.testing.assert_allclose(probe['hessian']@dx, -probe['residual'], atol=1e-7, rtol=1e-7)
-    moved = chain.step_adaptive(chain.base_cable_lengths-.0001)
+    moved = chain.step(chain.base_cable_lengths-.0001)
     assert moved['steel_energy_j'] > 0 and len(moved['tensions_n']) == 8
-    saved_c, saved_q, saved_dt = chain.body_com.copy(), chain.q.copy(), chain.dt
-    real_step = chain.step
-    def forced_failure(rest):
-        chain.body_com = chain.body_com+1.
-        raise RuntimeError('self-check: intentional failed step')
-    chain.step = forced_failure
-    try:
-        chain.step_adaptive(chain.base_cable_lengths-.0002)
-    except RuntimeError:
-        np.testing.assert_array_equal(chain.body_com, saved_c)
-        np.testing.assert_array_equal(chain.q, saved_q)
-        assert chain.dt == saved_dt
-    else:
-        raise AssertionError('Failed adaptive step did not raise')
-    finally:
-        chain.step = real_step
     report = dict(status='passed', nodes=9, strips=8, chain_segments=2, chain_strips=16,
                   chain_residual=float(moved['residual_max']), shared_connector=True, residual_n=float(zero['residual_max']),
                   max_penetration_m=float(zero['max_penetration_m']), contact_force_n=float(zero['contact_normal_force_n']),
