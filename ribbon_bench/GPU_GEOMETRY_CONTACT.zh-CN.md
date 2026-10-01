@@ -56,3 +56,5 @@ python full_robot.py --nodes 33 --steps 1 --duration .002 --command-mm 0 --solve
 ```
 
 带较大收绳时，N17 已通过 38 次 Newton 迭代。加入 `--max-command-step-mm 0.1` 后，0.5 mm 收绳被拆成 6 个隐式子步，N33 也能稳定通过。迁移端板几何后的 RTX 5090 对照耗时为 CPU/CUDA `9.39/7.99 s`，最后子步 Newton 迭代 `7/7`，最大残差 `4.219e-6/4.218e-6`，最大穿透 `4.715e-6/4.715e-6 m`。轨迹最大差异为节点 `1.64e-14`、端板 COM `1.25e-16`、端板旋转矩阵 `3.11e-15`。结果保存在 `gpu_full_robot_20261001/adaptive_n33_cpu_v2` 和 `adaptive_n33_cuda_v3`；这仍是数值稳定性验证，不是爬行性能结论。
+
+用于汇报的 10 ms、6 帧 CUDA 收绳动画保存在 `gpu_full_robot_20261001/adaptive_n33_cuda_motion/robot_contraction.gif`，同时提供 PNG/SVG 静态图和指标图。
