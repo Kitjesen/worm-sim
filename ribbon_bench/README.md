@@ -1,6 +1,6 @@
 # 钢片蠕虫机器人：Discrete Elastic Ribbons 台架
 
-**GPU 实测：[RTX 5090 / DirectML 材料计算与完整路径对照](GPU_PROBE.zh-CN.md)**。CUDA FP64通过核验；大批材料调用可加速，当前整条路径的CPU/GPU混合版本在一次对照中较慢，详见原始数据和计时口径。
+**GPU 实测：[RTX 5090 / DirectML 材料计算与完整路径对照](GPU_PROBE.zh-CN.md)**。CUDA FP64通过核验；大批材料调用可加速。当前优化后的整机混合路径已归档，单环境 CUDA 仍略慢于 CPU，详见原始数据和计时口径。
 
 **2026-10-01：[求解器加速、单片动力学与后续物理核心路线](PHYSICS_CORE.zh-CN.md)**。新增同一Sano公式的闭式材料导数、带状块求解及原版对照；`actuate.py`默认使用`--solver fast`，原路径可通过`--solver reference`运行。旧论文归档和数据保持原样，下面的历史耗时不代表新求解器速度。
 
@@ -116,7 +116,7 @@ foreach ($nodes in 33, 65, 129) {
 
 `full_robot.py` 是后续物理核心的首个闭环版本：八片彼此独立的 Sano 钢带、两块 CAD 质量/惯量刚体端板、四根张力单向绳、重力，以及带历史的 stick/slip/liftoff 平地接触在隐式 Euler 中联立求解。钢带接触使用实际 16 mm 宽、0.15 mm 厚的表面采样；端板使用圆周采样包络。Newton 采用八个局部钢带块与 12×12 Schur 补；`--solve-backend cuda` 可把这部分 FP64 线性代数放到 CUDA，几何、材料和接触仍在 CPU。
 
-完整过程、参数口径、问题和论文对照见 [FULL_SIMULATION_REPORT.zh-CN.md](FULL_SIMULATION_REPORT.zh-CN.md) 与 [FULL_SIMULATION_LOG.zh-CN.md](FULL_SIMULATION_LOG.zh-CN.md)。局部 Schur 独立钢带基准位于 `full_robot_n9_schur_local/`、`full_robot_n17_schur_local/`、`full_robot_n33_schur_local/` 和 `full_robot_n33_schur_zero10/`；N9/N17/N33 单步约 7.55/15.63/56.22 s，N33 十步约 898.28 s。旧的共享钢带目录只用于追溯，不能作为正确模型的性能或论文结论。
+完整过程、参数口径、问题和论文对照见 [FULL_SIMULATION_REPORT.zh-CN.md](FULL_SIMULATION_REPORT.zh-CN.md) 与 [FULL_SIMULATION_LOG.zh-CN.md](FULL_SIMULATION_LOG.zh-CN.md)。优化后的独立钢带基准位于 `gpu_full_robot_20261001/fast_n9_cpu/`、`fast_n17_cpu/` 和 `fast_n33_cpu/`；N9/N17/N33 CPU 单步约 2.36/3.55/7.18 s，CUDA 单步约 2.84/3.88/7.51 s。旧目录只用于追溯，不能作为正确模型的最新性能结论。
 
 ```powershell
 $env:PYTHONPATH = 'vendor/discrete-elastic-ribbon/src'

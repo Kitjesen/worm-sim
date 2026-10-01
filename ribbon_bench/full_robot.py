@@ -22,6 +22,7 @@ from scipy.linalg import solve_banded
 from scipy.spatial.transform import Rotation
 
 from full_body_loads import FullBodyCables, read_body_inertias, skew
+from fast_sano import install_fast_sano
 from ground_contact import evaluate_contact
 from ribbon_contact_geometry import surface_geometry
 from run import COMMIT, HERE, make_robot, read_project, refresh, strip_geometry
@@ -90,6 +91,7 @@ class FullRobot:
             rest, width = strip_geometry(parameters, delta, strip, nodes)
             rest = rest + self.shift
             robot, stepper = make_robot(parameters, rest, width, 'sano')
+            install_fast_sano(stepper)
             self.robots.append(robot); self.steppers.append(stepper)
             self.rest.append(rest); self.widths.append(width)
         self.rest, self.widths = np.asarray(self.rest), np.asarray(self.widths)
@@ -207,10 +209,10 @@ class FullRobot:
                                        ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
                                        weights=weights, mu=self.mu)
             Aq_strip = np.zeros((self.nq, self.nfree+12)); Aq_strip[self.free, :self.nfree] = np.eye(self.nfree); Aq_strip[self.fixed, self.nfree:] = B[strip, self.fixed]
-            rq = grad + self.mass_steel*(q[strip]-qold[strip]-self.dt*uold[strip])/self.dt**2 - np.einsum('pij,pi->j', J, contact['force'])
+            rq = grad + self.mass_steel*(q[strip]-qold[strip]-self.dt*uold[strip])/self.dt**2 - np.einsum('pij,pi->j', J, contact['force'], optimize=True)
             hq = hess + np.diag(self.mass_steel/self.dt**2)
             Jq = np.einsum('pij,jk->pik', J, Aq_strip)
-            hcontact = np.einsum('pai,pab,pbj->ij', Jq, contact['jacobian'], Jq)
+            hcontact = np.einsum('pai,pab,pbj->ij', Jq, contact['jacobian'], Jq, optimize=True)
             local_res = Aq_strip.T@rq
             local_H = Aq_strip.T@hq@Aq_strip-hcontact
             lo = strip*self.nfree; hi = lo+self.nfree
@@ -240,8 +242,8 @@ class FullRobot:
             bc = evaluate_contact(p, self.plate_oldpoints[body], self.plate_history[body], dt=self.dt,
                                   ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
                                   weights=self.plate_weights, mu=self.mu)
-            body_r[6*body:6*body+6] -= np.einsum('pij,pi->j', Jb, bc['force'])
-            body_H[6*body:6*body+6, 6*body:6*body+6] -= np.einsum('pai,pab,pbj->ij', Jb, bc['jacobian'], Jb)
+            body_r[6*body:6*body+6] -= np.einsum('pij,pi->j', Jb, bc['force'], optimize=True)
+            body_H[6*body:6*body+6, 6*body:6*body+6] -= np.einsum('pai,pab,pbj->ij', Jb, bc['jacobian'], Jb, optimize=True)
             max_pen = max(max_pen, float(max(0., -np.min(bc['gap_m'])))); contact_force += float(np.sum(bc['normal_force_n'])); statuses.extend(bc['status'].tolist())
             if commit: self._candidate_plate = getattr(self, '_candidate_plate', []); self._candidate_plate.append(bc)
         total_res[self.nsteel:] += body_r
@@ -483,6 +485,7 @@ def main():
         solve_backend=args.solve_backend, cuda_device=args.cuda_device,
         local_solver='scipy.solve_banded' if args.solve_backend == 'cpu' else 'torch.linalg.solve',
         local_bandwidth=sim.local_bandwidth,
+        material_derivative='fast_sano.closed_form_numpy',
         solve_seconds=sim.solve_seconds, vendor_commit=COMMIT,
         source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()), frames=rows,
         wall_seconds=time.perf_counter()-start)

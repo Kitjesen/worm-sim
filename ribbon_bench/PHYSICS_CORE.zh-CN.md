@@ -2,7 +2,7 @@
 
 更新日期：2026-10-01。本文记录工程决策与验证入口；已有准静态结果、模型假设和历史工况见 [完整技术报告](REPORT.zh-CN.md)。这里的验证是数值验证，尚不是实物实验验证。
 
-追加完成的 [GPU 实测](GPU_PROBE.zh-CN.md)：RTX 5090 的 CUDA FP64 材料计算通过核验；大批材料吞吐有收益，但一次完整路径 CPU 为31.46 s、材料移到GPU后为36.33 s，当前默认求解器继续保留CPU。
+追加完成的 [GPU 实测](GPU_PROBE.zh-CN.md)：RTX 5090 的 CUDA FP64 材料计算通过核验；大批材料吞吐有收益。整机热路径已加入优化的 NumPy 收缩和闭式 Sano batch，N33 单步 CPU/CUDA 为 7.18/7.51 s，当前默认可信基准仍保留 CPU。
 
 ## 当前采用的计算核心
 
@@ -24,7 +24,7 @@
 
 上游 [DER JAX 带状求解源码](https://github.com/StructuresComp/discrete-elastic-ribbon-jax/blob/main/src/dismech_jax/banded_solve.py)使用 `jax.pure_callback` 调用主机端 `scipy.linalg.solve_banded`，因此不能将其直接视为全 GPU 求解器。当前八片、每片几十个节点的小系统也不保证适合 GPU；仅给张量加 `.cuda()` 不能迁移 NumPy / SciPy 求解流程。
 
-随后已建立独立 DirectML 环境，并在 RTX 5090 / CUDA 12.8 / PyTorch 2.8 的隔离环境中完成材料与整条路径对照，详见 [GPU 实测与复现说明](GPU_PROBE.zh-CN.md)。本机和远程的原环境保留。CUDA FP64结果通过原物理残差；FP32在保存峰值状态的装配回放中未达到原力容差。当前逐片传输结构没有取得整条路径加速；下一阶段需把独立环境状态、几何、装配和求解一并纳入批量设计，再评估端到端吞吐量。
+随后已建立独立 DirectML 环境，并在 RTX 5090 / CUDA 12.8 / PyTorch 2.8 的隔离环境中完成材料与整条路径对照，详见 [GPU 实测与复现说明](GPU_PROBE.zh-CN.md)。本机和远程的原环境保留。CUDA FP64结果通过原物理残差；FP32在保存峰值状态的装配回放中未达到原力容差。当前混合路径的数值结果与 CPU 一致，但单环境仍未取得端到端加速；下一阶段需把独立环境状态、几何、装配和求解一并纳入批量设计，再评估端到端吞吐量。
 
 ## 动力学：先验证单片释放
 
