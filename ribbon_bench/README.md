@@ -114,14 +114,14 @@ foreach ($nodes in 33, 65, 129) {
 
 ## 整机动力学与地面接触
 
-`full_robot.py` 是后续物理核心的首个闭环版本：八片 Sano 钢带、两块 CAD 质量/惯量刚体端板、四根张力单向绳、重力，以及带历史的 stick/slip/liftoff 平地接触在隐式 Euler 中联立求解。钢带接触使用实际 16 mm 宽、0.15 mm 厚的表面采样；端板使用圆周采样包络。它允许微小罚接触穿透，当前耦合 Newton 为 CPU 双精度稠密版本。
+`full_robot.py` 是后续物理核心的首个闭环版本：八片彼此独立的 Sano 钢带、两块 CAD 质量/惯量刚体端板、四根张力单向绳、重力，以及带历史的 stick/slip/liftoff 平地接触在隐式 Euler 中联立求解。钢带接触使用实际 16 mm 宽、0.15 mm 厚的表面采样；端板使用圆周采样包络。它允许微小罚接触穿透，当前耦合 Newton 为 CPU 双精度稠密版本。
 
-完整过程、参数口径、问题和论文对照见 [FULL_SIMULATION_REPORT.zh-CN.md](FULL_SIMULATION_REPORT.zh-CN.md) 与 [FULL_SIMULATION_LOG.zh-CN.md](FULL_SIMULATION_LOG.zh-CN.md)。已保存的 N9/N33 轨迹、PNG/SVG 论文图、GIF 和指标图位于 `full_robot_n9_cmd5/` 与 `full_robot_n33_cmd5_full/`。N33 的 20 ms 运行约 28.1 s，最大 Newton 残差 `4.44e-6`，最大罚穿透 `56.9 µm`；这是数值闭环证据，尚不是实物标定或净爬行结论。
+完整过程、参数口径、问题和论文对照见 [FULL_SIMULATION_REPORT.zh-CN.md](FULL_SIMULATION_REPORT.zh-CN.md) 与 [FULL_SIMULATION_LOG.zh-CN.md](FULL_SIMULATION_LOG.zh-CN.md)。独立钢带基准位于 `full_robot_n9_independent_probe/`、`full_robot_n9_one_independent/` 和 `full_robot_n17_zero_independent/`；N9/N17 单步约 15.8/109.4 s。旧的共享钢带 N9/N33 目录只用于追溯，不能作为正确模型的性能或论文结论。
 
 ```powershell
 $env:PYTHONPATH = 'vendor/discrete-elastic-ribbon/src'
 .\.venv\Scripts\python.exe full_robot.py --self-check
-.\.venv\Scripts\python.exe full_robot.py --nodes 33 --steps 10 --duration .02 --dt .002 --command-mm 5 --output full_robot_n33_cmd5_full
+.\.venv\Scripts\python.exe full_robot.py --nodes 9 --steps 1 --duration .002 --dt .002 --command-mm 0 --output full_robot_n9_independent_probe
 .\.venv\Scripts\python.exe render_full_robot.py --input full_robot_n33_cmd5_full --output full_robot_n33_cmd5_full/full_robot_paper.png
 ```
 

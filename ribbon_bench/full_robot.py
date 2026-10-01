@@ -97,6 +97,8 @@ class FullRobot:
         self.nq = self.robots[0].n_dof
         self.free = self.robots[0].state.free_dof.copy()
         self.nfree = len(self.free)
+        # Each of the eight steel strips has its own internal coordinates.
+        self.nsteel = self.p['strip_count'] * self.nfree
         self.mass_steel = _mass(self.robots[0], parameters)
         self.fixed = np.setdiff1d(np.arange(self.nq), self.free)
         self.body_mass = self.body['mass_kg']
@@ -127,8 +129,10 @@ class FullRobot:
     def _decode(self, z, qold, cold, Rold):
         """Map internal/free coordinates and plate increments to all ribbon q."""
         q = np.array(qold, copy=True)
-        q[:, self.free] = qold[:, self.free] + z[:self.nfree][None, :]
-        body_delta = z[self.nfree:].reshape(2, 6)
+        for strip in range(8):
+            base = strip*self.nfree
+            q[strip, self.free] = qold[strip, self.free] + z[base:base+self.nfree]
+        body_delta = z[self.nsteel:].reshape(2, 6)
         c = cold + body_delta[:, :3]
         R = Rotation.from_rotvec(body_delta[:, 3:]).as_matrix() @ Rold
         B = np.zeros((8, self.nq, 12))
@@ -167,9 +171,8 @@ class FullRobot:
 
     def _evaluate(self, z, cable_rest, qold, uold, cold, Rold, commit=False):
         q, c, R, B = self._decode(z, qold, cold, Rold)
-        total_res = np.zeros(self.nfree+12); total_H = np.zeros((self.nfree+12, self.nfree+12))
+        total_res = np.zeros(self.nsteel+12); total_H = np.zeros((self.nsteel+12, self.nsteel+12))
         steel_energy = 0.; max_pen = 0.; contact_force = 0.; statuses = []
-        Aq = np.zeros((self.nq, self.nfree+12)); Aq[self.free, :self.nfree] = np.eye(self.nfree)
         for strip in range(8):
             grad, hess, energy, trial = self._elastic(strip, q[strip])
             points, J = surface_geometry(self.robots[strip], q[strip], self.p['strip_width_m'], self.p['strip_thickness_m'])
@@ -177,7 +180,8 @@ class FullRobot:
             contact = evaluate_contact(points, self.steel_oldpoints[strip], self.steel_history[strip], dt=self.dt,
                                        ground_height=self.ground_height, normal_stiffness=self.kn, tangential_stiffness=self.kt,
                                        weights=weights, mu=self.mu)
-            Aq_strip = np.zeros((self.nq, self.nfree+12)); Aq_strip[self.free, :self.nfree] = np.eye(self.nfree); Aq_strip[self.fixed, self.nfree:] = B[strip, self.fixed]
+            base = strip*self.nfree
+            Aq_strip = np.zeros((self.nq, self.nsteel+12)); Aq_strip[self.free, base:base+self.nfree] = np.eye(self.nfree); Aq_strip[self.fixed, self.nsteel:] = B[strip, self.fixed]
             rq = grad + self.mass_steel*(q[strip]-qold[strip]-self.dt*uold[strip])/self.dt**2 - np.einsum('pij,pi->j', J, contact['force'])
             hq = hess + np.diag(self.mass_steel/self.dt**2)
             Jq = np.einsum('pij,jk->pik', J, Aq_strip)
@@ -194,7 +198,7 @@ class FullRobot:
         body_r += cable['gradient']
         for body in range(2):
             I = R[body]@self.body_inertia_local[body]@R[body].T
-            dphi = z[self.nfree+6*body+3:self.nfree+6*body+6]
+            dphi = z[self.nsteel+6*body+3:self.nsteel+6*body+6]
             body_r[6*body:6*body+3] += self.body_mass[body]*(c[body]-cold[body]-self.dt*self.body_v[body])/self.dt**2
             body_r[6*body+3:6*body+6] += I@(dphi/self.dt**2-self.body_omega[body]/self.dt) + np.cross(self.body_omega[body], I@self.body_omega[body])
             body_r[6*body+2] += self.body_mass[body]*9.81
@@ -208,7 +212,7 @@ class FullRobot:
             body_H[6*body:6*body+6, 6*body:6*body+6] -= np.einsum('pai,pab,pbj->ij', Jb, bc['jacobian'], Jb)
             max_pen = max(max_pen, float(max(0., -np.min(bc['gap_m'])))); contact_force += float(np.sum(bc['normal_force_n'])); statuses.extend(bc['status'].tolist())
             if commit: self._candidate_plate = getattr(self, '_candidate_plate', []); self._candidate_plate.append(bc)
-        total_res[self.nfree:] += body_r; total_H[self.nfree:, self.nfree:] += body_H
+        total_res[self.nsteel:] += body_r; total_H[self.nsteel:, self.nsteel:] += body_H
         if not np.isfinite(total_res).all() or not np.isfinite(total_H).all():
             raise FloatingPointError('non-finite full-robot residual')
         info = dict(residual=total_res, hessian=total_H, energy_j=steel_energy+cable['energy_j'], steel_energy_j=steel_energy,
@@ -221,18 +225,18 @@ class FullRobot:
 
     def step(self, cable_rest):
         qold, uold, cold, Rold = self.q.copy(), self.u.copy(), self.body_com.copy(), self.body_R.copy()
-        z = np.r_[self.dt*uold[:, self.free].mean(axis=0) if False else np.zeros(self.nfree), np.zeros(12)]
+        z = np.zeros(self.nsteel+12)
         # A full velocity predictor is useful for the internal coordinates.
-        z[:self.nfree] = self.dt*uold[:, self.free].mean(axis=0)
-        z[self.nfree:self.nfree+3] = self.dt*self.body_v[0]
-        z[self.nfree+6:self.nfree+9] = self.dt*self.body_v[1]
-        z[self.nfree+3:self.nfree+6] = self.dt*self.body_omega[0]
-        z[self.nfree+9:self.nfree+12] = self.dt*self.body_omega[1]
+        z[:self.nsteel] = self.dt*uold[:, self.free].reshape(-1)
+        z[self.nsteel:self.nsteel+3] = self.dt*self.body_v[0]
+        z[self.nsteel+6:self.nsteel+9] = self.dt*self.body_v[1]
+        z[self.nsteel+3:self.nsteel+6] = self.dt*self.body_omega[0]
+        z[self.nsteel+9:self.nsteel+12] = self.dt*self.body_omega[1]
         last = None
         for iteration in range(30):
             ev = self._evaluate(z, cable_rest, qold, uold, cold, Rold)
-            scaled = max(np.max(np.abs(ev['residual'][:self.nfree]))/1e-5,
-                         np.max(np.abs(ev['residual'][self.nfree:]))/1e-5)
+            scaled = max(np.max(np.abs(ev['residual'][:self.nsteel]))/1e-5,
+                         np.max(np.abs(ev['residual'][self.nsteel:]))/1e-5)
             last = ev
             if scaled <= 1.:
                 self._evaluate(z, cable_rest, qold, uold, cold, Rold, commit=True)
@@ -257,7 +261,15 @@ class FullRobot:
                 dz = np.linalg.lstsq(ev['hessian'] + 1e-8*np.eye(len(z)), -ev['residual'], rcond=None)[0]
             if not np.isfinite(dz).all():
                 raise FloatingPointError('non-finite Newton increment')
-            fraction = min(1., .002/max(np.max(np.abs(dz[:self.nfree])), 1e-12))
+            # Cap both strip displacement and rigid-body translation/rotation in one
+            # line-search scale; contact stiffness can otherwise produce a large
+            # plate jump before the omitted geometric contact Hessian is corrected.
+            steel_step = np.max(np.abs(dz[:self.nsteel]))
+            body_step = max(np.max(np.abs(dz[self.nsteel:self.nsteel+3])),
+                            np.max(np.abs(dz[self.nsteel+6:self.nsteel+9])),
+                            .1*max(np.max(np.abs(dz[self.nsteel+3:self.nsteel+6])),
+                                    np.max(np.abs(dz[self.nsteel+9:self.nsteel+12]))))
+            fraction = min(1., .002/max(steel_step, body_step, 1e-12))
             accepted = False
             for _ in range(12):
                 trial = self._evaluate(z+fraction*dz, cable_rest, qold, uold, cold, Rold)
@@ -278,7 +290,7 @@ def _command(base, t, duration, amplitude):
 def self_check():
     p, delta, provenance = read_project(HERE/'output/parameters.snapshot.json')
     sim = FullRobot(p, delta, nodes=9, dt=.002, contact_samples=12)
-    assert len(sim.q) == 8 and sim.nfree == len(sim.free)
+    assert len(sim.q) == 8 and sim.nfree == len(sim.free) and sim.nsteel == 8*sim.nfree
     zero = sim.step(sim.base_cable_lengths+.01)
     assert np.isfinite(zero['residual_max']) and np.isfinite(sim.body_com).all()
     assert zero['max_penetration_m'] < 1e-3
@@ -311,7 +323,9 @@ def main():
         rows.append(dict(time_s=t, **{k: (v.tolist() if isinstance(v, np.ndarray) else v) for k,v in info.items()}))
         q_frames.append(sim.q.copy()); body_frames.append(sim.body_com.copy()); rotation_frames.append(sim.body_R.copy())
         print(json.dumps(rows[-1], allow_nan=False), flush=True)
-    result = dict(status='completed', metadata=dict(**provenance, nodes=args.nodes, strips=8, dt_s=args.dt,
+    result = dict(status='completed', metadata=dict(**provenance, nodes=args.nodes, strips=8,
+        steel_dof_per_strip=sim.nfree, steel_dof_total=sim.nsteel, newton_dof=sim.nsteel+12,
+        independent_strip_coordinates=True, dt_s=args.dt,
         duration_s=args.duration, command_amplitude_mm=args.command_mm, model='Sano steel + CAD rigid bodies + ideal tension-only cables + sampled plane penalty/friction contact',
         contact='12 surface samples per steel edge plus 2x rim samples per plate; no continuous CCD; quasi-Newton contact geometric Hessian',
         vendor_commit=COMMIT, source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()), frames=rows,
