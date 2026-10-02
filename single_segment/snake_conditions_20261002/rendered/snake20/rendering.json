@@ -1,0 +1,9 @@
+{
+  "source": "sensor_gait_revision_20261002\\snake20",
+  "source_sha256": "0db5cfe5e6b110f95e4a00b1484e16f73a0139551dce15e02badc10ada7b2dff",
+  "ground_guide_x_bounds_m": [
+    -2.3,
+    0.15
+  ],
+  "physical_states_modified": false
+}

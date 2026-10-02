@@ -1,0 +1,38 @@
+{
+  "failed": false,
+  "physical_s": 12.0,
+  "wall_s": 206.32419021986425,
+  "settings": {
+    "amplitude_deg": 20.0,
+    "period_s": 2.0,
+    "phase_deg": 90.0,
+    "startup_s": 1,
+    "dt_s": 0.0005,
+    "control_dt_s": 0.02,
+    "seed": 7,
+    "randomize": false
+  },
+  "initial_state_sha256": "8c3415f644cd1e1f4fef99b944e81f3589742629ea82b62c64879128a2aef912",
+  "source_sha256": {
+    "sofa_worm_env.py": "add2b651e1e8d6215172dde091fbaf1c6ad680792249df9ec004579b00fd2bd4",
+    "parameters_sofa_candidate.json": "9a10628789abf3a04b93c3564e0cf6902c9aa332aa38b418a57dad2b3576c722",
+    "snake_conditions.py": "606a757080ff377fb3a6f1be162823b52bb02b1a0c5931150bef3f2504201308"
+  },
+  "mean_plate_forward_m": 1.2812431616964943,
+  "mean_plate_lateral_m": -0.009142401216969267,
+  "max_joint_deg": 17.76577133725021,
+  "loaded_wheel_slip_mean_m_s": 0.016223710313113267,
+  "loaded_wheel_slip_max_m_s": 0.12658301899230026,
+  "loaded_friction_limit_fraction": 0.5131318252896288,
+  "contact_accumulators": {
+    "samples": 469394,
+    "slip_sum": 7615.312278713489,
+    "slip_max": 0.12658301899230026,
+    "saturated": 240861
+  },
+  "max_connector_error_m": 0.00037810390036245573,
+  "min_clearance_m": 0.03248944065023246,
+  "max_tension_n": 0.5239808006306705,
+  "policy": "Clock-driven sine, no neural policy or observation-dependent control",
+  "scope": "Chosen-duration input comparison, not equal cycles or equal power. Contact aggregates use all loaded substeps; raw wheel states saved at 50 Hz."
+}
