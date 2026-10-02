@@ -1,0 +1,8 @@
+{
+  "policy_steps": 512,
+  "optimizer_epochs": 5,
+  "sha256": {
+    "model.zip": "8cb984ca2caa99435898df097795c1803fdcce676eb745699245535457a14d5e",
+    "normalization.pkl": "e66bea7755f3143a390299757b3139cf9ac04b0dff7107be001b76f24fcabce5"
+  }
+}

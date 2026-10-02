@@ -1,0 +1,11 @@
+{
+  "status": "training",
+  "policy_steps": 2880,
+  "requested_policy_steps": 32768,
+  "optimizer_epochs": 25,
+  "elapsed_s": 341.67558183148503,
+  "policy_steps_per_s": 8.429048352130767,
+  "latest_checkpoint": "checkpoint_00002560",
+  "updated_utc": "2026-10-02T14:38:36.344435+00:00",
+  "recent_mean_return": 2.4526365552350233
+}
