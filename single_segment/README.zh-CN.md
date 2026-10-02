@@ -1,5 +1,7 @@
 # 与参考会话一致的五体节机器人
 
+[绳索／关节／轮地接触的完整方程、台架试验、滑移诊断与固定镜头视频](dynamics_explained_20261002/REPORT.zh-CN.md)
+
 本目录将用户在另一会话中已经调整好的 SOFA 整机、CAD 资源和历史运动记录同步到当前仓库，作为当前结构展示入口。来源会话：`01a0eeb1-5542-73d1-9b1c-f2da9e0926c3`。原目录未修改；逐文件来源、复制时刻和 SHA-256 见 [upstream_snapshot.json](upstream_snapshot.json)。
 
 ![整机结构标注](sofa_dr_runs/retrograde_wave_20261002T050058Z/structure_annotated.png)
