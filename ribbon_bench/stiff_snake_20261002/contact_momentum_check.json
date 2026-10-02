@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "backend": "cpu",
+  "segments": 2,
+  "nodes": 9,
+  "driven_joint": true,
+  "post_commit_rollback_checked": true,
+  "unchanged_physics_snapshot_parity": {
+    "q": 0.0,
+    "u": 0.0,
+    "body_com": 0.0,
+    "body_R": 0.0,
+    "body_v": 0.0,
+    "body_omega": 0.0
+  },
+  "scope": "Log aggregation and linear momentum balance; not locomotion validation",
+  "steps": [
+    {
+      "command_substeps": 2,
+      "recovery_substeps": 0,
+      "balance_error_ns": [
+        4.296709227144516e-09,
+        -2.6790865271616895e-09,
+        3.174543961037557e-15
+      ],
+      "tolerance_ns": 1.68e-06,
+      "worst_substep_ratio": 0.005115146285124606
+    },
+    {
+      "command_substeps": 3,
+      "recovery_substeps": 1,
+      "balance_error_ns": [
+        -2.189449008886972e-10,
+        -1.3564539533381277e-10,
+        4.973244038808389e-13
+      ],
+      "tolerance_ns": 1.68e-06,
+      "worst_substep_ratio": 0.0005277870169397187
+    }
+  ]
+}

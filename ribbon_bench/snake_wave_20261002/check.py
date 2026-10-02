@@ -16,7 +16,7 @@ previous = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(previous)
 
 
-def audit(folder, output=HERE/'validation.json'):
+def audit(folder, output=HERE/'validation.json', parameters=BENCH/'output/parameters.snapshot.json'):
     folder = Path(folder)
     summary, data = previous.load(folder)
     meta, frames = summary['metadata'], summary['frames']
@@ -32,7 +32,7 @@ def audit(folder, output=HERE/'validation.json'):
     times = np.asarray([f['time_s'] for f in frames])
     np.testing.assert_allclose(times, np.arange(201)*.02, atol=1e-13, rtol=0)
     sha = lambda path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
-    parameters, cad = BENCH/'output/parameters.snapshot.json', BENCH/'publication/data/cad_reference.urdf'
+    parameters, cad = Path(parameters), BENCH/'publication/data/cad_reference.urdf'
     assert sha(parameters) == meta['parameters_sha256'] and sha(cad) == meta['urdf_sha256']
     names = ('full_robot.py', 'full_body_loads.py', 'revolute_joints.py', 'cuda_sano.py', 'gpu_geometry_contact.py', 'ground_contact.py')
     assert set(meta['source_hashes']) == set(names)
@@ -132,7 +132,7 @@ def audit(folder, output=HERE/'validation.json'):
     tensions = values('tensions_n')
     assert tensions.shape == (201, 20) and np.min(tensions) >= -1e-12
     result = dict(status='passed', run_path=str(folder), frames=201, nodes=9, segments=5,
-        source_snapshots=sources, parameters_sha256=meta['parameters_sha256'], urdf_sha256=meta['urdf_sha256'],
+        source_snapshots=sources, parameters_path=str(parameters), parameters_sha256=meta['parameters_sha256'], urdf_sha256=meta['urdf_sha256'],
         command=dict(preset='phase-sine', amplitude_deg=30., period_s=2., duration_s=4., cycles=2,
                      startup_s=.4, startup='Existing linear ramp; C0 continuous', saved_target_error_rad=target_error,
                      seam_margin_s=1e-8, seam_target_differences_rad=seam_errors, cable_shortening_mm=0.),
@@ -152,7 +152,7 @@ def audit(folder, output=HERE/'validation.json'):
         loads=dict(saved_peak_tension_n=float(tensions.max()), substep_peak_tension_n=float(values('substep_peak_tension_n', 1).max()),
             saved_max_penetration_m=float(values('max_penetration_m').max()), substep_max_penetration_m=float(values('substep_max_penetration_m', 1).max()),
             peak_ground_normal_force_n=float(values('contact_normal_force_n').max())),
-        scope='Two cycles including startup on CAD modules 2..6; not steady locomotion, a complete V6 robot, convergence study or experimentally validated backward motion. CAD meshes are visual; ground contact uses steel surfaces and plate-rim samples, without servo/connector mesh or wheel collision.')
+        scope='Two cycles including startup on CAD modules 2..6; not steady locomotion, a complete V6 robot, convergence study or experimentally validated locomotion. CAD meshes are visual; ground contact uses steel surfaces and plate-rim samples, without servo/connector mesh or wheel collision.')
     Path(output).write_text(json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False), encoding='utf-8')
     print(json.dumps(dict(saved=str(output), **result), ensure_ascii=False, allow_nan=False))
     return result
@@ -162,5 +162,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('run', type=Path)
     parser.add_argument('--output', type=Path, default=HERE/'validation.json')
+    parser.add_argument('--parameters', type=Path, default=BENCH/'output/parameters.snapshot.json')
     args = parser.parse_args()
-    audit(args.run, args.output)
+    audit(args.run, args.output, args.parameters)
