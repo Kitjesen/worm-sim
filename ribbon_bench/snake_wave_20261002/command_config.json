@@ -1,0 +1,134 @@
+{
+  "status": "command_checks_passed",
+  "scope": "Proposed input verified against existing helper; this file does not run or validate physical simulation",
+  "model": {
+    "CAD_modules": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "steel_strips": 40,
+    "nodes_per_strip": 9,
+    "rigid_bodies": 10,
+    "yaw_joint_names": [
+      "front3",
+      "front4",
+      "front5",
+      "front6"
+    ],
+    "omitted": "CAD first module/front2 yaw, wheel spin and wheel-ground collision; not the complete V6 robot"
+  },
+  "command": {
+    "preset": "phase-sine",
+    "helper": "full_robot._joint_command",
+    "amplitude_deg": 30,
+    "period_s": 2,
+    "duration_s": 4,
+    "dt_s": 0.02,
+    "steps": 200,
+    "expected_saved_frames": 201,
+    "relative_phase_deg": [
+      0,
+      -90,
+      -180,
+      -270
+    ],
+    "adjacent_delay_s": 0.5,
+    "startup_s": 0.4,
+    "startup": "Existing linear amplitude ramp over first 20 percent of period; only C0 continuous",
+    "startup_arg": "--joint-startup-s belongs to v6-snake and is not used by phase-sine",
+    "positive_full_amplitude_peak_times_first_period_s": [
+      0.5,
+      1,
+      1.5,
+      2
+    ],
+    "cycle_count": 2,
+    "cable_free_length_shortening_mm": 0,
+    "cable_forces_remain_physical": true,
+    "motor": {
+      "kp_nm_rad": 200,
+      "kd_nms_rad": 0,
+      "torque_limit_nm": 20,
+      "passive_damping_nms_rad": 5,
+      "provenance": "Explicit V6 MuJoCo servo abstraction; passive damping is outside motor saturation; not experimentally calibrated"
+    }
+  },
+  "verification": {
+    "zero_initial_target": true,
+    "no_time_modulo": true,
+    "phase_shift_relation_passed": true,
+    "periodic_after_startup": true,
+    "peak_sequence_passed": true,
+    "max_all_saved_target_step_deg": 2.0845100754640002,
+    "max_steady_saved_target_step_deg": 1.8837155858794037,
+    "minimum_expected_accepted_command_substeps": 206,
+    "predicted_main_steps_split_by_2deg_limit": 6,
+    "seam_test_epsilon_s": 1e-8,
+    "max_target_differences_across_seams_rad": {
+      "0.4": 2.7243482109140515e-8,
+      "1.0": 3.289868132753127e-8,
+      "2.0": 3.2898681560055845e-8,
+      "3.0": 3.289868062995758e-8,
+      "4.0": 3.289868062995758e-8
+    },
+    "startup_velocity_jump_max_deg_s": 71.32924071647336,
+    "initial_target_deg": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "final_target_deg": [
+      -1.4695761589768237e-14,
+      -29.999999999999996,
+      1.1021821192326178e-14,
+      29.999999999999996
+    ],
+    "GIF_loop_note": "Initial zero-ramp state differs from the final phase; two computed cycles do not establish steady dynamics"
+  },
+  "argv": [
+    "--segments",
+    "5",
+    "--nodes",
+    "9",
+    "--steps",
+    "200",
+    "--dt",
+    "0.02",
+    "--duration",
+    "4.0",
+    "--period",
+    "2.0",
+    "--command-mm",
+    "0",
+    "--gait",
+    "backward-wave",
+    "--unlocked-joints",
+    "--joint-drive",
+    "phase-sine",
+    "--joint-amplitude-deg",
+    "30",
+    "--joint-kp",
+    "200",
+    "--joint-kd",
+    "0",
+    "--joint-torque-limit",
+    "20",
+    "--joint-passive-damping",
+    "5",
+    "--max-command-step-mm",
+    "1",
+    "--solve-backend",
+    "cuda",
+    "--cuda-device",
+    "0",
+    "--output",
+    "snake_wave_20261002/snake_n9_cuda"
+  ],
+  "local_reproduction": "python full_robot.py --segments 5 --nodes 9 --steps 200 --dt 0.02 --duration 4.0 --period 2.0 --command-mm 0 --gait backward-wave --unlocked-joints --joint-drive phase-sine --joint-amplitude-deg 30 --joint-kp 200 --joint-kd 0 --joint-torque-limit 20 --joint-passive-damping 5 --max-command-step-mm 1 --solve-backend cuda --cuda-device 0 --output snake_wave_20261002/snake_n9_cuda",
+  "server_reproduction": "env PYTHONPATH=vendor/discrete-elastic-ribbon/src OPENBLAS_NUM_THREADS=1 /root/autodl-tmp/conda/envs/isaaclab/bin/python remote_run_wrapper.py --segments 5 --nodes 9 --steps 200 --dt 0.02 --duration 4.0 --period 2.0 --command-mm 0 --gait backward-wave --unlocked-joints --joint-drive phase-sine --joint-amplitude-deg 30 --joint-kp 200 --joint-kd 0 --joint-torque-limit 20 --joint-passive-damping 5 --max-command-step-mm 1 --solve-backend cuda --cuda-device 0 --output snake_wave_20261002/snake_n9_cuda",
+  "source_sha256": "801edf072536399ab613410931a3124144409fe0b949fb8a209810fd050e5be9"
+}
