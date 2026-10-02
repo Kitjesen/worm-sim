@@ -1,0 +1,13 @@
+{
+  "num_timesteps": 996384,
+  "n_steps": 256,
+  "batch_size": 256,
+  "n_epochs": 5,
+  "gamma": 0.999,
+  "learning_rate": 0.0003,
+  "policy_kwargs": {
+    "log_std_init": -1.5
+  },
+  "checkpoint_sha256": "82215a43fb68a85a5f3788a3f80977be0039c9f3fd3baae6e9d5d0db6d8d8fd6",
+  "source_directory": "D:\\doso\\robot\\single_segment\\sofa_dr_runs\\whole_sofa_wheels_v2_20261002T015642Z"
+}

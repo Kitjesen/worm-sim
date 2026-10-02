@@ -1,0 +1,69 @@
+{
+  "scope": "Five SOFA coupled segments, 40 clamped beams, 20 tendons, 20 wheel contacts, 14 drives",
+  "physics": "SOFA CPU",
+  "policy_device": "cpu",
+  "hours": 8.413465665156643,
+  "workers": 16,
+  "control_dt_s": 0.02,
+  "physics_dt_s": 0.0005,
+  "episode_s": 12,
+  "udr": true,
+  "gate": {
+    "passed": true,
+    "scope": "Coupled SOFA candidate, uncalibrated parameters",
+    "sha256": {
+      "sofa_worm_env.py": "add2b651e1e8d6215172dde091fbaf1c6ad680792249df9ec004579b00fd2bd4",
+      "parameters_sofa_candidate.json": "9a10628789abf3a04b93c3564e0cf6902c9aa332aa38b418a57dad2b3576c722"
+    },
+    "wheel_unit_tests": {
+      "locked": {
+        "velocity_m_s": -4.633849133975566e-17,
+        "position_m": -0.0002499999999999998
+      },
+      "overload": {
+        "velocity_m_s": -15.744220359568171,
+        "position_m": -19.721560316451733
+      },
+      "coast": {
+        "velocity_m_s": -4.7120337477968854e-52,
+        "position_m": 0.03372569219169633
+      }
+    },
+    "rest_drift_m": 4.31040052178977e-06,
+    "weight_n": 28.571224893910983,
+    "support_n": 28.516063648008046,
+    "contraction_m": 0.04320727470577984,
+    "loaded_servo_deg": 130.92092017707563,
+    "recovered_spacing_m": 0.11742571074934934,
+    "steering_response_rad": 0.14023292977130244,
+    "cycle_leading_advance_m": [
+      0.17061473041478759,
+      0.1706257533575959,
+      0.1706257540795979
+    ],
+    "cycle_end_spacing_m": [
+      0.11742834339737965,
+      0.11742833461141447,
+      0.11742833461010428
+    ],
+    "wall_s": 385.4867143034935,
+    "min_clearance_m": 0.021857528458218218,
+    "max_connector_error_m": 0.000485077864137832
+  },
+  "reward": "leading partition velocity, lateral velocity and action-change penalty",
+  "initialization": "/root/autodl-tmp/worm_robot/single_segment/sofa_dr_runs/wheel_fix_smoke/final_model.zip",
+  "approximations": [
+    "uncalibrated material/mass/contact parameters",
+    "massless elastic tension-only tendons",
+    "circular horn rim takeup proxy; load-limited motor may stall before 180 degrees",
+    "compliant static/sliding wheel contact, rolling resistance, ideal one-way clutch",
+    "compliant intersegment revolute connectors",
+    "body-ground clearance terminates episode; no body-ground collision response"
+  ],
+  "sha256": {
+    "sofa_worm_env.py": "add2b651e1e8d6215172dde091fbaf1c6ad680792249df9ec004579b00fd2bd4",
+    "train_sofa_dr.py": "62bf7b524e48195d02e38281ad1160f4d42881135bb367b1ad226d5bf1c8108c",
+    "parameters_sofa_candidate.json": "9a10628789abf3a04b93c3564e0cf6902c9aa332aa38b418a57dad2b3576c722"
+  },
+  "started_utc": "2026-10-02T01:56:46.381704+00:00"
+}

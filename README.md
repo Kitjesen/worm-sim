@@ -2,9 +2,11 @@
 
 Flexible worm-robot simulation, mechanics benchmarks, and locomotion experiments.
 
-**Current robot geometry (2026-10-02): the corrected five-module SOFA model is now imported under [single_segment/](single_segment/README.zh-CN.md).** It uses 10 partitions, 40 clamped curved steel beams, 20 cable spans, 20 one-way wheels and four intermodule joints. This is the model from the user's reference conversation, with its CAD assets and saved motion states. The 16 s replay below runs at 1×; it re-renders an existing SOFA calculation, not a new physics run. SOFA BeamAdapter supplies steel mechanics; MuJoCo supplies rendering only. Candidate material/contact parameters remain uncalibrated.
+**Current robot geometry (2026-10-02): the corrected five-module SOFA model is now imported under [single_segment/](single_segment/README.zh-CN.md).** It uses 10 partitions, 40 clamped curved steel beams, 20 cable spans, 20 one-way wheels and four intermodule joints. This is the model from the user's reference conversation, with its CAD assets and saved motion states. The archived 16 s baseline replays an existing SOFA calculation at 1×. The newer matched experiment below performs new dynamics runs. SOFA BeamAdapter supplies steel mechanics; MuJoCo supplies rendering only. Candidate material/contact parameters remain uncalibrated.
 
-![Corrected five-module robot](single_segment/sofa_dr_runs/retrograde_wave_20261002T050058Z/whole_sofa_follow_400.png)
+**New matched SOFA calculation: [pure peristalsis versus pure snake, wheel friction and the 77-dimensional PPO observation](single_segment/gait_compare_20261002/REPORT.zh-CN.md).** Both run for 12 s from exactly identical nominal states. Mean partition position advances 0.972 m with the selected peristaltic controller and 0.226 m with 15-degree snake targets (actual peak 8.93 degrees). Both save per-wheel contact at every 0.5 ms substep. This is a non-RL controller comparison, not an equal-power or optimized-gait claim. [Real-time comparison video](single_segment/gait_compare_20261002/gait_comparison.mp4).
+
+![Matched five-module SOFA gait comparison](single_segment/gait_compare_20261002/gait_comparison.png)
 
 [16 s real-time MP4](single_segment/sofa_dr_runs/retrograde_wave_20261002T050058Z/whole_sofa_follow.mp4) · [Annotated structure](single_segment/sofa_dr_runs/retrograde_wave_20261002T050058Z/structure_annotated.png) · [Method, scope and reproduction](single_segment/README.zh-CN.md)
 
