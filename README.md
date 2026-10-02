@@ -6,6 +6,10 @@ The current main line is **V6 deployable bimodal locomotion**: one robot body ca
 
 Repository: https://github.com/Kitjesen/worm-sim
 
+**New: [FDU BSRL lettering and 26.2 m A* navigation](record/v6/navigation_demos_20261002/REPORT.zh-CN.md).** The complete wheeled V6 model continuously follows 164.93 m of letter strokes and connecting transfers in 3393.87 s of physics. Stroke-stage RMS error is 4.32 cm; tight transfers are cut, with 79.08 cm maximum ordered tracking error over the full route. A separate four-obstacle A* run reaches its goal in 519.52 s with 6.42 cm RMS error and no detected obstacle contact. Both save raw physical states and pass independent replay checks. Route-only overviews explicitly show accelerated playback; separate CAD clips play at 1×. These remain MuJoCo rigid-body/wheel demos with scalar slide springs and visual ribbons, not Sano steel-contact simulations or newly trained RL policies.
+
+![FDU BSRL measured COM strokes and continuous transfers](record/v6/navigation_demos_20261002/letters/overview_letters.png)
+
 **Updated navigation demo (2026-10-02): [smaller snake amplitudes and real-time playback](record/v6/astar_tracking_20261002/GENTLE_GAIT.zh-CN.md).** The complete wheeled V6 robot still follows the same 5.84 m A* route around a collision box with 15° wave targets. Maximum sampled actual joint angle falls from 42.33° to 17.60°, and cumulative chain bend from 110.72° to 46.73°. It reaches the goal in 158.08 s with 7.35 cm RMS tracking error and no detected obstacle contact. The clip below plays 70–85 s of saved physics at 1× speed. Full-route animation and the earlier faster, larger-amplitude experiment are preserved in the [original report](record/v6/astar_tracking_20261002/REPORT.zh-CN.md). This model uses original slide springs and visual steel strips, not Sano ribbon/contact mechanics.
 
 ![15-degree snake motion and A* tracking, actual 1x speed](record/v6/astar_tracking_20261002/gentle_15deg/robot_tracking_realtime.gif)

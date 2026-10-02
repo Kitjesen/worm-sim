@@ -1,0 +1,117 @@
+{
+  "model": "V6 MuJoCo wheeled navigation; ribbons are visual only, not Sano",
+  "success": true,
+  "stop_reason": "goal_reached",
+  "sim_time_s": 519.518,
+  "wall_time_s": 189.8460963999387,
+  "mujoco_version": "3.13.0",
+  "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "numpy_version": "2.5.3",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "physics_dt_s": 0.002,
+  "controller_dt_s": 0.02,
+  "record_dt_s": 0.1,
+  "scene": {
+    "bounds_m": [
+      -28,
+      2,
+      -8,
+      8
+    ],
+    "goal_m": [
+      -25.0,
+      2.0
+    ],
+    "obstacles": [
+      {
+        "center_m": [
+          -5.0,
+          0.0
+        ],
+        "half_size_m": [
+          0.6,
+          1.5
+        ]
+      },
+      {
+        "center_m": [
+          -10.0,
+          -2.0
+        ],
+        "half_size_m": [
+          0.7,
+          2.2
+        ]
+      },
+      {
+        "center_m": [
+          -15.0,
+          2.0
+        ],
+        "half_size_m": [
+          0.7,
+          2.2
+        ]
+      },
+      {
+        "center_m": [
+          -20.0,
+          -1.5
+        ],
+        "half_size_m": [
+          0.7,
+          2.0
+        ]
+      }
+    ],
+    "grid_m": 0.1,
+    "collision_envelope_m": 0.7,
+    "tracking_margin_m": 0.15,
+    "goal_tolerance_m": 0.15
+  },
+  "route_name": "25 m arena with four obstacles",
+  "route_json_sha256": "b8be393cc9a8650c9f64f6a73f1a242c1014b0eba36fb06537ae30414a49a1a6",
+  "path_progress_m": 26.053866516823444,
+  "path_progress_fraction": 0.9947289792565374,
+  "controller": {
+    "lookahead_m": 0.65,
+    "gain": 0.12,
+    "max_bias_rad": 0.05,
+    "open_loop": false,
+    "heading_filter_s": 0.4,
+    "bias_filter_s": 0.35
+  },
+  "gait": {
+    "yaw_amplitude_rad": 0.3490658503988659,
+    "effective_frequency_hz": 0.4,
+    "yaw_wave_number": 0.6404089550924063,
+    "slide_target_m": 0.0,
+    "startup_ramp_s": 2.0,
+    "startup_shape": "half-cosine"
+  },
+  "planned_length_m": 26.19192469520307,
+  "travelled_com_length_m": 28.602871311845444,
+  "distance_note": "COM arc length and cross-track errors sampled at 0.1 s; final frame may have a shorter interval",
+  "net_displacement_m": 24.410357150015603,
+  "goal_error_m": 0.14998848746723822,
+  "cross_track_rms_m": 0.06422133134369414,
+  "cross_track_max_m": 0.12907874293388558,
+  "obstacle_contact_steps": 0,
+  "collision_check_dt_s": 0.002,
+  "collision_geom_count": 36,
+  "min_geom_clearance_m": 0.6898225438544467,
+  "distance_and_envelope_check_dt_s": 0.05,
+  "max_collision_envelope_m": 0.5738566662203389,
+  "peak_yaw_torque_nm": 8.979273197186577,
+  "peak_slide_force_n": 3.2345867075819,
+  "source_sha256": {
+    "src/v6/track_astar_v6.py": "b846e51a47e6eb01b16f25eab9ef857e7a47101c0baf8aa108bfb241c08e098d",
+    "src/v6/worm_v6.py": "580a7bf888f70081fd7562c331e00103b1086dc02c0e7cad397d6d3b258cdb13",
+    "src/v6/motor_contract_v6.py": "ee1e810bc2f0acc2f58c51d74a3c500397e9c1095c663a1a64adf05c88a3664a",
+    "runs/cmaes_flat_serpentine/best_gait.json": "794f6e6df38e3672f5aae83f7c661fe79eb154d03b6d0236b2a7fe1cba2d6cb7",
+    "meshes/longworm2/longworm2.SLDASM.urdf": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818"
+  },
+  "sources_unchanged_during_run": true,
+  "scene_xml_sha256": "3e13e5a588102ac481b8d1b2549cee84dabd4e7bcad1f9491103aeccea809442",
+  "qpos_drive": "Only mj_step integrates root; joint targets set in data.ctrl"
+}

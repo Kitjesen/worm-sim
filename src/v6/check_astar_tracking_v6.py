@@ -113,9 +113,12 @@ def check(run, source_revision=None):
         require("dense_path_clearance_certificate", minimum_path_distance > radius + 0.001)
         vectors = np.diff(path, axis=0)
         lengths = np.linalg.norm(vectors, axis=1)
-        fractions = np.clip(np.sum((coms[:, None, :2] - path[:-1]) * vectors, axis=-1) / lengths**2, 0, 1)
-        projections = path[:-1] + fractions[..., None] * vectors
-        errors = np.min(np.linalg.norm(coms[:, None, :2] - projections, axis=-1), axis=1)
+        errors = []
+        for batch in np.array_split(coms[:, :2], max(1, int(np.ceil(len(coms)/256)))):
+            fractions = np.clip(np.sum((batch[:, None, :] - path[:-1]) * vectors, axis=-1) / lengths**2, 0, 1)
+            projections = path[:-1] + fractions[..., None] * vectors
+            errors.extend(np.min(np.linalg.norm(batch[:, None, :] - projections, axis=-1), axis=1))
+        errors = np.asarray(errors)
         same("stored_cross_track", errors, arrays["cross_track_m"])
         metrics = {"planned_length_m": float(lengths.sum()),
                    "travelled_com_length_m": float(np.linalg.norm(np.diff(coms[:, :2], axis=0), axis=1).sum()),
@@ -125,6 +128,42 @@ def check(run, source_revision=None):
                    "cross_track_max_m": float(errors.max())}
         for name, value in metrics.items():
             same(f"summary_{name}", value, summary[name])
+        ordered_metrics = None
+        if "path_progress_m" in summary:
+            progress = arrays["progress_m"]
+            cumulative = np.r_[0., np.cumsum(lengths)]
+            require("ordered_progress_monotone", np.all(np.diff(progress) >= -1e-9))
+            route_file = run / "route.json"
+            route = json.loads(route_file.read_text(encoding="utf-8")) if route_file.exists() else {}
+            jumps = np.flatnonzero(np.diff(progress) >= 0.25)
+            labels = np.asarray(route.get("point_stroke_id", []))
+            # Nearest projection can jump across a tight transit loop. Keep and report
+            # those cuts, but reject jumps through any requested letter stroke.
+            transit_cuts = []
+            for i in jumps:
+                crossed = (cumulative[1:] > progress[i]) & (cumulative[:-1] < progress[i+1])
+                require("large_projection_jumps_only_on_transfers", len(labels) == len(path)
+                        and np.all(labels[1:][crossed] == -1))
+                transit_cuts.append({"time_s": float(times[i]), "arc_jump_m": float(progress[i+1]-progress[i])})
+            require("ordered_route_completed", progress[-1] >= cumulative[-1] - scene["goal_tolerance_m"])
+            ordered_targets = np.column_stack([np.interp(progress, cumulative, path[:, axis]) for axis in range(2)])
+            ordered_errors = np.linalg.norm(coms[:, :2] - ordered_targets, axis=1)
+            ordered_metrics = {"rms_m":float(np.sqrt(np.mean(ordered_errors**2))),
+                               "maximum_m":float(ordered_errors.max()), "max_progress_jump_m":float(np.diff(progress).max()),
+                               "transfer_projection_cuts": transit_cuts}
+            if len(labels):
+                sample_labels = labels[np.minimum(np.searchsorted(cumulative, progress, side="right"), len(labels)-1)]
+                strokes = []
+                for stroke, name in enumerate(route["stroke_names"]):
+                    selected = sample_labels == stroke
+                    require(f"stroke_{stroke}_visited", np.any(selected))
+                    stroke_errors = ordered_errors[selected]
+                    strokes.append({"stroke": stroke, "letter": name, "rms_m": float(np.sqrt(np.mean(stroke_errors**2))),
+                                    "max_m": float(stroke_errors.max()), "samples": int(selected.sum())})
+                ordered_metrics["strokes"] = strokes
+                ordered_metrics["stroke_rms_m"] = float(np.sqrt(np.mean(ordered_errors[sample_labels >= 0]**2)))
+            if summary.get("route_json_sha256") is not None:
+                require("saved_route_hash", bool(hash_matches(route_file.read_bytes(), summary["route_json_sha256"])))
         require("metre_scale_path", metrics["planned_length_m"] > 4)
         require("successful_closed_loop", summary["success"] and summary["stop_reason"] == "goal_reached"
                 and not summary["controller"]["open_loop"] and metrics["goal_error_m"] <= scene["goal_tolerance_m"])
@@ -183,16 +222,17 @@ def check(run, source_revision=None):
                 provenance = "Startup source hashes match current files or the specified Git commit, allowing only LF/CRLF text serialization; historical sources were hashed, not executed; runner confirmed no changes during rollout."
         result.update(passed=True, recomputed_metrics=metrics, maximum_com_error_m=maximum_com_error,
                       maximum_body_position_error_m=maximum_body_error, replay_sample_count=len(times),
-                      replay_sample_minimum_clearance_m=minimum_clearance, replay_sample_maximum_envelope_m=maximum_envelope,
-                      replay_obstacle_contact_frames=replay_contacts, certified_path_minimum_distance_m=minimum_path_distance,
+                      replay_sample_minimum_clearance_m=minimum_clearance if obstacle_ids else None, replay_sample_maximum_envelope_m=maximum_envelope,
+                      replay_obstacle_contact_frames=replay_contacts, certified_path_minimum_distance_m=minimum_path_distance if obstacle_ids else None,
                       provenance=provenance,
-                      replay_minus_runtime_clearance_m=minimum_clearance-summary["min_geom_clearance_m"],
+                      replay_minus_runtime_clearance_m=minimum_clearance-summary["min_geom_clearance_m"] if obstacle_ids else None,
                       replay_minus_runtime_envelope_m=maximum_envelope-summary["max_collision_envelope_m"],
                       replay_resource_mapping="Only compiler.meshdir remapped to current ROOT/meshes; physical XML unchanged.",
                       scene_xml_file_bytes_sha256=scene_bytes_hash, scene_xml_normalized_lf_sha256=scene_lf_hash,
                       scene_xml_hash_match_mode=scene_hash_mode, source_hash_match_modes=source_hash_modes,
                       source_revision=revision, historical_source_paths=historical_sources,
                       sampled_joint_motion=sampled_motion,
+                      ordered_tracking=ordered_metrics,
                       length_scope="COM arc length from stored frames, not continuous 2 ms trajectory.")
     except (AssertionError, KeyError, ValueError, IndexError, OSError, subprocess.CalledProcessError) as error:
         result["error"] = f"{type(error).__name__}: {error}"

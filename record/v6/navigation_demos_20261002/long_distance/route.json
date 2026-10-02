@@ -1,0 +1,61 @@
+{
+  "name": "25 m arena with four obstacles",
+  "scene": {
+    "bounds_m": [
+      -28,
+      2,
+      -8,
+      8
+    ],
+    "goal_m": [
+      -25.0,
+      2.0
+    ],
+    "obstacles": [
+      {
+        "center_m": [
+          -5.0,
+          0.0
+        ],
+        "half_size_m": [
+          0.6,
+          1.5
+        ]
+      },
+      {
+        "center_m": [
+          -10.0,
+          -2.0
+        ],
+        "half_size_m": [
+          0.7,
+          2.2
+        ]
+      },
+      {
+        "center_m": [
+          -15.0,
+          2.0
+        ],
+        "half_size_m": [
+          0.7,
+          2.2
+        ]
+      },
+      {
+        "center_m": [
+          -20.0,
+          -1.5
+        ],
+        "half_size_m": [
+          0.7,
+          2.0
+        ]
+      }
+    ],
+    "grid_m": 0.1,
+    "collision_envelope_m": 0.7,
+    "tracking_margin_m": 0.15,
+    "goal_tolerance_m": 0.15
+  }
+}

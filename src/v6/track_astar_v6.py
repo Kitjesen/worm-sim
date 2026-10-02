@@ -126,6 +126,15 @@ def projection(position, path):
     return float(progress), float(distances[index])
 
 
+def ordered_projection(position, path, progress, window=1.0):
+    lengths = np.linalg.norm(np.diff(path, axis=0), axis=1)
+    cumulative = np.r_[0., np.cumsum(lengths)]
+    eligible = np.flatnonzero((cumulative[1:] >= progress - 0.15) & (cumulative[:-1] <= progress + window))
+    first, last = int(eligible[0]), int(eligible[-1]) + 1
+    local, error = projection(position, path[first:last+1])
+    return max(progress, float(cumulative[first] + local)), error
+
+
 def point_along(path, progress):
     lengths = np.linalg.norm(np.diff(path, axis=0), axis=1)
     cumulative = np.r_[0, np.cumsum(lengths)]
@@ -173,6 +182,8 @@ def self_check():
     assert np.allclose(yaw_targets(2., 0.01, 0.2, 0.4, phases, 2.),
                        0.2 * np.sin(2 * math.pi * 0.4 * 2 + phases) + 0.01)
     assert np.max(np.abs(yaw_targets(3., 0.02, 0.2, 0.4, phases, 2.))) <= 0.22
+    crossing = np.array([[0., 0.], [2., 0.], [2., 2.], [0., 0.], [-2., 0.]])
+    assert ordered_projection(np.array([0., 0.]), crossing, 0.)[0] == 0.
     print("A* clearance, endpoints, blocked-start and gentle-wave checks passed")
 
 
@@ -186,7 +197,11 @@ def run(args):
                     ROOT / "runs/cmaes_flat_serpentine/best_gait.json",
                     ROOT / "meshes/longworm2/longworm2.SLDASM.urdf")
     hashes = {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in source_paths}
-    model, xml = make_model()
+    route = json.loads(Path(args.route_json).read_text(encoding="utf-8")) if args.route_json else None
+    scene = route["scene"] if route else SCENE
+    model, xml = make_model(scene)
+    if route:
+        (output / "route.json").write_text(json.dumps(route, indent=2), encoding="utf-8")
     (output / "scene.xml").write_text(xml, encoding="utf-8")
     data = mujoco.MjData(model)
     mujoco.mj_forward(model, data)
@@ -198,14 +213,24 @@ def run(args):
     tail = getid(mujoco.mjtObj.mjOBJ_BODY, "back6_Link")
     yaw_ids = [getid(mujoco.mjtObj.mjOBJ_ACTUATOR, f"act_front{i}") for i in range(2, 7)]
     collision_ids = np.flatnonzero((model.geom_bodyid != 0) & (model.geom_contype != 0))
-    obstacle_ids = [getid(mujoco.mjtObj.mjOBJ_GEOM, f"obstacle_{i}") for i in range(len(SCENE["obstacles"]))]
+    obstacle_ids = [getid(mujoco.mjtObj.mjOBJ_GEOM, f"obstacle_{i}") for i in range(len(scene["obstacles"]))]
     params_path = ROOT / "runs/cmaes_flat_serpentine/best_gait.json"
     params = np.array(json.loads(params_path.read_text())["best_params"])
     amplitude = math.radians(args.yaw_amplitude_deg)
     frequency = args.yaw_frequency
     phase_offsets = 2 * math.pi * params[5] * np.arange(5) / 5
     com = data.subtree_com[head].copy()
-    raw_path, path, expanded = astar(com[:2], np.array(SCENE["goal_m"]), SCENE)
+    if route and "path_m" in route:
+        path = np.asarray(route["path_m"], dtype=float)
+        if path.ndim != 2 or path.shape[1] != 2 or len(path) < 2 or not np.isfinite(path).all():
+            raise ValueError("Route needs finite 2D points")
+        if np.linalg.norm(path[0] - com[:2]) > 0.05 or np.any(np.linalg.norm(np.diff(path, axis=0), axis=1) <= 1e-8):
+            raise ValueError("Route must begin at the settled robot and have nonzero edges")
+        path[0] = com[:2]
+        raw_path, expanded = path.copy(), 0
+    else:
+        raw_path, path, expanded = astar(com[:2], np.array(scene["goal_m"]), scene)
+    total_length = float(np.linalg.norm(np.diff(path, axis=0), axis=1).sum())
     delta = data.xpos[tail, :2] - data.xpos[head, :2]
     heading = math.atan2(delta[1], delta[0])
     dt = float(model.opt.timestep)
@@ -229,13 +254,12 @@ def run(args):
             records[name].append(value)
     record(0., path[0], 0.)
     print(f"A*: {expanded} expanded cells, {len(path)} waypoints, {np.linalg.norm(np.diff(path, axis=0), axis=1).sum():.3f} m", flush=True)
-    print(f"path = {path.tolist()}", flush=True)
+    print(f"path preview = {path[:8].tolist()}", flush=True)
     for step in range(steps):
         t = step * dt
         if step % 10 == 0:
             com = data.subtree_com[head].copy()
-            measured, cross_track = projection(com[:2], path)
-            progress = max(progress, measured)
+            progress, cross_track = ordered_projection(com[:2], path, progress, max(1., 2*args.lookahead))
             target = point_along(path, progress + args.lookahead)
             delta = data.xpos[tail, :2] - data.xpos[head, :2]
             heading += (1 - math.exp(-10 * dt / 0.4)) * wrap(math.atan2(delta[1], delta[0]) - heading)
@@ -257,7 +281,7 @@ def run(args):
             for obstacle in obstacle_ids:
                 for geom in collision_ids:
                     min_clearance = min(min_clearance, float(mujoco.mj_geomDistance(model, data, int(geom), obstacle, 10., None)))
-            if envelope > SCENE["collision_envelope_m"]:
+            if envelope > scene["collision_envelope_m"]:
                 reason = "collision_envelope_exceeded"
                 break
         if step % 50 == 49:
@@ -272,10 +296,10 @@ def run(args):
         if colliding:
             reason = "obstacle_contact"
             break
-        if np.linalg.norm(data.subtree_com[head, :2] - path[-1]) <= SCENE["goal_tolerance_m"]:
+        if progress >= total_length - scene["goal_tolerance_m"] and np.linalg.norm(data.subtree_com[head, :2] - path[-1]) <= scene["goal_tolerance_m"]:
             success, reason = True, "goal_reached"
             break
-        if step % 5000 == 4999:
+        if step % 25000 == 24999:
             print(f"t={(step+1)*dt:.1f}s COM={data.subtree_com[head,:2].round(3)} error={cross_track:.3f}m bias={bias:.3f}", flush=True)
     final_time = (step + 1) * dt
     if abs(records["time_s"][-1] - final_time) > 1e-8:
@@ -291,7 +315,10 @@ def run(args):
                "wall_time_s": time.perf_counter() - started, "mujoco_version": mujoco.__version__,
                "python_version": sys.version, "numpy_version": np.__version__, "platform": platform.platform(),
                "physics_dt_s": dt, "controller_dt_s": 10*dt, "record_dt_s": 50*dt,
-               "scene": SCENE, "controller": {"lookahead_m": args.lookahead, "gain": args.gain,
+               "scene": scene, "route_name": route.get("name", "A*") if route else "A*",
+               "route_json_sha256": hashlib.sha256(Path(args.route_json).read_bytes()).hexdigest() if route else None,
+               "path_progress_m": progress, "path_progress_fraction": progress / total_length,
+               "controller": {"lookahead_m": args.lookahead, "gain": args.gain,
                    "max_bias_rad": args.max_bias, "open_loop": args.open_loop,
                    "heading_filter_s": 0.4, "bias_filter_s": 0.35},
                "gait": {"yaw_amplitude_rad": amplitude, "effective_frequency_hz": float(frequency),
@@ -305,7 +332,7 @@ def run(args):
                "cross_track_rms_m": float(np.sqrt(np.mean(arrays["cross_track_m"]**2))),
                "cross_track_max_m": float(np.max(arrays["cross_track_m"])),
                "obstacle_contact_steps": collision_steps, "collision_check_dt_s": dt,
-               "collision_geom_count": len(collision_ids), "min_geom_clearance_m": min_clearance,
+               "collision_geom_count": len(collision_ids), "min_geom_clearance_m": min_clearance if obstacle_ids else None,
                "distance_and_envelope_check_dt_s": 25*dt, "max_collision_envelope_m": max_envelope,
                "peak_yaw_torque_nm": torque_peak, "peak_slide_force_n": force_peak,
                "source_sha256": hashes, "sources_unchanged_during_run": sources_unchanged,
@@ -328,6 +355,7 @@ if __name__ == "__main__":
     parser.add_argument("--yaw-frequency", type=float, default=0.4)
     parser.add_argument("--startup", type=float, default=2.)
     parser.add_argument("--open-loop", action="store_true")
+    parser.add_argument("--route-json", help="Scene and optional ordered waypoint path")
     parser.add_argument("--self-check", action="store_true")
     options = parser.parse_args()
     if options.self_check:

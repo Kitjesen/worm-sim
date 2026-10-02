@@ -1,0 +1,258 @@
+<mujoco model="worm_v6_longworm2">
+  <compiler meshdir="D:\doso\robot\worm-sim-ribbon-publish\meshes" angle="radian" />
+  <option timestep="0.002" gravity="0 0 -9.81" />
+  <size memory="500M" />
+
+  <visual>
+    <global offwidth="1920" offheight="1080" />
+    <quality shadowsize="4096" />
+    <map znear="0.001" />
+  </visual>
+
+  <default>
+    <geom condim="4" />
+  </default>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1="0.93 0.93 0.90" rgb2="0.82 0.82 0.80" />
+    <material name="grid_mat" texture="grid" texrepeat="20 20" reflectance="0.1" />
+    <mesh name="base_link" file="longworm2/base_link.STL" smoothnormal="true" />
+    <mesh name="w1-1_Link" file="longworm2/w1-1_Link.STL" smoothnormal="true" />
+    <mesh name="w1-2_Link" file="longworm2/w1-2_Link.STL" smoothnormal="true" />
+    <mesh name="back1_Link" file="longworm2/back1_Link.STL" smoothnormal="true" />
+    <mesh name="w1-3_Link" file="longworm2/w1-3_Link.STL" smoothnormal="true" />
+    <mesh name="w1-4_Link" file="longworm2/w1-4_Link.STL" smoothnormal="true" />
+    <mesh name="front2_Link" file="longworm2/front2_Link.STL" smoothnormal="true" />
+    <mesh name="w2-1_Link" file="longworm2/w2-1_Link.STL" smoothnormal="true" />
+    <mesh name="w2-2_Link" file="longworm2/w2-2_Link.STL" smoothnormal="true" />
+    <mesh name="back2_Link" file="longworm2/back2_Link.STL" smoothnormal="true" />
+    <mesh name="w2-3_Link" file="longworm2/w2-3_Link.STL" smoothnormal="true" />
+    <mesh name="w2-4_Link" file="longworm2/w2-4_Link.STL" smoothnormal="true" />
+    <mesh name="front3_Link" file="longworm2/front3_Link.STL" smoothnormal="true" />
+    <mesh name="w3-1_Link" file="longworm2/w3-1_Link.STL" smoothnormal="true" />
+    <mesh name="w3-2_Link" file="longworm2/w3-2_Link.STL" smoothnormal="true" />
+    <mesh name="back3_Link" file="longworm2/back3_Link.STL" smoothnormal="true" />
+    <mesh name="w3-3_Link" file="longworm2/w3-3_Link.STL" smoothnormal="true" />
+    <mesh name="w3-4_Link" file="longworm2/w3-4_Link.STL" smoothnormal="true" />
+    <mesh name="front4_Link" file="longworm2/front4_Link.STL" smoothnormal="true" />
+    <mesh name="w4-1_Link" file="longworm2/w4-1_Link.STL" smoothnormal="true" />
+    <mesh name="w4-2_Link" file="longworm2/w4-2_Link.STL" smoothnormal="true" />
+    <mesh name="back4_Link" file="longworm2/back4_Link.STL" smoothnormal="true" />
+    <mesh name="w4-3_Link" file="longworm2/w4-3_Link.STL" smoothnormal="true" />
+    <mesh name="w4-4_Link" file="longworm2/w4-4_Link.STL" smoothnormal="true" />
+    <mesh name="front5_Link" file="longworm2/front5_Link.STL" smoothnormal="true" />
+    <mesh name="w5-1_Link" file="longworm2/w5-1_Link.STL" smoothnormal="true" />
+    <mesh name="w5-2_Link" file="longworm2/w5-2_Link.STL" smoothnormal="true" />
+    <mesh name="back5_Link" file="longworm2/back5_Link.STL" smoothnormal="true" />
+    <mesh name="w5-3_Link" file="longworm2/w5-3_Link.STL" smoothnormal="true" />
+    <mesh name="w5-4_Link" file="longworm2/w5-4_Link.STL" smoothnormal="true" />
+    <mesh name="front6_Link" file="longworm2/front6_Link.STL" smoothnormal="true" />
+    <mesh name="w6-1_Link" file="longworm2/w6-1_Link.STL" smoothnormal="true" />
+    <mesh name="w6-2_Link" file="longworm2/w6-2_Link.STL" smoothnormal="true" />
+    <mesh name="back6_Link" file="longworm2/back6_Link.STL" smoothnormal="true" />
+    <mesh name="w6-3_Link" file="longworm2/w6-3_Link.STL" smoothnormal="true" />
+    <mesh name="w6-4_Link" file="longworm2/w6-4_Link.STL" smoothnormal="true" />
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 3.0" dir="0 0 -1" diffuse="0.9 0.9 0.9" ambient="0.3 0.3 0.3" />
+    <light pos="1.0 -0.5 2.5" dir="-0.3 0.2 -1" diffuse="0.5 0.5 0.5" />
+    <light pos="-1.0 0.5 2.0" dir="0.3 -0.1 -1" diffuse="0.3 0.3 0.3" />
+    <geom name="floor" type="plane" size="10 10 0.1" material="grid_mat" friction="1.0 0.005 0.001" />
+
+    <body name="base_link" pos="0.000000 0.000000 0.086000">
+      <freejoint name="root" />
+      <geom name="vis_base_link" type="mesh" mesh="base_link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+      <geom name="col_base_link" type="capsule" fromto="-0.02 0 0  0.02 0 0" size="0.032" mass="0.4217" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+      <body name="w1-1_Link" pos="0.002500 0.061760 -0.071558">
+        <joint name="w1-1" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+        <geom name="vis_w1-1_Link" type="mesh" mesh="w1-1_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+        <geom name="col_w1-1_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+      </body>
+      <body name="w1-2_Link" pos="0.002500 -0.061760 -0.071558">
+        <joint name="w1-2" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+        <geom name="vis_w1-2_Link" type="mesh" mesh="w1-2_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+        <geom name="col_w1-2_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+      </body>
+      <body name="back1_Link" pos="-0.151000 0.000000 -0.001535">
+        <joint name="back1" type="slide" axis="-0.99984 0.00000 -0.01802" range="-0.0500 0.0000" damping="10" stiffness="300" />
+        <geom name="vis_back1_Link" type="mesh" mesh="back1_Link" rgba="0.78 0.76 0.74 1" contype="0" conaffinity="0" mass="0.001" />
+        <geom name="col_back1_Link" type="capsule" fromto="-0.04 0 0  0.04 0 0" size="0.032" mass="0.5428" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+        <body name="w1-3_Link" pos="-0.000500 0.061760 -0.070023">
+          <joint name="w1-3" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+          <geom name="vis_w1-3_Link" type="mesh" mesh="w1-3_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+          <geom name="col_w1-3_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+        </body>
+        <body name="w1-4_Link" pos="-0.000500 -0.061760 -0.070023">
+          <joint name="w1-4" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+          <geom name="vis_w1-4_Link" type="mesh" mesh="w1-4_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+          <geom name="col_w1-4_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+        </body>
+        <body name="front2_Link" pos="-0.058000 0.000000 -0.001045">
+          <joint name="front2" type="hinge" axis="0.00000 0.00000 -1.00000" range="-1.5700 1.5700" damping="5" />
+          <geom name="vis_front2_Link" type="mesh" mesh="front2_Link" rgba="1.0 1.0 1.0 1" contype="0" conaffinity="0" mass="0.001" />
+          <geom name="col_front2_Link" type="capsule" fromto="-0.015 0 0  0.015 0 0" size="0.0256" mass="0.0656" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+          <body name="w2-1_Link" pos="-0.014000 0.061760 -0.068978">
+            <joint name="w2-1" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+            <geom name="vis_w2-1_Link" type="mesh" mesh="w2-1_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+            <geom name="col_w2-1_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+          </body>
+          <body name="w2-2_Link" pos="-0.014000 -0.061760 -0.068978">
+            <joint name="w2-2" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+            <geom name="vis_w2-2_Link" type="mesh" mesh="w2-2_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+            <geom name="col_w2-2_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+          </body>
+          <body name="back2_Link" pos="-0.117500 0.000000 0.001045">
+            <joint name="back2" type="slide" axis="-0.99984 0.00000 -0.01802" range="-0.0500 0.0000" damping="10" stiffness="300" />
+            <geom name="vis_back2_Link" type="mesh" mesh="back2_Link" rgba="0.78 0.76 0.74 1" contype="0" conaffinity="0" mass="0.001" />
+            <geom name="col_back2_Link" type="capsule" fromto="-0.04 0 0  0.04 0 0" size="0.032" mass="0.5428" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+            <body name="w2-3_Link" pos="-0.000500 0.061760 -0.070023">
+              <joint name="w2-3" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+              <geom name="vis_w2-3_Link" type="mesh" mesh="w2-3_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+              <geom name="col_w2-3_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+            </body>
+            <body name="w2-4_Link" pos="-0.000500 -0.061760 -0.070023">
+              <joint name="w2-4" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+              <geom name="vis_w2-4_Link" type="mesh" mesh="w2-4_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+              <geom name="col_w2-4_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+            </body>
+            <body name="front3_Link" pos="-0.058000 0.000000 -0.001045">
+              <joint name="front3" type="hinge" axis="0.00000 0.00000 -1.00000" range="-1.5700 1.5700" damping="5" />
+              <geom name="vis_front3_Link" type="mesh" mesh="front3_Link" rgba="1.0 1.0 1.0 1" contype="0" conaffinity="0" mass="0.001" />
+              <geom name="col_front3_Link" type="capsule" fromto="-0.015 0 0  0.015 0 0" size="0.0256" mass="0.0656" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+              <body name="w3-1_Link" pos="-0.014000 0.061760 -0.068978">
+                <joint name="w3-1" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+                <geom name="vis_w3-1_Link" type="mesh" mesh="w3-1_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                <geom name="col_w3-1_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+              </body>
+              <body name="w3-2_Link" pos="-0.014000 -0.061760 -0.068978">
+                <joint name="w3-2" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+                <geom name="vis_w3-2_Link" type="mesh" mesh="w3-2_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                <geom name="col_w3-2_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+              </body>
+              <body name="back3_Link" pos="-0.117500 0.000000 0.001045">
+                <joint name="back3" type="slide" axis="-0.99984 0.00000 -0.01802" range="-0.0500 0.0000" damping="10" stiffness="300" />
+                <geom name="vis_back3_Link" type="mesh" mesh="back3_Link" rgba="0.78 0.76 0.74 1" contype="0" conaffinity="0" mass="0.001" />
+                <geom name="col_back3_Link" type="capsule" fromto="-0.04 0 0  0.04 0 0" size="0.032" mass="0.5428" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+                <body name="w3-3_Link" pos="-0.000500 0.061760 -0.070023">
+                  <joint name="w3-3" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+                  <geom name="vis_w3-3_Link" type="mesh" mesh="w3-3_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                  <geom name="col_w3-3_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                </body>
+                <body name="w3-4_Link" pos="-0.000500 -0.061760 -0.070023">
+                  <joint name="w3-4" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+                  <geom name="vis_w3-4_Link" type="mesh" mesh="w3-4_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                  <geom name="col_w3-4_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                </body>
+                <body name="front4_Link" pos="-0.058000 0.000000 -0.001045">
+                  <joint name="front4" type="hinge" axis="0.00000 0.00000 -1.00000" range="-1.5700 1.5700" damping="5" />
+                  <geom name="vis_front4_Link" type="mesh" mesh="front4_Link" rgba="1.0 1.0 1.0 1" contype="0" conaffinity="0" mass="0.001" />
+                  <geom name="col_front4_Link" type="capsule" fromto="-0.015 0 0  0.015 0 0" size="0.0256" mass="0.0656" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+                  <body name="w4-1_Link" pos="-0.014000 0.061760 -0.068978">
+                    <joint name="w4-1" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+                    <geom name="vis_w4-1_Link" type="mesh" mesh="w4-1_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                    <geom name="col_w4-1_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                  </body>
+                  <body name="w4-2_Link" pos="-0.014000 -0.061760 -0.068978">
+                    <joint name="w4-2" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+                    <geom name="vis_w4-2_Link" type="mesh" mesh="w4-2_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                    <geom name="col_w4-2_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                  </body>
+                  <body name="back4_Link" pos="-0.117500 0.000000 0.001045">
+                    <joint name="back4" type="slide" axis="-0.99984 -0.00000 -0.01802" range="-0.0500 -0.0000" damping="10" stiffness="300" />
+                    <geom name="vis_back4_Link" type="mesh" mesh="back4_Link" rgba="0.78 0.76 0.74 1" contype="0" conaffinity="0" mass="0.001" />
+                    <geom name="col_back4_Link" type="capsule" fromto="-0.04 0 0  0.04 0 0" size="0.032" mass="0.5428" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+                    <body name="w4-3_Link" pos="-0.000500 0.061760 -0.070023">
+                      <joint name="w4-3" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+                      <geom name="vis_w4-3_Link" type="mesh" mesh="w4-3_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                      <geom name="col_w4-3_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                    </body>
+                    <body name="w4-4_Link" pos="-0.000500 -0.061760 -0.070023">
+                      <joint name="w4-4" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+                      <geom name="vis_w4-4_Link" type="mesh" mesh="w4-4_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                      <geom name="col_w4-4_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                    </body>
+                    <body name="front5_Link" pos="-0.058000 0.000000 -0.001045">
+                      <joint name="front5" type="hinge" axis="0.00000 0.00000 -1.00000" range="-1.5700 1.5700" damping="5" />
+                      <geom name="vis_front5_Link" type="mesh" mesh="front5_Link" rgba="1.0 1.0 1.0 1" contype="0" conaffinity="0" mass="0.001" />
+                      <geom name="col_front5_Link" type="capsule" fromto="-0.015 0 0  0.015 0 0" size="0.0256" mass="0.0656" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+                      <body name="w5-1_Link" pos="-0.014000 0.061760 -0.068978">
+                        <joint name="w5-1" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+                        <geom name="vis_w5-1_Link" type="mesh" mesh="w5-1_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                        <geom name="col_w5-1_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                      </body>
+                      <body name="w5-2_Link" pos="-0.014000 -0.061760 -0.068978">
+                        <joint name="w5-2" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+                        <geom name="vis_w5-2_Link" type="mesh" mesh="w5-2_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                        <geom name="col_w5-2_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                      </body>
+                      <body name="back5_Link" pos="-0.117500 0.000000 0.001045">
+                        <joint name="back5" type="slide" axis="-0.99984 0.00000 -0.01802" range="-0.0500 0.0000" damping="10" stiffness="300" />
+                        <geom name="vis_back5_Link" type="mesh" mesh="back5_Link" rgba="0.78 0.76 0.74 1" contype="0" conaffinity="0" mass="0.001" />
+                        <geom name="col_back5_Link" type="capsule" fromto="-0.04 0 0  0.04 0 0" size="0.032" mass="0.5428" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+                        <body name="w5-3_Link" pos="-0.000500 0.061760 -0.070023">
+                          <joint name="w5-3" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+                          <geom name="vis_w5-3_Link" type="mesh" mesh="w5-3_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                          <geom name="col_w5-3_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                        </body>
+                        <body name="w5-4_Link" pos="-0.000500 -0.061760 -0.070023">
+                          <joint name="w5-4" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+                          <geom name="vis_w5-4_Link" type="mesh" mesh="w5-4_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                          <geom name="col_w5-4_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                        </body>
+                        <body name="front6_Link" pos="-0.058000 0.000000 -0.001045">
+                          <joint name="front6" type="hinge" axis="0.00000 0.00000 -1.00000" range="-1.5700 1.5700" damping="5" />
+                          <geom name="vis_front6_Link" type="mesh" mesh="front6_Link" rgba="1.0 1.0 1.0 1" contype="0" conaffinity="0" mass="0.001" />
+                          <geom name="col_front6_Link" type="capsule" fromto="-0.015 0 0  0.015 0 0" size="0.0256" mass="0.0656" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+                          <body name="w6-1_Link" pos="-0.014000 0.061760 -0.068978">
+                            <joint name="w6-1" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+                            <geom name="vis_w6-1_Link" type="mesh" mesh="w6-1_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                            <geom name="col_w6-1_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                          </body>
+                          <body name="w6-2_Link" pos="-0.014000 -0.061760 -0.068978">
+                            <joint name="w6-2" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+                            <geom name="vis_w6-2_Link" type="mesh" mesh="w6-2_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                            <geom name="col_w6-2_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                          </body>
+                          <body name="back6_Link" pos="-0.117500 0.000000 0.001045">
+                            <joint name="back6" type="slide" axis="-0.99984 0.00000 -0.01802" range="-0.0500 0.0000" damping="10" stiffness="300" />
+                            <geom name="vis_back6_Link" type="mesh" mesh="back6_Link" rgba="0.78 0.76 0.74 1" contype="0" conaffinity="0" mass="0.001" />
+                            <geom name="col_back6_Link" type="capsule" fromto="-0.015 0 0  0.015 0 0" size="0.032" mass="0.5099" rgba="1 0 0 0" friction="0.3 0.005 0.001" />
+                            <body name="w6-3_Link" pos="-0.000500 0.061760 -0.070023">
+                              <joint name="w6-3" type="hinge" axis="0.00000 -1.00000 0.00000" damping="0.002" armature="0.0002" />
+                              <geom name="vis_w6-3_Link" type="mesh" mesh="w6-3_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                              <geom name="col_w6-3_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                            </body>
+                            <body name="w6-4_Link" pos="-0.000500 -0.061760 -0.070023">
+                              <joint name="w6-4" type="hinge" axis="0.00000 1.00000 0.00000" damping="0.002" armature="0.0002" />
+                              <geom name="vis_w6-4_Link" type="mesh" mesh="w6-4_Link" rgba="0.79 0.82 0.93 1" contype="0" conaffinity="0" mass="0.001" />
+                              <geom name="col_w6-4_Link" type="cylinder" size="0.016 0.0085" euler="1.5708 0 0" mass="0.0088" rgba="0 0 0 0" friction="1.5 0.01 0.001" />
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  <geom name="obstacle_0" type="box" pos="-5.0 0.0 0.25" size="0.6 1.5 0.25" rgba="0.67 0.28 0.16 1" contype="1" conaffinity="3" friction="0.8 0.005 0.001" /><geom name="obstacle_1" type="box" pos="-10.0 -2.0 0.25" size="0.7 2.2 0.25" rgba="0.67 0.28 0.16 1" contype="1" conaffinity="3" friction="0.8 0.005 0.001" /><geom name="obstacle_2" type="box" pos="-15.0 2.0 0.25" size="0.7 2.2 0.25" rgba="0.67 0.28 0.16 1" contype="1" conaffinity="3" friction="0.8 0.005 0.001" /><geom name="obstacle_3" type="box" pos="-20.0 -1.5 0.25" size="0.7 2.0 0.25" rgba="0.67 0.28 0.16 1" contype="1" conaffinity="3" friction="0.8 0.005 0.001" /></worldbody>
+
+  <actuator>
+    <position name="act_back1" joint="back1" kp="800.0" forcerange="-50.0 50.0" />
+    <position name="act_back2" joint="back2" kp="800.0" forcerange="-50.0 50.0" />
+    <position name="act_back3" joint="back3" kp="800.0" forcerange="-50.0 50.0" />
+    <position name="act_back4" joint="back4" kp="800.0" forcerange="-50.0 50.0" />
+    <position name="act_back5" joint="back5" kp="800.0" forcerange="-50.0 50.0" />
+    <position name="act_back6" joint="back6" kp="800.0" forcerange="-50.0 50.0" />
+    <position name="act_front2" joint="front2" kp="200.0" forcerange="-20.0 20.0" />
+    <position name="act_front3" joint="front3" kp="200.0" forcerange="-20.0 20.0" />
+    <position name="act_front4" joint="front4" kp="200.0" forcerange="-20.0 20.0" />
+    <position name="act_front5" joint="front5" kp="200.0" forcerange="-20.0 20.0" />
+    <position name="act_front6" joint="front6" kp="200.0" forcerange="-20.0 20.0" />
+  </actuator>
+</mujoco>
