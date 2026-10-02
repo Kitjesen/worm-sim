@@ -17,42 +17,42 @@
 
 ## 2. 绳索的方程
 
-两隔板位置为 \(\mathbf x_a,\mathbf x_b\)，转动矩阵为 \(R_a,R_b\)，绳端局部坐标为 \(\mathbf a,\mathbf b\)：
+两隔板位置为 $\mathbf x_a,\mathbf x_b$，转动矩阵为 $R_a,R_b$，绳端局部坐标为 $\mathbf a,\mathbf b$：
 
-\[
+$$
 \mathbf p_a=\mathbf x_a+R_a\mathbf a,\quad
 \mathbf p_b=\mathbf x_b+R_b\mathbf b,\quad
 \ell=\|\mathbf p_b-\mathbf p_a\|,\quad
 \mathbf n=(\mathbf p_b-\mathbf p_a)/\ell .
-\]
+$$
 
 端点速度包含隔板转动：
 
-\[
+$$
 \dot\ell=\mathbf n^\mathsf T[
 \mathbf v_b+\boldsymbol\omega_b\times R_b\mathbf b
 -\mathbf v_a-\boldsymbol\omega_a\times R_a\mathbf a].
-\]
+$$
 
 当前用“直线弦长，随后切线＋圆弧”计算增加的舵盘绳路长度，即等效收绳量；不是恒定半径卷筒：
 
-\[
+$$
 \alpha=\arccos(r/g),\qquad
 s(\theta)=
 \begin{cases}
 \sqrt{g^2+r^2-2gr\cos\theta}-(g-r),&\theta\le\alpha,\\
 \sqrt{g^2-r^2}+r(\theta-\alpha)-(g-r),&\theta>\alpha.
 \end{cases}
-\]
+$$
 
-\(r=23.5\rm\,mm,\ g=35\rm\,mm\)，轴向自由长度：
-\[
+$r=23.5\rm\,mm,\ g=35\rm\,mm$，轴向自由长度：
+$$
 \ell_0(\theta)=0.101-s(\theta)\quad[\rm m].
-\]
+$$
 
 每台收绳舵机同时改变同侧两条绳的自由长度。实际舵盘轮廓、绳路导向与绑定点仍需实物确认。张力严格按当前代码写成：
 
-\[
+$$
 T=
 \begin{cases}
 0,&\ell<\ell_0,\\
@@ -60,65 +60,65 @@ T=
 \end{cases}
 \qquad
 k_c=2000\rm\,N/m,\quad c_c=0.5\rm\,Ns/m.
-\]
+$$
 
-静止时绳被拉长 1 mm，张力为 2 N；松弛时为 0。当前阻尼使用端点间距变化率 \(\dot\ell\)，**不是** \(\dot\ell-\dot\ell_0\)；不能把实现误写成对全部时变伸长求导的 Kelvin–Voigt 模型。弹性储能为 \(U_c=\tfrac12 k_c\max(\ell-\ell_0,0)^2\)，舵机改变 \(\ell_0\) 可向系统输入或取走能量。
+静止时绳被拉长 1 mm，张力为 2 N；松弛时为 0。当前阻尼使用端点间距变化率 $\dot\ell$，**不是** $\dot\ell-\dot\ell_0$；不能把实现误写成对全部时变伸长求导的 Kelvin–Voigt 模型。弹性储能为 $U_c=\tfrac12 k_c\max(\ell-\ell_0,0)^2$，舵机改变 $\ell_0$ 可向系统输入或取走能量。
 
 两个绳端承受等大反向力及偏心力矩：
-\[
+$$
 \mathbf F_a=T\mathbf n,\quad \mathbf F_b=-T\mathbf n,\qquad
 \boldsymbol\tau_a=(R_a\mathbf a)\times\mathbf F_a,\quad
 \boldsymbol\tau_b=(R_b\mathbf b)\times\mathbf F_b.
-\]
+$$
 
 舵机采用带负载降速的角度执行器，不是完整转子动力学。物理子步的收紧增量：
-\[
+$$
 \Delta\theta=
 \operatorname{clip}(\theta^*-\theta,-2h,2h)
 \operatorname{clip}(1-\tau_{\rm load}/0.5,0,1).
-\]
+$$
 
-最后一个因子只在收紧时使用；\(\tau_{\rm load}=(T_{\rm upper}+T_{\rm lower})s'(\theta)\)。放松仍受角速度限制。0.5 Nm 是候选堵转参数。
+最后一个因子只在收紧时使用；$\tau_{\rm load}=(T_{\rm upper}+T_{\rm lower})s'(\theta)$。放松仍受角速度限制。0.5 Nm 是候选堵转参数。
 
 ![本构曲线](constitutive_laws.png)
 
 ## 3. 柔性连接约束
 
 偏离连接位置会产生恢复力，并非刚性铰链精确锁定。父隔板局部连接向量
-\(\mathbf a_J=(-0.058,0,-0.0010452742534)\rm\,m\)：
+$\mathbf a_J=(-0.058,0,-0.0010452742534)\rm\,m$：
 
-\[
+$$
 \mathbf e=\mathbf x_b-\mathbf x_a-R_a\mathbf a_J,\qquad
 \mathbf v_e=\mathbf v_b-\mathbf v_a
 -\boldsymbol\omega_a\times(\mathbf x_b-\mathbf x_a),
-\]
-\[
+$$
+$$
 \mathbf F_b=-10000\,\mathbf e-10\,\mathbf v_e,\qquad
 \mathbf F_a=-\mathbf F_b.
-\]
+$$
 
-代码速度项使用**实际隔板间距向量**，不是严格的 \(\dot{\mathbf e}\)；连接误差小时二者接近。父隔板还接收
-\(-(\mathbf x_b-\mathbf x_a)\times\mathbf F_b\) 补偿力矩，使这组内力合力矩闭合。误差 1 mm、相对速度为零时，恢复力为 10 N。
+代码速度项使用**实际隔板间距向量**，不是严格的 $\dot{\mathbf e}$；连接误差小时二者接近。父隔板还接收
+$-(\mathbf x_b-\mathbf x_a)\times\mathbf F_b$ 补偿力矩，使这组内力合力矩闭合。误差 1 mm、相对速度为零时，恢复力为 10 N。
 
-令 \(R=R_a^\mathsf T R_b\)，偏航角 \(q=\operatorname{atan2}(R_{21},R_{11})\)，父隔板轴线 \(\mathbf z_a=R_a(0,0,1)^\mathsf T\)：
+令 $R=R_a^\mathsf T R_b$，偏航角 $q=\operatorname{atan2}(R_{21},R_{11})$，父隔板轴线 $\mathbf z_a=R_a(0,0,1)^\mathsf T$：
 
-\[
+$$
 \tau_{\rm yaw}=
 \operatorname{clip}
 \{2(q^*-q)-0.03[(\boldsymbol\omega_b-\boldsymbol\omega_a)\cdot\mathbf z_a],
 -0.5,\ 0.5\}\quad[\rm Nm].
-\]
+$$
 
 轴线对齐还单独加入：
-\[
+$$
 \boldsymbol\tau_{\rm align}
 =20(\mathbf z_b\times\mathbf z_a)
 -0.1[\Delta\boldsymbol\omega-\mathbf z_a(\Delta\boldsymbol\omega\cdot\mathbf z_a)] .
-\]
+$$
 
-\(\boldsymbol\tau_b=\tau_{\rm yaw}\mathbf z_a+\boldsymbol\tau_{\rm align}\)，另一侧取反。**0.5 Nm 只限制偏航电机项，不限制轴线对齐项或全部连接反力矩。** 视频记录的最大连接位置误差为 0.701 mm，不能称为严格刚性铰接。
+$\boldsymbol\tau_b=\tau_{\rm yaw}\mathbf z_a+\boldsymbol\tau_{\rm align}$，另一侧取反。**0.5 Nm 只限制偏航电机项，不限制轴线对齐项或全部连接反力矩。** 视频记录的最大连接位置误差为 0.701 mm，不能称为严格刚性铰接。
 
-新计算的独立台架：左侧为 0.28 kg 吊载由绳索牵引，舵盘角在 4 秒内按 0–50°–0 变化；右侧为固定基座、转动惯量 \(0.0009\rm\,kg\,m^2\) 的单关节接受 20° 阶跃后回到 0°。采用上述本构式、0.5 ms 半隐式速度更新。**台架没有钢片，不是整机收缩或转弯性能。**
+新计算的独立台架：左侧为 0.28 kg 吊载由绳索牵引，舵盘角在 4 秒内按 0–50°–0 变化；右侧为固定基座、转动惯量 $0.0009\rm\,kg\,m^2$ 的单关节接受 20° 阶跃后回到 0°。采用上述本构式、0.5 ms 半隐式速度更新。**台架没有钢片，不是整机收缩或转弯性能。**
 
 ![绳索吊载与关节阶跃](isolated_fixtures.png)
 
@@ -126,53 +126,53 @@ k_c=2000\rm\,N/m,\quad c_c=0.5\rm\,Ns/m.
 
 **黏着**指接触处近似不滑；**黏性阻尼**指与速度相关的阻力。滚动时接触点可以近似黏着，但轮心照样前进。
 
-轮半径 \(r_w=18\rm\,mm\)。根据轮轴方向求最低轮缘到地面的高度，得到压入量 \(\delta\)。离地时不施加接触力，并清空切向记忆；接触时：
+轮半径 $r_w=18\rm\,mm$。根据轮轴方向求最低轮缘到地面的高度，得到压入量 $\delta$。离地时不施加接触力，并清空切向记忆；接触时：
 
-\[
+$$
 N=\max(0,5000\,\delta-8\,v_n).
-\]
+$$
 
-这是允许微小压入的罚接触，不是精确不可穿透约束。以滚动方向、横向作为局部二维坐标，记轮缘随隔板运动的速度为 \(\mathbf v=(v_\parallel,v_\perp)\)，轮速为 \(\omega\)，则滑移速度：
+这是允许微小压入的罚接触，不是精确不可穿透约束。以滚动方向、横向作为局部二维坐标，记轮缘随隔板运动的速度为 $\mathbf v=(v_\parallel,v_\perp)$，轮速为 $\omega$，则滑移速度：
 
-\[
+$$
 \mathbf u=(v_\parallel-r_w\omega,\ v_\perp).
-\]
+$$
 
-不能直接把轮心速度当成打滑速度：只要 \(v_\parallel\approx r_w\omega\)，纵向就接近纯滚动。
+不能直接把轮心速度当成打滑速度：只要 $v_\parallel\approx r_w\omega$，纵向就接近纯滚动。
 
-切向弹簧记忆为 \(\boldsymbol\xi\)，\(k_t=2000\rm\,N/m,\ c_t=8\rm\,Ns/m\)；摩擦上限为 \(\mu N\)，基准 \(\mu=0.8\)，随机化运行还乘候选倍率。
+切向弹簧记忆为 $\boldsymbol\xi$，$k_t=2000\rm\,N/m,\ c_t=8\rm\,Ns/m$；摩擦上限为 $\mu N$，基准 $\mu=0.8$，随机化运行还乘候选倍率。
 
-下面是代码每步 \(h\) 的预测／投影／修正次序。轮惯量 \(I=\tfrac12(0.009)r_w^2\)，滚阻矩：
-\[
+下面是代码每步 $h$ 的预测／投影／修正次序。轮惯量 $I=\tfrac12(0.009)r_w^2$，滚阻矩：
+$$
 \tau_r=\min[0.015Nr_w+2\times10^{-6}\omega_n,\ I\omega_n/h].
-\]
-\[
+$$
+$$
 A=k_th+c_t,\quad \mathbf b=-k_t\boldsymbol\xi_n-A\mathbf v,
-\]
-\[
+$$
+$$
 \widetilde\omega=
 \max\left[0,\frac{\omega_n-h(r_w b_\parallel+\tau_r)/I}
 {1+h r_w^2 A/I}\right],\qquad
 \widetilde{\mathbf F}=\mathbf b+A(r_w\widetilde\omega,0).
-\]
+$$
 
 超出摩擦圆时投影：
-\[
+$$
 \mathbf F=
 \begin{cases}
 \widetilde{\mathbf F},&\|\widetilde{\mathbf F}\|\le\mu N,\\
 \mu N\,\widetilde{\mathbf F}/\|\widetilde{\mathbf F}\|,&\text{否则}.
 \end{cases}
-\]
+$$
 
 再计算轮速，并通过单向离合限制反转：
-\[
+$$
 \omega_{\rm free}=\omega_n-h(r_wF_\parallel+\tau_r)/I,\qquad
 \omega_{n+1}=\max(0,\omega_{\rm free}).
-\]
+$$
 
-黏着分支累积 \(\boldsymbol\xi_{n+1}=\boldsymbol\xi_n+h\mathbf u\)；滑动分支重置为
-\(\boldsymbol\xi_{n+1}=-(\mathbf F+c_t\mathbf u)/k_t\)，避免记忆无限增长。离合反力矩 \(I(\omega_{n+1}-\omega_{\rm free})/h\) 和滚阻反作用传回隔板。
+黏着分支累积 $\boldsymbol\xi_{n+1}=\boldsymbol\xi_n+h\mathbf u$；滑动分支重置为
+$\boldsymbol\xi_{n+1}=-(\mathbf F+c_t\mathbf u)/k_t$，避免记忆无限增长。离合反力矩 $I(\omega_{n+1}-\omega_{\rm free})/h$ 和滚阻反作用传回隔板。
 
 这是有弹性记忆的正则化黏着／滑动近似。代码预测轮速、限幅摩擦后只修正一次轮速，没有迭代求解严格的库仑互补约束；摩擦限幅分支也不能等同于零／非零滑移的完美分类。
 
@@ -184,7 +184,7 @@ A=k_th+c_t,\quad \mathbf b=-k_t\boldsymbol\xi_n-A\mathbf v,
 | --- | --- |
 | 反向外力 0.5 N | 锁止，最终位移 −0.25 mm，最终速度约 0；小位移来自接触弹簧建立支撑 |
 | 反向外力 1.15 N | 超过 1.12 N 上限，持续滑动，最终速度约 −0.583 m/s |
-| 正向外力 0.05 N | 被动滚动，最终轮心速度约 0.477 m/s，而滑移约 \(5.4\times10^{-7}\) m/s |
+| 正向外力 0.05 N | 被动滚动，最终轮心速度约 0.477 m/s，而滑移约 $5.4\times10^{-7}$ m/s |
 | 初始向前速度 0.1 m/s，撤去外力 | 滚阻使其停下，总前进约 33.7 mm |
 
 持续外力是诊断输入，不是机器人电机推力，也不是整机试验。动画各格使用独立标尺、放大轮子显示半径，以 1× 播放。
