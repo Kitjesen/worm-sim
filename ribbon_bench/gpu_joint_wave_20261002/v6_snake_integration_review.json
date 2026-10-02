@@ -1,0 +1,138 @@
+{
+  "status": "passed_with_documented_limits",
+  "review_date_local": "2026-10-02",
+  "reviewer": "snake_integration_review",
+  "scope": "Independent local command, joint and CAD transform checks; not a GPU trajectory or locomotion validation",
+  "environment": {
+    "platform": "Windows AMD64",
+    "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "python_executable": "D:/doso/robot/ribbon_bench/.venv/Scripts/python.exe",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "openblas_num_threads": 1,
+    "pythonpath": "ribbon_bench/vendor/discrete-elastic-ribbon/src",
+    "remote_probe_note": "v6_snake_n9_cuda_probe uses a separate server environment and is audited separately. This local review does not establish NumPy 1/2 parity or CPU/CUDA parity."
+  },
+  "v6_command_check": {
+    "method": "Compare _v6_joint_command(names,t) with motor_contract_v6.normalized_action_to_targets(action_adapter_v6.cmaes_anchor_action('serpentine',2*pi*t))[1][1:] using numpy.testing.assert_array_equal",
+    "joint_names": ["front3", "front4", "front5", "front6"],
+    "global_v6_yaw_indices": [1, 2, 3, 4],
+    "after_startup": {
+      "sampling": "numpy.linspace(0.2,2.4,311)",
+      "samples": 311,
+      "max_absolute_difference_rad": 0.0,
+      "result": "Every sample was array-equal to the original V6 targets selected by actual CAD joint names."
+    },
+    "zero_start": {
+      "time_s": 0.0,
+      "targets_rad": [0.0, 0.0, 0.0, 0.0],
+      "result": "array-equal to zeros"
+    },
+    "startup_ramp": {
+      "startup_s": 0.2,
+      "formula": "0.5*(1-cos(pi*min(1,t/startup_s)))",
+      "independent_formula": "Original selected V6 targets multiplied by 0.5*(1-cos(pi*t/0.2))",
+      "sampling": "numpy.linspace(0.0,0.2,101)",
+      "samples": 101,
+      "max_absolute_difference_rad": 2.220446049250313e-16,
+      "assert_absolute_tolerance_rad": 1e-15,
+      "assert_relative_tolerance": 0.0,
+      "rounding_note": "An initial array-equality assertion on the independently reordered startup formula failed on roundoff, first observed at 5.551115123125783e-17 rad. The completed startup check used the stated absolute tolerance. No command mismatch was observed after startup."
+    },
+    "motor_defaults_source_review": {
+      "kp_nm_per_rad": 200.0,
+      "actuator_kd_nms_per_rad": 0.0,
+      "actuator_torque_limit_nm": 20.0,
+      "passive_damping_nms_per_rad": 5.0,
+      "qualification": "Values are the original V6 MuJoCo position-servo abstraction, not experimental calibration or a vendor motor model."
+    },
+    "historical_mode_review": "Default phase-sine retains kp=1, kd=0.03, torque limit=0.5 and passive damping=0; the original _joint_command formula is unchanged. This is a code review finding, not a rerun of the historical N33 trajectory."
+  },
+  "revolute_joint_self_check": {
+    "method": "Independently invoke revolute_joints.self_check() on the local environment",
+    "constraint_J_max_abs_error": 2.4885882243808055e-10,
+    "signed_CAD_yaw": true,
+    "force_moment_balance": true,
+    "implicit_PD": true,
+    "torque_clipping": true,
+    "passive_damping_outside_motor_limit": true,
+    "compliant_limit": true,
+    "saturated_damping_assertions": {
+      "test_kp_nm_per_rad": 1.0,
+      "test_actuator_kd_nms_per_rad": 0.0,
+      "test_torque_limit_nm": 0.5,
+      "test_passive_damping_nms_per_rad": 0.07,
+      "old_angle_rad": 0.97,
+      "new_angle_rad": 1.0,
+      "target_rad": -1.0,
+      "dt_s": 0.02,
+      "actuator_torque_asserted_nm": -0.5,
+      "expected_passive_torque_nm": -0.105,
+      "passive_torque_assert_absolute_tolerance_nm": 1e-13,
+      "expected_physical_hessian_trace": 7.0,
+      "hessian_trace_assert_absolute_tolerance": 1e-12,
+      "result": "All assertions passed; independent passive damping and its implicit tangent remain present while the actuator is saturated."
+    }
+  },
+  "renderer_self_check": {
+    "method": "Independently invoke render_full_robot.self_check()",
+    "status": "passed",
+    "check": "ribbon geometry, saved joint pivot, binary STL, surface LOD and plate transform"
+  },
+  "cad_urdf_transform_check": {
+    "links": ["front2_Link", "back2_Link", "front3_Link", "back3_Link", "front4_Link", "back4_Link", "front5_Link", "back5_Link", "front6_Link", "back6_Link"],
+    "link_count": 10,
+    "mesh_lod_m": 0.0,
+    "units": "m",
+    "visual_origin_xyz_m": [0.0, 0.0, 0.0],
+    "visual_origin_rpy_rad": [0.0, 0.0, 0.0],
+    "visual_scale": [1.0, 1.0, 1.0],
+    "extent_assertion": "Each full STL has a maximum Cartesian span strictly between 0.02 and 0.2 m.",
+    "render_transform": "world = plate_center_world + (STL_vertex - parameter_plate_center_local) @ plate_R_world.T",
+    "independent_method": "Read the CAD URDF; recursively compose each selected link joint translation from front2_Link at identity. Assert zero joint rpy and zero visual origin for these links. Transform full raw STL vertices through those link poses, then compare to the renderer mesh translated from read_chain_inertias(unlocked=True) plate reference centers and rotations.",
+    "max_absolute_coordinate_difference_m": 1.3877787807814457e-17,
+    "assert_absolute_tolerance_m": 1e-15,
+    "assert_relative_tolerance": 0.0,
+    "qualification": "This numeric check covers the CAD reference pose and full raw meshes. The renderer uses saved physical plate poses for animated frames; this review did not re-solve those poses or independently validate every rendered frame."
+  },
+  "inherited_v6_phase_wrap_limit": {
+    "phase_source": "phase=2*pi*t; action_adapter_v6._phase_cycle_seconds returns (phase mod 2*pi)/(2*pi)",
+    "phase_clock_period_s": 1.0,
+    "method": "Evaluate _v6_joint_command for front3..front6 at t=1-1e-8 and t=1. Convert results and at-minus-before differences with numpy.rad2deg.",
+    "time_before_s": 0.99999999,
+    "time_at_wrap_s": 1.0,
+    "left_margin_s": 1e-8,
+    "before_targets_deg": [-21.206487448271478, 8.971801814459418, 34.15320322758444, 40.3128146701691],
+    "at_wrap_targets_deg": [28.368340359096294, 40.93679684707937, 30.705310074183668, 3.372352968727728],
+    "at_minus_before_deg": [49.574827807367775, 31.96499503261995, -3.4478931534007766, -36.94046170144137],
+    "interpretation": "The original anchor has noninteger frequencies on a wrapping 1 s phase clock, so its targets jump at the wrap. The integration preserves that source behavior; this is not a joint-index mapping error. The 0.24 s CUDA probe does not cross a wrap and cannot establish multiple-cycle stability. Any future smoothing should be recorded as a control change, rather than claimed to match original targets at every time."
+  },
+  "reporting_limits": [
+    "The selected steel chain is CAD modules 2..6 with four yaw joints front3..front6. Original V6 has six extension modules and five yaw joints; module 1 and front2 yaw remain omitted.",
+    "Restoring CAD servo and connector STL shapes is a rendering change. Steel surface and circular plate-rim sampling remain the ground-contact model; servo/connector STL surfaces do not become collision geometry.",
+    "The historical N33, 0.4 s trajectory used the old 15 degree phase-sine drive and weak servo parameters. Re-rendering it with CAD meshes does not recompute it under V6 snake commands.",
+    "This review establishes command mapping, a startup ramp, local joint self-checks and CAD reference transforms; it does not establish experimental accuracy, full V6 locomotion, backward displacement or stable long-duration contact."
+  ],
+  "source_hash_capture": "SHA-256 captured after the local checks for the reviewed working-tree sources and assets; hashes are provenance only and do not replace the separately archived remote probe sources.",
+  "source_sha256": {
+    "ribbon_bench/full_robot.py": "801edf072536399ab613410931a3124144409fe0b949fb8a209810fd050e5be9",
+    "ribbon_bench/revolute_joints.py": "d7b888c6d9536e8597dfdc499b9c3d2f0388ec1b837e98a4c3153e8b075b1b7e",
+    "ribbon_bench/render_full_robot.py": "aaddad6dff65770e0662dff90b5a928b2f8b3d871ab59412b61b9d3808ce59b6",
+    "ribbon_bench/full_body_loads.py": "726de2ad07cd412c28d1aa0dc5d69b132ad8ad8b7ccc6764838d5a5dbae04974",
+    "ribbon_bench/run.py": "c29e57430b9d5f55a059aede748592da354c9c6f4f4ca906031fdc2fd3e4f23e",
+    "ribbon_bench/output/parameters.snapshot.json": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1",
+    "ribbon_bench/publication/data/cad_reference.urdf": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818",
+    "src/v6/action_adapter_v6.py": "1883e649dc09d207cd65ce78f08fb942db0a760fd892bdfe9723441373031e53",
+    "src/v6/motor_contract_v6.py": "ee1e810bc2f0acc2f58c51d74a3c500397e9c1095c663a1a64adf05c88a3664a",
+    "meshes/longworm2/front2_Link.STL": "bb8c8b31fcf08ba876b9dc2d15c7f844e142efb6a552bc6caaa1da6e4fcbbc5a",
+    "meshes/longworm2/back2_Link.STL": "a08643fe7ae8ac917cf4bfb0884d21e71eed2b07848feeb93ca73de83261afe4",
+    "meshes/longworm2/front3_Link.STL": "0eed072796c3c70546257e3333c70de398f6011e2db7ba90516950d0ac0febe2",
+    "meshes/longworm2/back3_Link.STL": "d9be405da3cdbc7b83051edb17d58dc3e77ac79cab51e56c3db79ab3d9177e12",
+    "meshes/longworm2/front4_Link.STL": "26bc442c3cf53ee164d9c2026d5f3a55e270d500c1a6c654d42ee6f642a7e4aa",
+    "meshes/longworm2/back4_Link.STL": "a69e2586eeab15a9993ecef1f1f87e2026bdd62cccdebbb1e111f1b0a1c022ee",
+    "meshes/longworm2/front5_Link.STL": "55a108baa68b6a86fd4872cec7aa8810bbd1670f51dec4ca44b734591dee52d8",
+    "meshes/longworm2/back5_Link.STL": "e2f70975e71a1600a608437f46ad1335acdce665d511ee1075667b1a36ca42a0",
+    "meshes/longworm2/front6_Link.STL": "c28e9ca67848fd6a0a47bfca87a8c4608948a827919aa69c76111abbc1b59e9d",
+    "meshes/longworm2/back6_Link.STL": "cee7c26c636539ac33e6f7b3140201fcdd0a043a5deeadd28997e7d013d31efc"
+  }
+}

@@ -12,7 +12,11 @@ The integrated mechanics follow-up is documented in the [full Chinese simulation
 
 **Latest mechanics demo (2026-10-02): [four moving CAD yaw joints and a head-to-tail peristaltic wave](ribbon_bench/JOINT_BACKWARD_WAVE.zh-CN.md).** The coupled Sano/CUDA dynamics solve 40 ribbons at 33 nodes each, 20 tension-only cables, 10 independent rigid bodies and four revolute joints. Finite motor torques drive 15° targets while 6 mm cable pulses travel from head to tail. Actual joint peaks range from 8.0° to 11.3°. This startup cycle moves the total COM 1.27 mm forward; reverse locomotion has not been established. The report separates commanded motion from calculated motion. The [earlier locked-joint run](ribbon_bench/FIVE_SEGMENT_DEMO.zh-CN.md) is retained separately.
 
-![Articulated five-segment ribbon dynamics](ribbon_bench/gpu_joint_wave_20261002/backward_n33_cuda/robot_motion.gif)
+**Snake-joint correction:** the original V6 has six extension modules and five yaw joints. This Sano demo uses CAD modules 2–6 and their four internal yaw joints. Its earlier drawing omitted the servo and connector STL shapes; the CAD rendering below uses the same audited physical trajectory. The new `--joint-drive v6-snake` reuses the original V6 snake action adapter, motor parameters and separate passive damping with the original joint-name mapping. Its N9 short probe completed 0.24 s on RTX 5090 in 222.694 s, passed the saved-input and mechanics audit, and reached actual peak joint angles of 37.66°, 25.06°, 9.11° and 33.21°. This is a coarse short integration check, not complete V6 locomotion; the N33 results above remain the custom 15° run. See the [scope and reproduction notes](ribbon_bench/JOINT_BACKWARD_WAVE.zh-CN.md#更正原仓库的蛇形关节与这次模型的范围).
+
+![Articulated five-segment ribbon dynamics with CAD servo connectors](ribbon_bench/gpu_joint_wave_20261002/backward_n33_cuda_cad/robot_motion.gif)
+
+![Original V6 snake drive: N9 five-module short integration check, 0–0.24 s](ribbon_bench/gpu_joint_wave_20261002/v6_snake_n9_cuda_probe/robot_motion_top.gif)
 
 ## Current Main Claim
 

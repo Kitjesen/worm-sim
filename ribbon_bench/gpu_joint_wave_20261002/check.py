@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import sys
@@ -11,8 +12,6 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from full_body_loads import read_chain_inertias
-from revolute_joints import RevoluteJoints
 
 
 def load(folder):
@@ -59,16 +58,33 @@ def compare(cpu, cuda):
         scope='Short CPU/CUDA probe; numerical agreement is not experimental validation'))
 
 
+def snapshot_module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def audit(folder):
     summary, data = load(folder)
     meta, frames = summary['metadata'], summary['frames']
     q, c, R = data['q'], data['body_com'], data['body_R']
     nt, strips, nq = q.shape
     nodes = (nq+1)//4
-    assert (nt, strips, nodes) == (41, 40, 33), 'Expected the formal 41-frame, N33, five-segment run'
+    native = meta.get('joint_drive', {}).get('preset') == 'v6-snake'
+    expected_shape = (13, 40, 9) if native else (41, 40, 33)
+    assert (nt, strips, nodes) == expected_shape, f'Expected saved run shape {expected_shape}'
+    assert c.shape == (nt, 10, 3) and R.shape == (nt, 10, 3, 3)
     assert meta['segments'] == 5 and meta['rigid_bodies'] == 10 and meta['gait'] == 'backward-wave'
     assert meta['wave_direction'] == 'head-to-tail' and meta['head_segment'] == 1
-    np.testing.assert_allclose([meta['duration_s'], meta['drive_period_s'], meta['command_amplitude_mm']], [.4, .4, 6.], atol=1e-12, rtol=0)
+    np.testing.assert_allclose([meta['duration_s'], meta['drive_period_s'], meta['command_amplitude_mm']],
+                              [.24, .4, 1.] if native else [.4, .4, 6.], atol=1e-12, rtol=0)
+    if native:
+        np.testing.assert_allclose(meta['dt_s'], .02, atol=1e-14, rtol=0)
+        assert meta['plates'] == 10 and meta['physical_body_dof'] == 60 and meta['joint_constraint_dof'] == 20
+    else:
+        np.testing.assert_allclose(meta['joint_amplitude_deg'], 15., atol=1e-14, rtol=0)
     times = np.asarray([frame['time_s'] for frame in frames])
     np.testing.assert_allclose(times, np.arange(nt)*meta['dt_s'], atol=1e-14, rtol=0)
     parameters = HERE.parent/'output/parameters.snapshot.json'
@@ -83,21 +99,56 @@ def audit(folder):
         assert snapshot is not None, f'Missing immutable source snapshot: {snapshot_name}'
         actual = sha(snapshot)
         assert actual == meta['source_hashes'][name], f'Snapshot hash differs from simulated source: {name}'
-        if name in ('full_body_loads.py', 'revolute_joints.py'):
-            assert sha(HERE.parent/name) == actual, f'Audit model differs from simulated source: {name}'
         source_verification[name] = dict(path=str(snapshot), sha256=actual, matches_simulation=True)
     assert meta['source_sha256'] == meta['source_hashes']['full_robot.py']
+
+    # Recompute historical geometry with the hash-verified execution snapshots.
+    modules = {}
+    for name in ('full_body_loads', 'revolute_joints'):
+        modules[name] = snapshot_module(name, source_verification[name+'.py']['path'])
+    if native:
+        drive = meta['joint_drive']
+        assert set(drive['source_hashes']) == {'src/v6/motor_contract_v6.py', 'src/v6/action_adapter_v6.py'}
+        for name in ('motor_contract_v6', 'action_adapter_v6'):
+            key = 'src/v6/'+name+'.py'
+            path = Path(folder)/(name+'.py')
+            actual = sha(path)
+            assert actual == drive['source_hashes'][key], f'Native source snapshot differs: {key}'
+            source_verification[key] = dict(path=str(path), sha256=actual, matches_simulation=True)
+            modules[name] = snapshot_module(name, path)
+        modules['full_robot'] = snapshot_module('full_robot', source_verification['full_robot.py']['path'])
     p = json.loads(parameters.read_text(encoding='utf-8'))
-    body = read_chain_inertias(p, 5, cad, unlocked=True)
+    body = modules['full_body_loads'].read_chain_inertias(p, 5, cad, unlocked=True)
     np.testing.assert_array_equal(data['plate_body_indices'], np.arange(10))
     np.testing.assert_array_equal(data['strip_bodies'], np.repeat(np.arange(10).reshape(5, 2), 8, axis=0))
     np.testing.assert_allclose(data['body_mass_kg'], body['mass_kg'], atol=1e-14, rtol=0)
     np.testing.assert_allclose(data['body_com_local_m'], body['com_local_m'], atol=1e-14, rtol=0)
     joint_meta = meta['joint_model']
-    model = RevoluteJoints(p, body, kp=joint_meta['kp_nm_rad'], kd=joint_meta['kd_nms_rad'], torque_limit=joint_meta['motor_torque_limit_nm'])
+    if native:
+        np.testing.assert_allclose([joint_meta['kp_nm_rad'], joint_meta['kd_nms_rad'], joint_meta['motor_torque_limit_nm'], joint_meta['passive_damping_nms_rad']],
+                                  [200., 0., 20., 5.], atol=1e-14, rtol=0)
+    model = modules['revolute_joints'].RevoluteJoints(p, body, kp=joint_meta['kp_nm_rad'], kd=joint_meta['kd_nms_rad'], torque_limit=joint_meta['motor_torque_limit_nm'],
+        **({'passive_damping': joint_meta['passive_damping_nms_rad']} if native else {}))
     angles, targets = data['joint_angles_rad'], data['joint_targets_rad']
     assert angles.shape == targets.shape == (nt, 4)
-    assert np.max(np.abs(targets)) <= np.deg2rad(meta['joint_amplitude_deg'])+1e-12
+    target_error = None
+    if native:
+        adapter, motor = modules['action_adapter_v6'], modules['motor_contract_v6']
+        mapping = [dict(name=j['name'], v6_yaw_index=motor.YAW_JOINT_NAMES.index(j['name'])) for j in body['joints']]
+        assert mapping == drive['joint_mapping'] == [dict(name=f'front{i+3}', v6_yaw_index=i+1) for i in range(4)]
+        assert drive['anchor'] == adapter.action_adapter_contract()['gait_anchors']['snake']
+        np.testing.assert_allclose([drive['startup_s'], drive['phase_clock_period_s']], [.2, 1.], atol=1e-14, rtol=0)
+        expected_targets = []
+        for t in times:
+            _, yaw = motor.normalized_action_to_targets(adapter.cmaes_anchor_action('serpentine', 2*np.pi*float(t)))
+            ramp = .5*(1-np.cos(np.pi*min(1., float(t)/.2)))
+            # Match the archived arithmetic dtype across NumPy 1/2 scalar-promotion rules.
+            expected_targets.append(yaw[1:].astype(targets.dtype)*np.asarray(ramp, dtype=targets.dtype))
+        target_error = float(np.max(abs(targets-np.asarray(expected_targets))))
+        np.testing.assert_allclose(targets, expected_targets, atol=1e-14, rtol=0)
+        np.testing.assert_array_equal(targets[0], np.zeros(4))
+    else:
+        assert np.max(np.abs(targets)) <= np.deg2rad(meta['joint_amplitude_deg'])+1e-12
     pivot_errors, axis_errors, angle_errors = [], [], []
     for k in range(nt):
         ev = model.evaluate(c[k], R[k], np.zeros(20), targets[k], meta['dt_s'], np.zeros((10, 3)))
@@ -131,8 +182,14 @@ def audit(folder):
     torque = np.asarray([frame['torques_nm'] for frame in frames])
     stops = np.asarray([frame['stop_torques_nm'] for frame in frames])
     excess = np.maximum(np.maximum(angles-model.limits[:, 1], model.limits[:, 0]-angles), 0.)
-    np.testing.assert_allclose(joint_meta['motor_torque_limit_nm'], .5, atol=1e-14, rtol=0)
-    assert np.max(abs(torque)) <= .5+1e-12
+    torque_limit = joint_meta['motor_torque_limit_nm']
+    np.testing.assert_allclose(torque_limit, 20. if native else .5, atol=1e-14, rtol=0)
+    assert np.max(abs(torque)) <= torque_limit+1e-12
+    passive_peak = 0.
+    if native:
+        passive = np.asarray([frame['passive_damping_torques_nm'] for frame in frames])
+        assert passive.shape == (nt, 4) and np.isfinite(passive).all()
+        passive_peak = float(np.max(abs(passive)))
     np.testing.assert_allclose([frame['limit_excess_rad'] for frame in frames], excess, atol=1e-10, rtol=0)
     stop_expected = -joint_meta['limit_stiffness_nm_rad']*(angles-np.clip(angles, model.limits[:, 0], model.limits[:, 1]))
     np.testing.assert_allclose(stops, stop_expected, atol=1e-10, rtol=0)
@@ -141,8 +198,12 @@ def audit(folder):
     rest = np.asarray([frame['cable_rest_m'] for frame in frames]).reshape(nt, 5, 4)
     command = (base[None]-rest).mean(axis=2)
     peaks = times[np.argmax(command, axis=0)]
-    np.testing.assert_allclose(peaks, [.04, .12, .20, .28, .36], atol=1e-12, rtol=0)
-    np.testing.assert_allclose(command.max(axis=0), .006, atol=1e-12, rtol=0)
+    if native:
+        expected_rest = np.asarray([modules['full_robot']._command(base.reshape(-1), float(t), meta['drive_period_s'], .001, 'backward-wave') for t in times]).reshape(nt, 5, 4)
+        np.testing.assert_allclose(rest, expected_rest, atol=1e-14, rtol=0)
+    else:
+        np.testing.assert_allclose(peaks, [.04, .12, .20, .28, .36], atol=1e-12, rtol=0)
+        np.testing.assert_allclose(command.max(axis=0), .006, atol=1e-12, rtol=0)
     plate_com = data['body_com_local_m']
     centers = c[:, data['plate_body_indices']]+np.einsum('tpij,pj->tpi', R[:, data['plate_body_indices']], data['plate_centers_local_m']-plate_com[data['plate_body_indices']])
     lengths = np.linalg.norm(centers[:, 1::2]-centers[:, ::2], axis=2)
@@ -158,17 +219,21 @@ def audit(folder):
     residual_max = max(frame['residual_max'] for frame in frames)
     assert residual_max <= 1.001e-5
     dx = float(displacement[0])
-    return save('validation.json', dict(status='passed', run_path=str(folder), frames=nt, nodes=nodes, segments=5,
+    peak_times = [float(t) if amplitude > 0 else None for t, amplitude in zip(peaks, command.max(0))] if native else peaks.tolist()
+    return save('v6_snake_validation.json' if native else 'validation.json', dict(status='passed', run_path=str(folder), frames=nt, nodes=nodes, segments=5,
         source_snapshots=source_verification, parameters_sha256=meta['parameters_sha256'], urdf_sha256=meta['urdf_sha256'],
         joint_constraints=dict(max_pivot_error_m=pivot_max, max_axis_error=axis_max, saved_angle_error_rad=angle_max),
         clamp_body_consistency=dict(max_vertex_error_m=clamp_max, max_width_director_error=width_max, max_cable_attachment_error_m=cable_max),
         joint_motion=dict(max_actual_angle_deg=np.rad2deg(np.max(abs(angles), axis=0)).tolist(),
             max_target_angle_deg=np.rad2deg(np.max(abs(targets), axis=0)).tolist(), declared_target_amplitude_deg=meta['joint_amplitude_deg'],
+            native_anchor_target_error_rad=target_error, saved_target_arithmetic_dtype=str(targets.dtype),
             max_tracking_error_deg=np.rad2deg(np.max(abs(angles-targets), axis=0)).tolist(),
-            motor_peak_torque_nm=float(np.max(abs(torque))), torque_limit_nm=.5,
+            motor_peak_torque_nm=float(np.max(abs(torque))), torque_limit_nm=torque_limit,
+            saved_peak_passive_damping_torque_nm=passive_peak,
             max_CAD_stop_excess_rad=float(excess.max()), saved_frames_outside_CAD_limits=int(np.any(excess > 0, axis=1).sum()),
             max_stop_torque_nm=float(np.max(abs(stops))), target_amplitude_is_not_an_actual_angle_constraint=True),
-        commanded_wave=dict(direction='head-to-tail', peak_times_s=peaks.tolist(), peak_shortening_mm=(command.max(0)*1000).tolist()),
+        commanded_wave=dict(direction='head-to-tail', peak_times_s=peak_times, peak_shortening_mm=(command.max(0)*1000).tolist(),
+            scope='Saved partial-period command samples match execution source; tail pulses have not run' if native else 'All five commanded peaks in one full cycle'),
         segment_response=dict(max_contraction_mm=((lengths[0]-lengths).max(0)*1000).tolist(), peak_contraction_times_s=times[np.argmax(lengths[0]-lengths, axis=0)].tolist()),
         center_of_mass=dict(included='CAD rigid bodies including locked wheels plus all ribbon translational node masses; ideal massless cables',
             total_mass_kg=total_mass, rigid_mass_kg=float(masses.sum()), steel_mass_kg=float(strips*node_masses.sum()),
@@ -183,7 +248,8 @@ def audit(folder):
             saved_max_penetration_m=max(frame['max_penetration_m'] for frame in frames),
             substep_max_penetration_m=max(frame.get('substep_max_penetration_m', frame['max_penetration_m']) for frame in frames),
             peak_ground_normal_force_n=max(frame['contact_normal_force_n'] for frame in frames), contact_states=[frame.get('status_counts', {}) for frame in frames]),
-        scope='One simulated cycle; checks numerical consistency, commanded wave and net displacement, not stable locomotion or experimental calibration'))
+        scope=('0.24 s V6-snake input probe on CAD 2–6 Sano subchain; numerical and saved-input consistency, not a full wave cycle, complete V6 locomotion, convergence study or experimental calibration' if native
+               else 'One simulated cycle; checks numerical consistency, commanded wave and net displacement, not stable locomotion or experimental calibration')))
 
 
 if __name__ == '__main__':

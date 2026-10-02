@@ -1,10 +1,52 @@
 # 四个中间摆动关节与向尾部传播的蠕动波
 
-日期：2026-10-02。本次在现有 Sano 钢带／CUDA 动力学核心上释放五体节机器人中间的四个 CAD 摆动关节，并加入依次从头部传向尾部的收绳脉冲。目标是计算钢带、端板、绳索、关节驱动力矩和地面反力相互影响的真实轨迹，保存可用于汇报的图和原始结果。
+日期：2026-10-02。本次在现有 Sano 钢带／CUDA 动力学核心上释放五体节机器人中间的四个 CAD 摆动关节，并加入依次从头部传向尾部的收绳脉冲。目标是计算钢带、端板、绳索、关节驱动力矩和地面反力相互影响的真实轨迹，保存可用于汇报的图和原始结果。下文的 N33 数值结果对应原有 15° 演示输入；后续接入的 V6 蛇形驱动另列，不能混用计算条件。
 
 本次已完成 0.4 s 的五体节 N33 仿真：四个中间关节实际摆动，收缩峰值依次从头部传向尾部，代码快照和保存轨迹检查通过。**包含钢带质量的整机质心沿头部方向净前移 1.271 mm，因此本次完成的是向尾部传播的蠕动波，还不是整机后退爬行。** 波传播方向由输入时序定义，整机运动方向由力学、接触和摩擦共同决定；这两个结果必须分别报告。
 
-## 为什么上一版看不到中间摆动
+## 更正：原仓库的蛇形关节与这次模型的范围
+
+核对原 [V6 电机配置](../src/v6/motor_contract_v6.py) 和 [整机模型](../src/v6/worm_v6.py) 后，原机器人包含 **6 个伸缩模块、5 个偏航关节**，偏航关节名为 `front2` 至 `front6`。本次 Sano 模型取其中 CAD 第 2–6 个伸缩模块，因此包含 `front3` 至 `front6` 四个内部偏航关节；没有包含头部 `base_link → back1_Link` 模块及其后的 `front2` 关节，不能称为完整 V6 机器人。
+
+用户指出的中间蛇形关节确实没有完整呈现在此前图中：解锁版本已将四个真实 CAD 铰链接入动力学，但绘图用细线和橙色支点代替了舵机、连接臂等 STL 实体；驱动也使用自定义 15° 正弦及较小 PD 参数，并未沿用原 V6 蛇形配置。恢复实体外形与接入原控制输入是两项更正，均不能通过在动画后处理阶段额外加摆角完成。
+
+更正后的 CAD 图保存在 [`backward_n33_cuda_cad/`](gpu_joint_wave_20261002/backward_n33_cuda_cad/)。其钢带和刚体位姿仍读取已经通过审计的 N33 轨迹；STL 顶点按所属 `frontN_Link`／`backN_Link` 的局部板中心与逐帧刚体旋转变换，舵机和连接臂跟随真实解算姿态。这只是补全原有轨迹的外形，不是按 V6 新驱动重算 N33。STL 仅用于显示，地面接触仍采用钢带表面和圆形板缘采样；舵机、连接臂的 STL 碰撞、轮自转与轮接触仍未加入。
+
+新增 `--joint-drive v6-snake` 直接调用现有 [动作适配器](../src/v6/action_adapter_v6.py) 的 `cmaes_anchor_action('serpentine', 2πt)`，再调用 `normalized_action_to_targets`。按真实关节名选择原五关节目标中的列 1–4（从 0 计数），避免把子链的四关节重新编号而改变原相位。前 0.2 s 加入半余弦幅度启动，0.2 s 后目标与原适配器一致；沿用原可部署 1 s 相位时钟，与收绳波的 `--period` 分开。
+
+| 关节驱动条件 | 原 N33 演示 `phase-sine` | 新增 `v6-snake` 默认值 |
+| --- | --- | --- |
+| 目标来源 | 自定义四关节 15° 相位正弦 | 原 V6 CMA-ES serpentine 锚点及目标映射 |
+| 电机位置增益 | 1 N·m/rad | 200 N·m/rad |
+| 电机 PD 速度增益 | 0.03 N·m·s/rad | 0 |
+| 电机力矩上限 | ±0.5 N·m | ±20 N·m |
+| 独立关节被动阻尼 | 0 | 5 N·m·s/rad |
+
+被动阻尼的力矩独立于电机力矩限幅，在电机饱和时仍然作用，和原 MuJoCo 关节阻尼的归属一致。上述参数来自仓库中的位置舵机抽象，尚无真实舵机实验标定；移植输入和参数不等于移植了整个 MuJoCo 模型。Sano 模型的钢带形变、端板相对姿态仍由力学求解，没有原 V6 的刚性 slide 导向约束，也缺少轮自转、完整轮接触与单向机构。
+
+核对还发现原动作适配器的 1 s 相位回绕存在目标跳变：所选五体节的四关节在回绕处最大约 49.57°。这是原锚点频率与相位取模共同产生的既有行为，当前接入保留原输入；0.24 s 算例尚未跨越回绕，不能据此宣称多周期稳定。后续应把连续相位驱动与原锚点分别验证，若改变时钟则需标为控制器改进。
+
+原模型首模块的关节原点间距为 151 mm，其余模块为 117.5 mm；这不是本次钢带夹持中心的 101 mm。补齐完整六模块需要核对首模块的专用板形、孔位、夹持与质量，不能简单复制第 2 节。
+
+新输入的自检已覆盖真实关节名映射、零幅度启动、启动后与原目标一致，以及电机饱和时被动阻尼仍保留。RTX 5090 上五模块 N9 短算例已完成：40 片钢带、四关节、0.24 s、12 个 20 ms 主步、1 mm 收绳波、0.4 s 波周期和上述 V6 默认驱动。目录为 [`v6_snake_n9_cuda_probe/`](gpu_joint_wave_20261002/v6_snake_n9_cuda_probe/)。[轨迹审计](gpu_joint_wave_20261002/v6_snake_validation.json)、[代码自检](gpu_joint_wave_20261002/v6_snake_self_checks.json) 和 [独立接入检查](gpu_joint_wave_20261002/v6_snake_integration_review.json) 已保存；8 份执行源码哈希一致，按执行端 float32 算术重算的全部目标角与保存值一致。
+
+| 新 V6 驱动短算例指标 | 实测值与范围 |
+| --- | --- |
+| 四关节最大实际绝对摆角 | 37.656°、25.057°、9.113°、33.212°；保存主帧 |
+| 四关节末帧有符号摆角 | +37.656°、+20.220°、−9.113°、−33.212°；0.24 s |
+| 电机峰值／独立被动阻尼峰值力矩 | 20.000／19.912 N·m；保存主帧，电机达到软件上限 |
+| 峰值绳索张力／最大地面穿透 | 7.144 N／24.147 µm；全部接受子步 |
+| 接受子步／二分恢复增加子步 | 35／1；不是 35 个保存主步 |
+| 计算循环墙钟时间 | 222.694 s，即 3 分 42.7 秒；不含模型构建与渲染 |
+| 总质心位移 X、Y、Z | (−2.056、+8.127、−3.291) mm；包含钢带质量 |
+
+这段启动轨迹有负 X 位移，同时有更大的侧向位移；没有完成一个收绳波周期，后两节脉冲尚未发生，也未跨越原 V6 的 1 s 相位回绕。**它验证了原蛇形指令进入钢带耦合求解、关节真实偏航，不能称为稳定后退爬行，也不能替代 N33 网格／时间步收敛验证。** 图中每片钢带仅有 9 节点、8 段，因此折线比 N33 粗；CAD 显示网格的简化与钢带力学节点数是两个独立设置。
+
+![原 V6 蛇形驱动的五模块 N9 短验证，0–0.24 s](gpu_joint_wave_20261002/v6_snake_n9_cuda_probe/robot_motion_top.gif)
+
+两套 CAD 图的 `render_provenance.json` 与 `visual_validation.json` 记录输入、绘图源码和 10 个 STL 的哈希，固定相机下全帧主体边界检查通过。CAD 显示网格采用 1 mm 顶点聚类单元，最大顶点移动约 0.819 mm；这不改变钢带或刚体的求解轨迹，精细外形可用 `--mesh-lod-m 0` 导出。
+
+## 锁定版本与解锁版本的区别
 
 上一版保留了 CAD 第 2–6 节的 10 块实体端板，但将每一对相邻后板／前板的摆动关节锁在 0°，合并成 6 个动力学刚体。两块实体板的 CAD 间距和质量仍在，关节没有独立旋转自由度。因此五节能收缩和整体弯曲，但不能显示中间舵机关节的相对偏航运动。
 
@@ -141,11 +183,11 @@ CPU 循环墙钟时间为 **31.034 s**，CUDA 为 **19.065 s**。CPU 在本地 W
 
 ## 图、原始数据与复现
 
-正式结果目录：[`gpu_joint_wave_20261002/backward_n33_cuda/`](gpu_joint_wave_20261002/backward_n33_cuda/)。动画读取保存的物理轨迹，端板、钢带和关节采用真实尺度；图中没有顶部／底部多余标题。
+正式物理结果目录：[`gpu_joint_wave_20261002/backward_n33_cuda/`](gpu_joint_wave_20261002/backward_n33_cuda/)。补全舵机和连接臂实体的 CAD 图单独保存在 [`backward_n33_cuda_cad/`](gpu_joint_wave_20261002/backward_n33_cuda_cad/)；动画读取同一份保存轨迹，采用真实尺度，图中没有顶部／底部多余标题。
 
-![五体节钢带、摆动关节与收绳波](gpu_joint_wave_20261002/backward_n33_cuda/robot_motion.gif)
+![五体节钢带、CAD 舵机连接臂与收绳波](gpu_joint_wave_20261002/backward_n33_cuda_cad/robot_motion.gif)
 
-![俯视四个中间摆动关节](gpu_joint_wave_20261002/backward_n33_cuda/robot_motion_top.gif)
+![俯视四个中间 CAD 摆动关节](gpu_joint_wave_20261002/backward_n33_cuda_cad/robot_motion_top.gif)
 
 ![四关节实际角与目标角](gpu_joint_wave_20261002/backward_n33_cuda/robot_motion_joint_metrics.png)
 
@@ -153,12 +195,12 @@ CPU 循环墙钟时间为 **31.034 s**，CUDA 为 **19.065 s**。CPU 在本地 W
 
 ![实际收缩、张力与地面接触指标](gpu_joint_wave_20261002/backward_n33_cuda/robot_motion_metrics.png)
 
-静态终态图不能表示过程中最大摆角，需结合 GIF 和关节角曲线判断；0.4 s 末帧的四个实际角分别为 −1.866°、−4.089°、+0.989°、+6.615°。橙色点标示真实 CAD 支点，连接臂到两端板中心的长度不对称；关节角是两个端板坐标系绕 CAD 轴的相对角，不等于整体链的中心线折线夹角。柔性钢带同时允许各体节两端板的相对姿态变化，不能从中心线是否接近直线来判断关节有没有运动。
+静态终态图不能表示过程中最大摆角，需结合 GIF 和关节角曲线判断；0.4 s 末帧的四个实际角分别为 −1.866°、−4.089°、+0.989°、+6.615°。原简化图用橙色点标示真实 CAD 支点；补全的连接臂到两端板中心的长度不对称。关节角是两个端板坐标系绕 CAD 轴的相对角，不等于整体链的中心线折线夹角。柔性钢带同时允许各体节两端板的相对姿态变化，不能从中心线是否接近直线来判断关节有没有运动。
 
 以下文件用于汇报与检查：
 
-- `robot_motion.gif`、`robot_motion.png/.svg`：固定相机、真实尺度的五体节形变及四关节动画／终态；彩色点标示保存的真实 CAD 支点。
-- `robot_motion_top.gif`、`robot_motion_top.png/.svg`：俯视，便于查看中间摆动。
+- `backward_n33_cuda_cad/robot_motion.gif`、`robot_motion.png/.svg`：固定相机、真实尺度的五体节形变及 CAD 舵机／连接臂动画；静态为帧 26（0.26 s），原简化外形图仍保存在物理结果目录。
+- `backward_n33_cuda_cad/robot_motion_top.gif`、`robot_motion_top.png/.svg`：俯视，便于查看中间摆动。
 - `robot_motion_joint_metrics.png/.svg`：四个关节实际角与目标角。
 - `backward_wave.png/.svg`：从头部至尾部的收绳输入热图。
 - `robot_motion_metrics.png/.svg`：各节实际收缩、绳索张力、地面法向合力与穿透。
@@ -183,8 +225,23 @@ python remote_run_wrapper.py --segments 5 --nodes 33 --unlocked-joints \
   --output gpu_joint_wave_20261002/backward_n33_cuda
 python render_full_robot.py \
   --input gpu_joint_wave_20261002/backward_n33_cuda \
-  --output gpu_joint_wave_20261002/backward_n33_cuda/robot_motion.png
+  --cad-meshes --mesh-lod-m 0.001 \
+  --output gpu_joint_wave_20261002/backward_n33_cuda_cad/robot_motion.png
 ```
+
+`--mesh-lod-m 0.001` 仅对 CAD 绘图网格做 1 mm 顶点聚类简化，不改变物理求解网格。若静态图希望展示原轨迹中四关节总摆角较大的状态，可加 `--frame-index 26` 选择 0.26 s 帧；必须在图注注明时刻，不能称其为 0.4 s 终态。
+
+V6 蛇形输入短算例使用独立目录，保留原 N33 数据；不传 `--joint-kp` 等覆盖参数即可采用表中的 V6 默认值：
+
+```bash
+python remote_run_wrapper.py --segments 5 --nodes 9 --unlocked-joints \
+  --joint-drive v6-snake --joint-startup-s 0.2 \
+  --gait backward-wave --command-mm 1 --period 0.4 \
+  --duration 0.24 --steps 12 --dt 0.02 --max-command-step-mm 1 --solve-backend cuda \
+  --output gpu_joint_wave_20261002/v6_snake_n9_cuda_probe
+```
+
+此模式需要保留仓库相邻的 `src/v6/action_adapter_v6.py` 与 `src/v6/motor_contract_v6.py`。摘要记录输入锚点、关节名映射、启动条件及两个源码文件的 SHA-256；轨迹审计采用保存的执行源码快照，允许后续改进当前求解器而不破坏历史结果的核验。
 
 远程旧 NumPy 通过已有 `remote_run_wrapper.py` 在导入库前设置 `np.concat = np.concatenate`。CUDA 路径继续使用现有 Sano 应变导数、材料链式装配、表面几何／接触及局部线性求解；CPU 保留部分状态更新、夹持映射、绳索、关节及系统装配。本次没有为了显示摆动改回旧 MuJoCo 动画。
 
