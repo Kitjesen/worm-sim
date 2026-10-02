@@ -1,0 +1,127 @@
+{
+  "source": "D:\\doso\\robot\\worm-sim\\meshes\\longworm2\\back2_Link.STL",
+  "source_sha256": "a08643fe7ae8ac917cf4bfb0884d21e71eed2b07848feeb93ca73de83261afe4",
+  "source_triangles": 31598,
+  "connected_vertex_tolerance_m": 1e-08,
+  "components": [
+    {
+      "component": 0,
+      "bbox_mm": [
+        [
+          -16.25,
+          -38.5,
+          -17.93983
+        ],
+        [
+          28.2,
+          -18.5,
+          38.06017
+        ]
+      ],
+      "triangles": 10606,
+      "role": "black_motor"
+    },
+    {
+      "component": 1,
+      "bbox_mm": [
+        [
+          -16.25,
+          18.5,
+          -17.93983
+        ],
+        [
+          28.2,
+          38.5,
+          38.06017
+        ]
+      ],
+      "triangles": 10606,
+      "role": "black_motor"
+    },
+    {
+      "component": 2,
+      "bbox_mm": [
+        [
+          -67.96584,
+          -70.26012,
+          -72.52292
+        ],
+        [
+          2.0,
+          70.26012,
+          56.49057
+        ]
+      ],
+      "triangles": 8390,
+      "role": "gray_structure"
+    },
+    {
+      "component": 3,
+      "bbox_mm": [
+        [
+          -67.99146,
+          -9.99146,
+          22.53517
+        ],
+        [
+          -48.00854,
+          9.99146,
+          27.53517
+        ]
+      ],
+      "triangles": 836,
+      "role": "gray_structure"
+    },
+    {
+      "component": 4,
+      "bbox_mm": [
+        [
+          -16.25,
+          -55.450970000000005,
+          -4.589829999999999
+        ],
+        [
+          -11.25,
+          -1.45097,
+          5.21017
+        ]
+      ],
+      "triangles": 580,
+      "role": "separate_right_horn"
+    },
+    {
+      "component": 5,
+      "bbox_mm": [
+        [
+          -16.25,
+          1.5490300000000001,
+          -4.589829999999999
+        ],
+        [
+          -11.25,
+          55.54903,
+          5.21017
+        ]
+      ],
+      "triangles": 580,
+      "role": "separate_left_horn"
+    }
+  ],
+  "unchanged": [
+    "facet bytes",
+    "coordinates",
+    "topology",
+    "source CAD"
+  ],
+  "semantics": "visual groups: mass=0, disable collision; back2 horns excluded from static groups. Separate motor contact copies preserve exact source facets; MuJoCo collision uses their convex hulls.",
+  "exported_files": [
+    "back2_Link_structure.stl",
+    "back2_Link_motors.stl",
+    "back2_Link_horn_right.stl",
+    "back2_Link_horn_left.stl"
+  ],
+  "contact_copies_excluded_from_visual_partition": [
+    "back2_Link_motor_contact_right.stl",
+    "back2_Link_motor_contact_left.stl"
+  ]
+}

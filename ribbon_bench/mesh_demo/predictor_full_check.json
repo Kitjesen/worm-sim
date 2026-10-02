@@ -1,0 +1,6 @@
+{
+  "cases": 8,
+  "max_force_difference_n": 1.7732475732223918e-07,
+  "max_node_difference_m": 2.97591395970187e-11,
+  "passed": true
+}

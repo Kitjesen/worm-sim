@@ -1,0 +1,187 @@
+{
+  "status": "complete prescribed-pose loading and unloading; independent follow-up to the original loading-only publication",
+  "base_publication_commit": "412b6086a0ac361aedae723f2a6db1b598e79148",
+  "upstream_commit": "c9d341164e2927fc24b2c43dff97fcfb492cf700",
+  "files": [
+    {
+      "path": "diagnostic.json",
+      "bytes": 69089,
+      "sha256": "fcbcbb3bb007c4d94c34943c5fa2d7b9599b713f25d491731d831f2d7f7e2ec1"
+    },
+    {
+      "path": "parameters.snapshot.json",
+      "bytes": 6952,
+      "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+    },
+    {
+      "path": "preview.png",
+      "bytes": 338664,
+      "sha256": "aec436ab3c0b583a3420d4d91fc9cd43841a6edd2b2633745584de16c4904de8"
+    },
+    {
+      "path": "preview.svg",
+      "bytes": 166598,
+      "sha256": "965a2cfff406c1ec87bb1b4ddfe223901f1fb69a86dfd63f714fb9b54a709715"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4203,
+      "sha256": "17c9f4c0e7c86069e8f4f654f04c841c798b2da2588dd7d6f59292988adda4db"
+    },
+    {
+      "path": "results.json",
+      "bytes": 17229570,
+      "sha256": "0683eed0143cd778fa80a4dde2c588ec902951bfecbfc9214b286db850b92ea8"
+    },
+    {
+      "path": "simulation.gif",
+      "bytes": 7645977,
+      "sha256": "67836393f198df8d6f23c60167cad6b81f7588a3363c5f35c5e3ed926de0de1c"
+    },
+    {
+      "path": "validate.py",
+      "bytes": 3839,
+      "sha256": "4843da2843cf2e95cf6c95bdc85957d1844823736ebf0863306278147b475ab6"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 677,
+      "sha256": "c35f129b68cd19d4d1d9710367486a2b04ac6061b0a5621b941b632b223f9a29"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/checkpoint.json",
+      "bytes": 1459118,
+      "sha256": "8103bc4c6226f1994e0c8cbf1e2acaff20fb1de971b207ce725361547ed26928"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/continue.py",
+      "bytes": 5089,
+      "sha256": "eeabd63064c70fac11afae44ca3a4b19e49ba2da938429bec69713cd4c3f9b05"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/derivative_checks.json",
+      "bytes": 21847,
+      "sha256": "07a4b652d51fd846a85a33b31b298b4a8716cd289dcd5aae1ff0112d582cc312"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/diagnose.py",
+      "bytes": 5192,
+      "sha256": "f5ca248e5c890b6bd36ce0ca5c0512285a8fc1b75f81aee752658694bf02f5be"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/DIAGNOSIS.md",
+      "bytes": 5470,
+      "sha256": "78955b76a367c105044461942138b2ff353e17a1768661ec07dd77b077a49d5f"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/diagnostic.json",
+      "bytes": 1879,
+      "sha256": "b1c6e64c070d8ada77c6a82aa6c421dca39161bf0545fe5253c693c820ec6e36"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/line_search_trace.json",
+      "bytes": 131342,
+      "sha256": "9445e248764d69f27bac2157eb2399b033ecc65289770845ff5f147c818afaec"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/regularization_converged_step.json",
+      "bytes": 118267,
+      "sha256": "020fe9bc97f685ccb74c484122bbc633b2d86be289545e0e8fb454acda990293"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/regularization_trial.json",
+      "bytes": 64666,
+      "sha256": "f5f6af9bc6822e50c2e3094d7351014fe22b3dad24733f4e0256396be567b87e"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/regularization_trial.py",
+      "bytes": 2642,
+      "sha256": "de088d8f96bf038c5c7063f3c437841ad7ca309be200c8f686b1d665b351c227"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/stall_derivative_checks.json",
+      "bytes": 21787,
+      "sha256": "941f90a52a395bb4bb0657a12beebb83b8adb0a3125c52cc5e6b405cc4f38ac0"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/stall_line_search_trace.json",
+      "bytes": 52685,
+      "sha256": "bf07b7bd736c6677d63ab7ba94b987bacb048012a9f96a318b00afe2031f318f"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/stalled_state.json",
+      "bytes": 118230,
+      "sha256": "87ba8546d369d48d0d80fac8045c6b54ca99e4e84a7437402e113fcd24bed824"
+    },
+    {
+      "path": "../prescribed_30_unload_diagnostic/tangent_trial.py",
+      "bytes": 3725,
+      "sha256": "68f660b2e3d1b5fd0bd637c482cc37181d898874ebf58c70ea3bc1e2cd726b45"
+    }
+  ],
+  "reproduction_dependencies": [
+    {
+      "path": "../actuate.py",
+      "bytes": 16348,
+      "sha256": "7356f33a43d3887eac83c6ea2d4393083104b8798b34b912c4dd787976d9d791"
+    },
+    {
+      "path": "../run.py",
+      "bytes": 16067,
+      "sha256": "c29e57430b9d5f55a059aede748592da354c9c6f4f4ca906031fdc2fd3e4f23e"
+    },
+    {
+      "path": "../cable_loads.py",
+      "bytes": 8487,
+      "sha256": "7237696ca0b91305a080909615526f19db2a369dfd3dd9cb10596d19fabe9d29"
+    },
+    {
+      "path": "../render.py",
+      "bytes": 9513,
+      "sha256": "f905610dc1de62aa04d85569a805d660f39d4690fb90e9a27604581944c9a8ad"
+    },
+    {
+      "path": "../render_actuated.py",
+      "bytes": 8575,
+      "sha256": "7a4b47953f156b69d368c5de6de3a758f96529cbbf4ed29d811035cb590258cc"
+    },
+    {
+      "path": "../prescribed_30_refined/checkpoint.json",
+      "bytes": 1123807,
+      "sha256": "dfe56c6a5e9ebcbdfa21b1e45d326c5c7bc362c1e6356ce5d546b007304dd845"
+    },
+    {
+      "path": "../prescribed_30_refined/parameters.snapshot.json",
+      "bytes": 6952,
+      "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+    },
+    {
+      "path": "../publication/data/cad_reference.urdf",
+      "bytes": 51202,
+      "sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818"
+    },
+    {
+      "path": "../publication/environment.json",
+      "bytes": 793,
+      "sha256": "2dbe0e35b237a99514af748bb6da28444675c1974d425bda82817f6c9de32569"
+    }
+  ],
+  "preserved_publication": [
+    {
+      "path": "../REPORT.zh-CN.md",
+      "bytes": 40511,
+      "sha256": "b2703f3a6f71cb16c89d73a985460eb512feed70cecaf0dce1ead16c44045300"
+    },
+    {
+      "path": "../publication/REPORT.zh-CN.md",
+      "bytes": 40757,
+      "sha256": "b9b58b47f6d4dd13ad22acb4de299d111a4ccd95391ca912165c6cfc15dc2b4e"
+    },
+    {
+      "path": "../publication/manifest.json",
+      "bytes": 12800,
+      "sha256": "e1ef79c18f8f032e7ff9fc7dc6667e63f891b0d088f914c51208119a22f34c73"
+    }
+  ],
+  "notes": "All paths are relative to this manifest. Numerical results and copied diagnostic JSON files retain their original bytes. The new duplicate checkpoint is omitted; the 28.75-degree seed checkpoint is retained. Original absolute paths inside result metadata are historical provenance. The original publication is unchanged."
+}

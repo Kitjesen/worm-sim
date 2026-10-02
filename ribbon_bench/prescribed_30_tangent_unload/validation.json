@@ -1,0 +1,18 @@
+{
+  "status": "complete_path_passed",
+  "strips": 8,
+  "nodes": 33,
+  "saved_states_per_strip": 205,
+  "unloading_states": 192,
+  "max_free_force_n": 7.420705308014419e-07,
+  "max_free_moment_nm": 1.567011589931333e-10,
+  "final_recovered_free_force_n": 3.662455572490287e-07,
+  "final_recovered_free_moment_nm": 3.5692710543567963e-13,
+  "final_energy_j": 5.557851564062553e-19,
+  "final_shape_error_m": 1.7699183961894624e-13,
+  "final_width_director_error": 1.7264325014125766e-15,
+  "unloading_wall_seconds": 416.5758489998989,
+  "loading_wall_seconds": 446.912661699811,
+  "total_path_wall_seconds": 863.4885106997099,
+  "tangent_newton_iterations": 554
+}

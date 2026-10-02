@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "width_m": 0.016,
+  "thickness_m": 0.00015,
+  "scope": "Geometry and Jacobian only; finite differences used solely by this self-check",
+  "checks": [
+    {
+      "nodes": 9,
+      "perturbed": false,
+      "vendor_point_error_m": 0.0,
+      "finite_difference_jacobian_max_absolute_error": 7.767264609270796e-11
+    },
+    {
+      "nodes": 9,
+      "perturbed": true,
+      "vendor_point_error_m": 6.938893903907228e-18,
+      "finite_difference_jacobian_max_absolute_error": 6.877298730501025e-11
+    },
+    {
+      "nodes": 9,
+      "rigid_rotation_jacobian_error": 1.3877787807814457e-17,
+      "finite_rigid_rotation_error_m": 5.551115123125783e-17,
+      "quarter_turn_surface_error_m": 6.938893903907228e-18,
+      "mean_local_call_ms": 0.2910939999856055
+    },
+    {
+      "nodes": 17,
+      "perturbed": false,
+      "vendor_point_error_m": 0.0,
+      "finite_difference_jacobian_max_absolute_error": 2.0728863070473835e-10
+    },
+    {
+      "nodes": 17,
+      "perturbed": true,
+      "vendor_point_error_m": 1.3877787807814457e-17,
+      "finite_difference_jacobian_max_absolute_error": 2.2333634941418268e-10
+    },
+    {
+      "nodes": 17,
+      "rigid_rotation_jacobian_error": 2.0816681711721685e-17,
+      "finite_rigid_rotation_error_m": 5.551115123125783e-17,
+      "quarter_turn_surface_error_m": 1.3877787807814457e-17,
+      "mean_local_call_ms": 0.31267850077711046
+    }
+  ]
+}

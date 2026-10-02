@@ -1,0 +1,8 @@
+{
+  "source": "D:\\doso\\robot\\single_segment\\cad_visual_assets\\back2_Link_structure.stl",
+  "source_sha256": "65847e8b0c8cf5fe52ab23a603610db3deb55d31f1af4b54b52e3a773093fb8b",
+  "keep_min_x_m": -0.003,
+  "kept_triangles": 4556,
+  "removed_triangles": 4670,
+  "scope": "Terminal visual surface selection only; no source CAD, contacts or aggregate inertials modified."
+}

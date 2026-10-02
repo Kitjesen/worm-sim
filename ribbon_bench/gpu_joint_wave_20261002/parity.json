@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "cpu_path": "gpu_joint_wave_20261002\\joint_backward_cpu_probe",
+  "cuda_path": "gpu_joint_wave_20261002\\joint_backward_probe",
+  "frames": 5,
+  "nodes": 17,
+  "absolute_tolerances": {
+    "coordinates_and_angles": 1e-08,
+    "force_and_torque": 1e-05
+  },
+  "max_absolute_errors": {
+    "q": 4.2454928461665986e-13,
+    "body_com": 7.3650260152755e-15,
+    "body_R": 1.2714822413256027e-13,
+    "width_directors": 3.504002643595072e-13,
+    "cable_routes_m": 9.749145934989656e-15,
+    "joint_angles_rad": 3.800258718822391e-14,
+    "joint_targets_rad": 0.0,
+    "joint_pivots_m": 1.5559317614703694e-15,
+    "tensions_n": 1.4432899320127035e-11,
+    "torques_nm": 1.2822555517377765e-13,
+    "contact_normal_force_n": 4.176214929429989e-12
+  },
+  "identical_contact_state_counts": true,
+  "wall_seconds": {
+    "cpu": 31.033714700024575,
+    "cuda": 19.064550640061498
+  },
+  "scope": "Short CPU/CUDA probe; numerical agreement is not experimental validation"
+}

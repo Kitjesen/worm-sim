@@ -1,0 +1,353 @@
+{
+  "status": "passed",
+  "run_path": "gpu_joint_wave_20261002\\backward_n33_cuda",
+  "frames": 41,
+  "nodes": 33,
+  "segments": 5,
+  "source_snapshots": {
+    "full_robot.py": {
+      "path": "gpu_joint_wave_20261002\\backward_n33_cuda\\full_robot.snapshot.py",
+      "sha256": "5c0bd15767407b8b551ad54bcbc22bda109b2cc751c3d5e35b58e10154bd7296",
+      "matches_simulation": true
+    },
+    "full_body_loads.py": {
+      "path": "gpu_joint_wave_20261002\\backward_n33_cuda\\full_body_loads.snapshot.py",
+      "sha256": "726de2ad07cd412c28d1aa0dc5d69b132ad8ad8b7ccc6764838d5a5dbae04974",
+      "matches_simulation": true
+    },
+    "revolute_joints.py": {
+      "path": "gpu_joint_wave_20261002\\backward_n33_cuda\\revolute_joints.snapshot.py",
+      "sha256": "8ab556fc4e19fa6c0722f05ebbe21aa0f7562b3869ddd2355f54c80240bd49ed",
+      "matches_simulation": true
+    },
+    "cuda_sano.py": {
+      "path": "gpu_joint_wave_20261002\\backward_n33_cuda\\cuda_sano.py",
+      "sha256": "7457ac44925d28d9b456cf52ad6cb9f157bb21d8959a7f377a5a158bcaef81ec",
+      "matches_simulation": true
+    },
+    "gpu_geometry_contact.py": {
+      "path": "gpu_joint_wave_20261002\\backward_n33_cuda\\gpu_geometry_contact.py",
+      "sha256": "e61e015b5b589a00e1cd26799d8eb2c3d4665e735043eba1fa5fa834cd31d8d3",
+      "matches_simulation": true
+    },
+    "ground_contact.py": {
+      "path": "gpu_joint_wave_20261002\\backward_n33_cuda\\ground_contact.py",
+      "sha256": "30c32dff9d5e5581aefa04a856e087414e9418e2ee9e1e8bce5a328190f924d7",
+      "matches_simulation": true
+    }
+  },
+  "parameters_sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1",
+  "urdf_sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818",
+  "joint_constraints": {
+    "max_pivot_error_m": 5.640508372744764e-14,
+    "max_axis_error": 1.642950357131498e-12,
+    "saved_angle_error_rad": 2.7755575615628914e-17
+  },
+  "clamp_body_consistency": {
+    "max_vertex_error_m": 1.1102230246251565e-16,
+    "max_width_director_error": 4.496403249731884e-15,
+    "max_cable_attachment_error_m": 1.1102230246251565e-16
+  },
+  "joint_motion": {
+    "max_actual_angle_deg": [
+      9.115023899712394,
+      7.980023719895924,
+      8.012922620235054,
+      11.291410553257974
+    ],
+    "max_target_angle_deg": [
+      14.999999999999998,
+      14.999999999999998,
+      14.999999999999998,
+      14.999999999999998
+    ],
+    "declared_target_amplitude_deg": 15.0,
+    "max_tracking_error_deg": [
+      8.873238795052906,
+      12.37969057301895,
+      11.860658135474043,
+      12.950113261736645
+    ],
+    "motor_peak_torque_nm": 0.2183399783169727,
+    "torque_limit_nm": 0.5,
+    "max_CAD_stop_excess_rad": 0.0,
+    "saved_frames_outside_CAD_limits": 0,
+    "max_stop_torque_nm": 0.0,
+    "target_amplitude_is_not_an_actual_angle_constraint": true
+  },
+  "commanded_wave": {
+    "direction": "head-to-tail",
+    "peak_times_s": [
+      0.04,
+      0.12000000000000002,
+      0.2,
+      0.28,
+      0.36
+    ],
+    "peak_shortening_mm": [
+      6.000000000000005,
+      6.000000000000005,
+      6.000000000000005,
+      6.000000000000005,
+      6.000000000000005
+    ]
+  },
+  "segment_response": {
+    "max_contraction_mm": [
+      10.027147415788153,
+      7.078828164857665,
+      7.044363490611591,
+      6.6084760366819095,
+      7.906551421681951
+    ],
+    "peak_contraction_times_s": [
+      0.05,
+      0.13,
+      0.21000000000000002,
+      0.29000000000000004,
+      0.37
+    ]
+  },
+  "center_of_mass": {
+    "included": "CAD rigid bodies including locked wheels plus all ribbon translational node masses; ideal massless cables",
+    "total_mass_kg": 3.2970029343110476,
+    "rigid_mass_kg": 3.184552446533831,
+    "steel_mass_kg": 0.11245048777721658,
+    "displacement_mm": [
+      1.2712871786332847,
+      -0.3068453915164456,
+      -2.6519513289867263
+    ],
+    "head_initial_direction_world": [
+      0.9999999999999669,
+      0.0,
+      -2.5742574271355904e-07
+    ],
+    "classification": "net_forward",
+    "rigid_only_displacement_mm": [
+      1.3073043964476616,
+      -0.30673987521628426,
+      -2.669944212828415
+    ],
+    "direction_definition": "Initial head direction is +X; negative total COM delta X is net backward"
+  },
+  "solver": {
+    "wall_seconds": 2037.6880533397198,
+    "physical_duration_s": 0.4,
+    "accepted_substeps": 138,
+    "recovery_substeps": 43,
+    "max_physical_residual": 8.673222760053733e-06,
+    "max_scaled_residual": 0.8673222760053733
+  },
+  "loads": {
+    "saved_peak_tension_n": 6.514096149737581,
+    "substep_peak_tension_n": 7.3391202578482195,
+    "saved_max_penetration_m": 5.8882853116841964e-05,
+    "substep_max_penetration_m": 6.122455464201077e-05,
+    "peak_ground_normal_force_n": 42.266880598572016,
+    "contact_states": [
+      {},
+      {
+        "separated": 15820,
+        "slip": 16,
+        "stick": 4
+      },
+      {
+        "separated": 15820,
+        "slip": 16,
+        "stick": 4
+      },
+      {
+        "separated": 15806,
+        "slip": 29,
+        "stick": 5
+      },
+      {
+        "separated": 15799,
+        "slip": 37,
+        "stick": 4
+      },
+      {
+        "separated": 15798,
+        "slip": 39,
+        "stick": 3
+      },
+      {
+        "separated": 15793,
+        "slip": 38,
+        "stick": 9
+      },
+      {
+        "separated": 15797,
+        "slip": 30,
+        "stick": 13
+      },
+      {
+        "separated": 15801,
+        "slip": 25,
+        "stick": 14
+      },
+      {
+        "separated": 15800,
+        "slip": 33,
+        "stick": 7
+      },
+      {
+        "separated": 15803,
+        "slip": 28,
+        "stick": 9
+      },
+      {
+        "separated": 15808,
+        "slip": 24,
+        "stick": 8
+      },
+      {
+        "separated": 15809,
+        "slip": 25,
+        "stick": 6
+      },
+      {
+        "separated": 15807,
+        "slip": 23,
+        "stick": 10
+      },
+      {
+        "separated": 15799,
+        "slip": 26,
+        "stick": 15
+      },
+      {
+        "separated": 15800,
+        "slip": 24,
+        "stick": 16
+      },
+      {
+        "separated": 15799,
+        "slip": 29,
+        "stick": 12
+      },
+      {
+        "separated": 15800,
+        "slip": 34,
+        "stick": 6
+      },
+      {
+        "separated": 15800,
+        "slip": 29,
+        "stick": 11
+      },
+      {
+        "separated": 15802,
+        "slip": 31,
+        "stick": 7
+      },
+      {
+        "separated": 15797,
+        "slip": 34,
+        "stick": 9
+      },
+      {
+        "separated": 15804,
+        "slip": 29,
+        "stick": 7
+      },
+      {
+        "separated": 15802,
+        "slip": 24,
+        "stick": 14
+      },
+      {
+        "separated": 15804,
+        "slip": 25,
+        "stick": 11
+      },
+      {
+        "separated": 15804,
+        "slip": 27,
+        "stick": 9
+      },
+      {
+        "separated": 15805,
+        "slip": 27,
+        "stick": 8
+      },
+      {
+        "separated": 15805,
+        "slip": 22,
+        "stick": 13
+      },
+      {
+        "separated": 15803,
+        "slip": 24,
+        "stick": 13
+      },
+      {
+        "separated": 15802,
+        "slip": 29,
+        "stick": 9
+      },
+      {
+        "separated": 15801,
+        "slip": 25,
+        "stick": 14
+      },
+      {
+        "separated": 15799,
+        "slip": 18,
+        "stick": 23
+      },
+      {
+        "separated": 15800,
+        "slip": 24,
+        "stick": 16
+      },
+      {
+        "separated": 15805,
+        "slip": 20,
+        "stick": 15
+      },
+      {
+        "separated": 15803,
+        "slip": 28,
+        "stick": 9
+      },
+      {
+        "separated": 15804,
+        "slip": 25,
+        "stick": 11
+      },
+      {
+        "separated": 15804,
+        "slip": 29,
+        "stick": 7
+      },
+      {
+        "separated": 15803,
+        "slip": 28,
+        "stick": 9
+      },
+      {
+        "separated": 15801,
+        "slip": 28,
+        "stick": 11
+      },
+      {
+        "separated": 15794,
+        "slip": 37,
+        "stick": 9
+      },
+      {
+        "separated": 15801,
+        "slip": 31,
+        "stick": 8
+      },
+      {
+        "separated": 15798,
+        "slip": 34,
+        "stick": 8
+      }
+    ]
+  },
+  "scope": "One simulated cycle; checks numerical consistency, commanded wave and net displacement, not stable locomotion or experimental calibration"
+}

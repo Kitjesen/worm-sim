@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "steps": 20,
+  "observation_dimension": 50,
+  "action_dimension": 14,
+  "physics_s": 0.4,
+  "scope": "Sensor adapter integration smoke; no policy trained"
+}

@@ -1,0 +1,76 @@
+{
+  "source_thread": "01a0eeb1-5542-73d1-9b1c-f2da9e0926c3",
+  "source_directory": "D:\\doso\\robot\\single_segment",
+  "copied_utc": "2026-10-02T08:56:58.387054+00:00",
+  "note": "Model snapshot and historical SOFA rollout; source files untouched. No new dynamics run.",
+  "files": {
+    "sofa_worm_env.py": {
+      "sha256": "add2b651e1e8d6215172dde091fbaf1c6ad680792249df9ec004579b00fd2bd4",
+      "bytes": 27199
+    },
+    "sofa_path_demo.py": {
+      "sha256": "f68852716079e9ef48b6cc055190b921d54498143553a474b2bf5d38e7420699",
+      "bytes": 13702
+    },
+    "record_sofa_policy.py": {
+      "sha256": "498b04f6cb66cdd3eefa7f72b49f46cfa107f57a688baafd7771b298105fc038",
+      "bytes": 23469
+    },
+    "parameters_sofa_candidate.json": {
+      "sha256": "9a10628789abf3a04b93c3564e0cf6902c9aa332aa38b418a57dad2b3576c722",
+      "bytes": 7217
+    },
+    "cad_visual_assets/front2_Link_structure.stl": {
+      "sha256": "a363ffa82de3b4c0cf443870e9e947138b528d244bb57fa97b8c2645aa53888b",
+      "bytes": 193684
+    },
+    "cad_visual_assets/back2_Link_structure.stl": {
+      "sha256": "65847e8b0c8cf5fe52ab23a603610db3deb55d31f1af4b54b52e3a773093fb8b",
+      "bytes": 461384
+    },
+    "cad_visual_assets/back2_Link_terminal_structure.stl": {
+      "sha256": "0a2186e21d730af19d8e8a7d1463236b041ea2fc37c319ebf41cf4a0f8fe656b",
+      "bytes": 227884
+    },
+    "cad_visual_assets/front2_Link_motors.stl": {
+      "sha256": "88236a71e7b53288da1a901d73a6fe58d82259b23edfea893ee766950f3e94a2",
+      "bytes": 57784
+    },
+    "cad_visual_assets/back2_Link_motors.stl": {
+      "sha256": "1c01b648c9d34eb43b328401ee4ff0fb48a7e1a310471a1b90ee66a9515d9a32",
+      "bytes": 1060684
+    },
+    "cad_visual_assets/front2_Link_provenance.json": {
+      "sha256": "fb43c0374e98c4f0cf8c32629c9a7634a5ab43ec8fabeb0cde2e832d325b7c87",
+      "bytes": 1286
+    },
+    "cad_visual_assets/back2_Link_provenance.json": {
+      "sha256": "126f68670b2f776c004c3027eca040c58fd26f37dc8b14a44d0d7c1c1d09cf47",
+      "bytes": 2647
+    },
+    "cad_visual_assets/terminal_structure_provenance.json": {
+      "sha256": "3214f713daaa9e705441986833a9bf89065cc7ef1b8ef310b3f8d49491623eba",
+      "bytes": 380
+    },
+    "sofa_dr_runs/retrograde_wave_20261002T050058Z/whole_rollout.npz": {
+      "sha256": "e1f741e1e7f42d2f15cd651dd09fae3779f3573f41a33a4c00b20a26ff24ac28",
+      "bytes": 12684692
+    },
+    "sofa_dr_runs/retrograde_wave_20261002T050058Z/path_report.json": {
+      "sha256": "d983446e3e96b6dde711340dab3daffab760c141f0f6693138867648e4e9b9a1",
+      "bytes": 1278
+    },
+    "sofa_dr_runs/retrograde_wave_20261002T050058Z/replay_metrics.json": {
+      "sha256": "64cce492945ac13ee05b32b1635ecf4508e34a1ec70476dba19fceea99b1de7a",
+      "bytes": 623175
+    },
+    "sofa_dr_runs/retrograde_wave_20261002T050058Z/wave_check.json": {
+      "sha256": "13472743f28457d76580368687d6c5bda71a8ef5bfe3201cb5861aa1bb2ab7ed",
+      "bytes": 655
+    },
+    "sofa_dr_runs/retrograde_wave_20261002T050058Z/wave_and_joint_response.png": {
+      "sha256": "bb3946c45cee711f9dbb9bc87ba4e42ada8341879a70a3d03a16e0b3e83708c9",
+      "bytes": 686032
+    }
+  }
+}

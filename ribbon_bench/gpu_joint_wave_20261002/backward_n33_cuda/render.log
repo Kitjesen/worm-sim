@@ -1,0 +1,33 @@
+{
+  "status": "rendered",
+  "static": "gpu_joint_wave_20261002\\backward_n33_cuda\\robot_motion.png",
+  "animation": "gpu_joint_wave_20261002\\backward_n33_cuda\\robot_motion.gif",
+  "metrics": "gpu_joint_wave_20261002\\backward_n33_cuda\\robot_motion_metrics.png",
+  "frames": 41,
+  "segments": 5,
+  "strips": 40,
+  "playback_fps": 10,
+  "simulated_duration_s": 0.4,
+  "max_segment_contraction_mm": [
+    10.027147415788153,
+    7.078828164857665,
+    7.044363490611591,
+    6.6084760366819095,
+    7.906551421681951
+  ],
+  "top_static": "gpu_joint_wave_20261002\\backward_n33_cuda\\robot_motion_top.png",
+  "top_animation": "gpu_joint_wave_20261002\\backward_n33_cuda\\robot_motion_top.gif",
+  "joint_metrics": "gpu_joint_wave_20261002\\backward_n33_cuda\\robot_motion_joint_metrics.png",
+  "peak_joint_angle_deg": [
+    9.115023899712394,
+    7.980023719895924,
+    8.012922620235054,
+    11.291410553257974
+  ],
+  "command_wave": "gpu_joint_wave_20261002\\backward_n33_cuda\\backward_wave.png",
+  "rigid_body_com_displacement_mm": [
+    1.3073043964476616,
+    -0.30673987521628426,
+    -2.669944212828415
+  ]
+}

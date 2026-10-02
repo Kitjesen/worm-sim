@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "source_files_verified": 17,
+  "saved_states": 800,
+  "modules": 5,
+  "partitions": 10,
+  "strips": 40,
+  "nodes_per_strip": 9,
+  "elements_per_strip": 8,
+  "cable_spans": 20,
+  "wheels": 20,
+  "intermodule_joints": 4,
+  "frames": 400,
+  "fps": 25.0,
+  "playback_s": 16.0,
+  "physical_s": 16.0,
+  "sampled_head_forward_m": 0.92223915243188,
+  "min_gap_mm": 82.68810584611363,
+  "max_gap_mm": 118.2191699179697,
+  "scope": "Provenance/topology/replay audit; not new dynamics or physical calibration."
+}

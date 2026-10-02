@@ -1,12 +1,56 @@
 # Worm Sim
 
-Deployable MuJoCo simulation and RL pipeline for a snake/worm multimodal robot.
+Flexible worm-robot simulation, mechanics benchmarks, and locomotion experiments.
 
-The current main line is **V6 deployable bimodal locomotion**: one robot body can use worm-like peristaltic extension/contraction, snake-like lateral undulation, and continuous blends between them. The paper goal is to study which mode works best on flat ground, sand, and slopes, using only sensors that can exist on the real robot.
+**Sensor-based RL training: [PPO with a periodic snake prior and bounded joint corrections](single_segment/snake_rl_20261002/README.zh-CN.md).** The first run uses encoder/IMU observations plus controller-known signals and four-frame history, four residual yaw actions, 16 parallel SOFA environments and a 32,768-decision budget. Zero residuals reproduce the 12 s baseline within 2.5e-12 in saved pose coordinates. Saved status is a timestamped snapshot; training completion and superiority to the sine baseline require the final matched evaluation.
+
+**Snake parameter study: [six amplitude, period and phase conditions](single_segment/snake_conditions_20261002/REPORT.zh-CN.md).** Four additional 12 s SOFA runs compare ±10°/±20°, periods of 2/4/6 s and adjacent-joint phase offsets of 60°/90°, with three 1× video comparisons. Faster oscillation advances farther in this nominal model but increases slip. These archived demos use clock-driven sine controllers; the subsequent sensor-based PPO pilot is documented above.
+
+**Latest revision: [wheel RPM audit, sensor-only policy inputs and larger snake amplitude](single_segment/sensor_gait_revision_20261002/REPORT.zh-CN.md).** A new 20-degree target snake run advances 0.627 m in 12 s (actual peak 18.17 degrees), with increased contact slip versus the 15-degree baseline. A separately verified 50-input encoder/IMU adapter removes privileged policy inputs; the subsequent training pilot is linked above. [1× amplitude comparison](single_segment/sensor_gait_revision_20261002/gait_comparison.mp4).
+
+**Current robot geometry (2026-10-02): the corrected five-module SOFA model is now imported under [single_segment/](single_segment/README.zh-CN.md).** It uses 10 partitions, 40 clamped curved steel beams, 20 cable spans, 20 one-way wheels and four intermodule joints. This is the model from the user's reference conversation, with its CAD assets and saved motion states. The archived 16 s baseline replays an existing SOFA calculation at 1×. The newer matched experiment below performs new dynamics runs. SOFA BeamAdapter supplies steel mechanics; MuJoCo supplies rendering only. Candidate material/contact parameters remain uncalibrated.
+
+**New matched SOFA calculation: [pure peristalsis versus pure snake, wheel friction and the 77-dimensional PPO observation](single_segment/gait_compare_20261002/REPORT.zh-CN.md).** Both run for 12 s from exactly identical nominal states. Mean partition position advances 0.972 m with the selected peristaltic controller and 0.226 m with 15-degree snake targets (actual peak 8.93 degrees). Both save per-wheel contact at every 0.5 ms substep. This is a non-RL controller comparison, not an equal-power or optimized-gait claim. [Real-time comparison video](single_segment/gait_compare_20261002/gait_comparison.mp4).
+
+![Matched five-module SOFA gait comparison](single_segment/gait_compare_20261002/gait_comparison.png)
+
+[16 s real-time MP4](single_segment/sofa_dr_runs/retrograde_wave_20261002T050058Z/whole_sofa_follow.mp4) · [Annotated structure](single_segment/sofa_dr_runs/retrograde_wave_20261002T050058Z/structure_annotated.png) · [Method, scope and reproduction](single_segment/README.zh-CN.md)
+
+## Historical V6 navigation and separate Sano experiments
+
+The results below retain their original models. The six-module V6 rigid-body navigation results and the separate Sano ribbon experiments have **not** been rerun using the corrected five-module SOFA geometry. Their distances, timing and controller performance must not be attributed to the new model.
 
 Repository: https://github.com/Kitjesen/worm-sim
 
-## Current Main Claim
+**New: [FDU BSRL lettering and 26.2 m A* navigation](record/v6/navigation_demos_20261002/REPORT.zh-CN.md).** The complete wheeled V6 model continuously follows 164.93 m of letter strokes and connecting transfers in 3393.87 s of physics. Stroke-stage RMS error is 4.32 cm; tight transfers are cut, with 79.08 cm maximum ordered tracking error over the full route. A separate four-obstacle A* run reaches its goal in 519.52 s with 6.42 cm RMS error and no detected obstacle contact. Both save raw physical states and pass independent replay checks. Route-only overviews explicitly show accelerated playback; separate CAD clips play at 1×. These remain MuJoCo rigid-body/wheel demos with scalar slide springs and visual ribbons, not Sano steel-contact simulations or newly trained RL policies.
+
+![FDU BSRL measured COM strokes and continuous transfers](record/v6/navigation_demos_20261002/letters/overview_letters.png)
+
+**Updated navigation demo (2026-10-02): [smaller snake amplitudes and real-time playback](record/v6/astar_tracking_20261002/GENTLE_GAIT.zh-CN.md).** The complete wheeled V6 robot still follows the same 5.84 m A* route around a collision box with 15° wave targets. Maximum sampled actual joint angle falls from 42.33° to 17.60°, and cumulative chain bend from 110.72° to 46.73°. It reaches the goal in 158.08 s with 7.35 cm RMS tracking error and no detected obstacle contact. The clip below plays 70–85 s of saved physics at 1× speed. Full-route animation and the earlier faster, larger-amplitude experiment are preserved in the [original report](record/v6/astar_tracking_20261002/REPORT.zh-CN.md). This model uses original slide springs and visual steel strips, not Sano ribbon/contact mechanics.
+
+![15-degree snake motion and A* tracking, actual 1x speed](record/v6/astar_tracking_20261002/gentle_15deg/robot_tracking_realtime.gif)
+
+The separate [steel-ribbon benchmark](ribbon_bench/README.md) contains eight-strip quasi-static simulations, ideal cable actuation, and publication figures. Start with the [Chinese presentation guide and complete figure gallery](ribbon_bench/PRESENTATION.zh-CN.md), covering all nine figure sets and the verified 205-state prescribed 30° return. The [original methods report](ribbon_bench/REPORT.zh-CN.md) preserves the earlier incomplete-unloading record; the follow-up is documented separately. This mechanics study runs alongside the MuJoCo/RL pipeline.
+
+The integrated mechanics follow-up is documented in the [full Chinese simulation report](ribbon_bench/FULL_SIMULATION_REPORT.zh-CN.md) and [run/problem log](ribbon_bench/FULL_SIMULATION_LOG.zh-CN.md). It includes the eight independent Sano ribbons, CAD rigid-body mass/inertia, four tension-only cables, sampled wide/thick ribbon contact, stick/slip friction, gravity, saved trajectories, and paper-style PNG/SVG/GIF outputs. The independent N9/N17 one-step baselines are verified numerical closures; the old shared-ribbon full N33 run is retained only for traceability and is not a physical result.
+
+**Latest mechanics comparison (2026-10-02): [steel thickness and whole-chain movement](ribbon_bench/stiff_snake_20261002/REPORT.zh-CN.md).** Increasing thickness from 0.15 to 0.20 mm raises weak-axis bending stiffness by 2.37 times. Under the same pure snake input, peak passive module contraction falls from 7.56 to 3.67 mm. During the second cycle, all five modules translate forward about 8.49 mm; the thin-strip baseline moves backward 1.71 mm. Saved world coordinates, accepted-step impulses and linear momentum pass audit. This N9 result shows sensitivity to thickness; timestep, mesh and experimental validation remain open.
+
+![Thicker steel: five-module pure snake motion, 4 s physical time](ribbon_bench/stiff_snake_20261002/t020_n9_cuda/robot_motion_top.gif)
+
+**Earlier mechanics demo (2026-10-02): [two continuous snake-wave cycles](ribbon_bench/SNAKE_WAVE.zh-CN.md).** The Sano/CUDA model uses CAD modules 2–6, 40 N9 ribbons, 10 rigid bodies and four moving yaw joints. It completed 4 s on RTX 5090 in 30 min 54.31 s and passed the saved-trajectory audit; 30° targets produced actual peaks of 29.74°–29.87°. A 2 s sinusoidal wave delays adjacent joints by 0.5 s; 20 tension-only cables retain fixed free lengths, with no commanded contraction. This coarse startup run establishes coupled snake bending, not complete V6 or steady locomotion. It uses a new continuous input with the uncalibrated V6 servo abstraction, not the original CMA-ES anchor. The GIF samples 51 of the 201 saved poses; the static figure uses frame 85 at 1.70 s, not the final state.
+
+![Two continuous snake-wave cycles: five-module Sano/CUDA dynamics, 4 s physical time](ribbon_bench/snake_wave_20261002/snake_n9_cuda/robot_motion_top.gif)
+
+The earlier [four moving CAD yaw joints and head-to-tail peristaltic wave](ribbon_bench/JOINT_BACKWARD_WAVE.zh-CN.md) solve 40 N33 ribbons, 20 tension-only cables, 10 independent rigid bodies and four revolute joints. Finite motor torques drive 15° targets while 6 mm cable pulses travel from head to tail. Actual joint peaks range from 8.0° to 11.3°. This startup cycle moves the total COM 1.27 mm forward; reverse locomotion has not been established. The report separates commanded motion from calculated motion. The [earlier locked-joint run](ribbon_bench/FIVE_SEGMENT_DEMO.zh-CN.md) is retained separately.
+
+**Snake-joint correction:** the original V6 has six extension modules and five yaw joints. This Sano demo uses CAD modules 2–6 and their four internal yaw joints. Its earlier drawing omitted the servo and connector STL shapes; the CAD rendering below uses the same audited physical trajectory. The new `--joint-drive v6-snake` reuses the original V6 snake action adapter, motor parameters and separate passive damping with the original joint-name mapping. Its N9 short probe completed 0.24 s on RTX 5090 in 222.694 s, passed the saved-input and mechanics audit, and reached actual peak joint angles of 37.66°, 25.06°, 9.11° and 33.21°. This is a coarse short integration check, not complete V6 locomotion; the N33 results above remain the custom 15° run. See the [scope and reproduction notes](ribbon_bench/JOINT_BACKWARD_WAVE.zh-CN.md#更正原仓库的蛇形关节与这次模型的范围).
+
+![Articulated five-segment ribbon dynamics with CAD servo connectors](ribbon_bench/gpu_joint_wave_20261002/backward_n33_cuda_cad/robot_motion.gif)
+
+![Original V6 snake drive: N9 five-module short integration check, 0–0.24 s](ribbon_bench/gpu_joint_wave_20261002/v6_snake_n9_cuda_probe/robot_motion_top.gif)
+
+## Historical V6 control architecture
 
 This is now a **snake + worm dual-mode robot project**, not only an open-loop worm gait demo.
 
@@ -29,7 +73,7 @@ continuous gait blend:
 | `0.0 < gait_blend < 1.0` | `mixed` | Continuous hybrid gait |
 | learned by policy | `random` | Autonomous mode selection from the 12th policy action |
 
-The latest paper-facing implementation is under `src/v6/`.  Old
+The historical V6 controller implementation is under `src/v6/`. Old
 `src/v3/*_v6.py` paths are compatibility wrappers only; they are not the
 current project identity.
 

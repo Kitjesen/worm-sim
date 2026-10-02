@@ -1,0 +1,38 @@
+{
+  "robot_motion.gif": {
+    "size_px": [
+      1012,
+      440
+    ],
+    "encoded_frames": 41,
+    "playback_duration_ms": 5100,
+    "minimum_subject_margins_px": [
+      97,
+      55,
+      61,
+      72
+    ]
+  },
+  "robot_motion_top.gif": {
+    "size_px": [
+      1012,
+      440
+    ],
+    "encoded_frames": 41,
+    "playback_duration_ms": 5100,
+    "minimum_subject_margins_px": [
+      75,
+      93,
+      43,
+      120
+    ]
+  },
+  "status": "passed",
+  "physical_frames": 41,
+  "static_frame": 26,
+  "source_sha256_verified": true,
+  "view_cropping_check": "Each GIF frame: object pixels RGB minimum < 200, excluding the pale floor",
+  "original_triangles": 178350,
+  "rendered_triangles": 67814,
+  "maximum_lod_vertex_displacement_mm": 0.8190294445790728
+}

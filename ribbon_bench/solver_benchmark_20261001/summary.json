@@ -1,0 +1,111 @@
+{
+  "status": "passed",
+  "nodes": 33,
+  "strips": 8,
+  "states": 25,
+  "repeats": 3,
+  "seconds": {
+    "reference": [
+      97.49959469982423,
+      96.0727655000519,
+      106.83200239995494
+    ],
+    "fast": [
+      35.12902590003796,
+      29.499655900057405,
+      29.404471999965608
+    ]
+  },
+  "median_seconds": {
+    "reference": 97.49959469982423,
+    "fast": 29.499655900057405
+  },
+  "median_speedup": 3.3051095589096176,
+  "timing_scope": "CLI loading path including checkpoint serialization, excluding imports/initialization/rendering",
+  "hardware": "AMD64 Family 26 Model 36 Stepping 0, AuthenticAMD",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "numpy": "2.5.3",
+  "validation": [
+    {
+      "status": "passed",
+      "max_absolute_differences": {
+        "nodes_m": 1.336292188014454e-12,
+        "width_directors": 1.4461848385494136e-11,
+        "compression_m": 4.3692133244732645e-13,
+        "yaw_rad": 1.5767387395726473e-11,
+        "energy_j": 1.02454156269971e-12,
+        "back_support_force_n": 1.198072308028486e-08,
+        "front_support_force_n": 1.3429705125744817e-09,
+        "tensions_n": 5.051514762044462e-11,
+        "total_energy_j": 2.498001805406602e-16
+      },
+      "limits": {
+        "nodes_m": 1e-06,
+        "width_directors": 0.0001,
+        "compression_m": 1e-06,
+        "yaw_rad": 1e-05,
+        "energy_j": 1e-07,
+        "back_support_force_n": 0.0002,
+        "front_support_force_n": 0.0002,
+        "tensions_n": 0.0002,
+        "total_energy_j": 1e-06
+      }
+    },
+    {
+      "status": "passed",
+      "max_absolute_differences": {
+        "nodes_m": 1.336292188014454e-12,
+        "width_directors": 1.4461848385494136e-11,
+        "compression_m": 4.3692133244732645e-13,
+        "yaw_rad": 1.5767387395726473e-11,
+        "energy_j": 1.02454156269971e-12,
+        "back_support_force_n": 1.198072308028486e-08,
+        "front_support_force_n": 1.3429705125744817e-09,
+        "tensions_n": 5.051514762044462e-11,
+        "total_energy_j": 2.498001805406602e-16
+      },
+      "limits": {
+        "nodes_m": 1e-06,
+        "width_directors": 0.0001,
+        "compression_m": 1e-06,
+        "yaw_rad": 1e-05,
+        "energy_j": 1e-07,
+        "back_support_force_n": 0.0002,
+        "front_support_force_n": 0.0002,
+        "tensions_n": 0.0002,
+        "total_energy_j": 1e-06
+      }
+    },
+    {
+      "status": "passed",
+      "max_absolute_differences": {
+        "nodes_m": 1.336292188014454e-12,
+        "width_directors": 1.4461848385494136e-11,
+        "compression_m": 4.3692133244732645e-13,
+        "yaw_rad": 1.5767387395726473e-11,
+        "energy_j": 1.02454156269971e-12,
+        "back_support_force_n": 1.198072308028486e-08,
+        "front_support_force_n": 1.3429705125744817e-09,
+        "tensions_n": 5.051514762044462e-11,
+        "total_energy_j": 2.498001805406602e-16
+      },
+      "limits": {
+        "nodes_m": 1e-06,
+        "width_directors": 0.0001,
+        "compression_m": 1e-06,
+        "yaw_rad": 1e-05,
+        "energy_j": 1e-07,
+        "back_support_force_n": 0.0002,
+        "front_support_force_n": 0.0002,
+        "tensions_n": 0.0002,
+        "total_energy_j": 1e-06
+      }
+    }
+  ],
+  "source_sha256": {
+    "actuate.py": "c06b5699a9e3202e42cf9e75e31a24d1f31c793c779c8a3f31ff92a894fcaadf",
+    "fast_sano.py": "218faeabe8490f7f269f3857ad734eb13656b26ab77bc4284067a4ce76c9d469",
+    "benchmark_solver.py": "02a8d7c53a0935614a482ad893418b15745361f9e3b22ea4a3e102054a59b4f2"
+  }
+}

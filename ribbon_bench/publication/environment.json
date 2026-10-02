@@ -1,0 +1,23 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "executable": "D:\\doso\\robot\\ribbon_bench\\.venv\\Scripts\\python.exe",
+  "packages": {
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "numba": "0.67.0",
+    "matplotlib": "3.11.2",
+    "pillow": "12.3.0",
+    "torch": "2.14.0+cpu",
+    "tqdm": "4.70.1",
+    "dismech": "0.0.0"
+  },
+  "numeric_library_threads": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1"
+  },
+  "upstream_commit": "c9d341164e2927fc24b2c43dff97fcfb492cf700",
+  "notes": "Package versions read at publication export; thread counts record solver command settings, not a performance guarantee."
+}
