@@ -1,8 +1,16 @@
 # Worm Sim
 
-Deployable MuJoCo simulation and RL pipeline for a snake/worm multimodal robot.
+Flexible worm-robot simulation, mechanics benchmarks, and locomotion experiments.
 
-The current main line is **V6 deployable bimodal locomotion**: one robot body can use worm-like peristaltic extension/contraction, snake-like lateral undulation, and continuous blends between them. The paper goal is to study which mode works best on flat ground, sand, and slopes, using only sensors that can exist on the real robot.
+**Current robot geometry (2026-10-02): the corrected five-module SOFA model is now imported under [single_segment/](single_segment/README.zh-CN.md).** It uses 10 partitions, 40 clamped curved steel beams, 20 cable spans, 20 one-way wheels and four intermodule joints. This is the model from the user's reference conversation, with its CAD assets and saved motion states. The 16 s replay below runs at 1×; it re-renders an existing SOFA calculation, not a new physics run. SOFA BeamAdapter supplies steel mechanics; MuJoCo supplies rendering only. Candidate material/contact parameters remain uncalibrated.
+
+![Corrected five-module robot](single_segment/sofa_dr_runs/retrograde_wave_20261002T050058Z/whole_sofa_follow_400.png)
+
+[16 s real-time MP4](single_segment/sofa_dr_runs/retrograde_wave_20261002T050058Z/whole_sofa_follow.mp4) · [Annotated structure](single_segment/sofa_dr_runs/retrograde_wave_20261002T050058Z/structure_annotated.png) · [Method, scope and reproduction](single_segment/README.zh-CN.md)
+
+## Historical V6 navigation and separate Sano experiments
+
+The results below retain their original models. The six-module V6 rigid-body navigation results and the separate Sano ribbon experiments have **not** been rerun using the corrected five-module SOFA geometry. Their distances, timing and controller performance must not be attributed to the new model.
 
 Repository: https://github.com/Kitjesen/worm-sim
 
@@ -34,7 +42,7 @@ The earlier [four moving CAD yaw joints and head-to-tail peristaltic wave](ribbo
 
 ![Original V6 snake drive: N9 five-module short integration check, 0–0.24 s](ribbon_bench/gpu_joint_wave_20261002/v6_snake_n9_cuda_probe/robot_motion_top.gif)
 
-## Current Main Claim
+## Historical V6 control architecture
 
 This is now a **snake + worm dual-mode robot project**, not only an open-loop worm gait demo.
 
@@ -57,7 +65,7 @@ continuous gait blend:
 | `0.0 < gait_blend < 1.0` | `mixed` | Continuous hybrid gait |
 | learned by policy | `random` | Autonomous mode selection from the 12th policy action |
 
-The latest paper-facing implementation is under `src/v6/`.  Old
+The historical V6 controller implementation is under `src/v6/`. Old
 `src/v3/*_v6.py` paths are compatibility wrappers only; they are not the
 current project identity.
 
