@@ -6,6 +6,10 @@ The current main line is **V6 deployable bimodal locomotion**: one robot body ca
 
 Repository: https://github.com/Kitjesen/worm-sim
 
+**New navigation demo (2026-10-02): [A* and whole-robot path tracking](record/v6/astar_tracking_20261002/REPORT.zh-CN.md).** The complete wheeled V6 MuJoCo robot follows a 5.84 m A* route around an actual box obstacle in 62.43 s of physical time (18.94 s CPU computation). COM tracking error is 4.53 cm RMS, with no detected obstacle contact. A joint-bias feedback controller drives the existing continuous snake gait; saved MuJoCo states produce the animation. This navigation model uses the original slide springs and visual steel strips, not Sano ribbon/contact mechanics.
+
+![A* route and physically computed V6 robot tracking](record/v6/astar_tracking_20261002/closed_loop/robot_tracking.gif)
+
 The separate [steel-ribbon benchmark](ribbon_bench/README.md) contains eight-strip quasi-static simulations, ideal cable actuation, and publication figures. Start with the [Chinese presentation guide and complete figure gallery](ribbon_bench/PRESENTATION.zh-CN.md), covering all nine figure sets and the verified 205-state prescribed 30° return. The [original methods report](ribbon_bench/REPORT.zh-CN.md) preserves the earlier incomplete-unloading record; the follow-up is documented separately. This mechanics study runs alongside the MuJoCo/RL pipeline.
 
 The integrated mechanics follow-up is documented in the [full Chinese simulation report](ribbon_bench/FULL_SIMULATION_REPORT.zh-CN.md) and [run/problem log](ribbon_bench/FULL_SIMULATION_LOG.zh-CN.md). It includes the eight independent Sano ribbons, CAD rigid-body mass/inertia, four tension-only cables, sampled wide/thick ribbon contact, stick/slip friction, gravity, saved trajectories, and paper-style PNG/SVG/GIF outputs. The independent N9/N17 one-step baselines are verified numerical closures; the old shared-ribbon full N33 run is retained only for traceability and is not a physical result.

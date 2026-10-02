@@ -1,0 +1,82 @@
+{
+  "model": "V6 MuJoCo wheeled navigation; ribbons are visual only, not Sano",
+  "success": false,
+  "stop_reason": "obstacle_contact",
+  "sim_time_s": 17.740000000000002,
+  "wall_time_s": 4.950591700151563,
+  "mujoco_version": "3.13.0",
+  "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "numpy_version": "2.5.3",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "physics_dt_s": 0.002,
+  "controller_dt_s": 0.02,
+  "record_dt_s": 0.1,
+  "scene": {
+    "bounds_m": [
+      -6.8,
+      1.0,
+      -2.8,
+      2.8
+    ],
+    "goal_m": [
+      -5.5,
+      0.0
+    ],
+    "obstacles": [
+      {
+        "center_m": [
+          -2.8,
+          0.0
+        ],
+        "half_size_m": [
+          0.3,
+          0.4
+        ]
+      }
+    ],
+    "grid_m": 0.1,
+    "collision_envelope_m": 0.7,
+    "tracking_margin_m": 0.15,
+    "goal_tolerance_m": 0.15
+  },
+  "controller": {
+    "lookahead_m": 0.55,
+    "gain": 0.12,
+    "max_bias_rad": 0.12,
+    "open_loop": true,
+    "heading_filter_s": 0.4,
+    "bias_filter_s": 0.35
+  },
+  "gait": {
+    "yaw_amplitude_rad": 0.6625301497712115,
+    "effective_frequency_hz": 0.6012414850631236,
+    "yaw_wave_number": 0.6404089550924063,
+    "slide_target_m": 0.0,
+    "startup_ramp_s": 1.0
+  },
+  "planned_length_m": 5.840688604160998,
+  "travelled_com_length_m": 1.5727857334973954,
+  "distance_note": "COM arc length and cross-track errors sampled at 0.1 s; final frame may have a shorter interval",
+  "net_displacement_m": 1.4922767125726812,
+  "goal_error_m": 3.4865321431648,
+  "cross_track_rms_m": 0.5030250006590615,
+  "cross_track_max_m": 0.8943844674841759,
+  "obstacle_contact_steps": 1,
+  "collision_check_dt_s": 0.002,
+  "collision_geom_count": 36,
+  "min_geom_clearance_m": 0.00880229292537868,
+  "distance_and_envelope_check_dt_s": 0.05,
+  "max_collision_envelope_m": 0.5738286009434884,
+  "peak_yaw_torque_nm": 16.353967466593485,
+  "peak_slide_force_n": 7.415807783273373,
+  "source_sha256": {
+    "src/v6/track_astar_v6.py": "9e0136fd91c540c8e87327a529f9a21bf301f0a6cc325ad025c349e3daabbd3f",
+    "src/v6/worm_v6.py": "580a7bf888f70081fd7562c331e00103b1086dc02c0e7cad397d6d3b258cdb13",
+    "src/v6/motor_contract_v6.py": "ee1e810bc2f0acc2f58c51d74a3c500397e9c1095c663a1a64adf05c88a3664a",
+    "runs/cmaes_flat_serpentine/best_gait.json": "794f6e6df38e3672f5aae83f7c661fe79eb154d03b6d0236b2a7fe1cba2d6cb7",
+    "meshes/longworm2/longworm2.SLDASM.urdf": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818"
+  },
+  "sources_unchanged_during_run": true,
+  "scene_xml_sha256": "189be057072c6aa2f375c7206ed8938b8602c510fabeed18109e602ca7851e2f",
+  "qpos_drive": "Only mj_step integrates root; joint targets set in data.ctrl"
+}
