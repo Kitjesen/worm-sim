@@ -1,0 +1,79 @@
+{
+  "status": "passed",
+  "physical_frames": 41,
+  "physical_duration_s": 0.4,
+  "extra_final_hold_frames": 10,
+  "animations": {
+    "robot_motion.gif": {
+      "decoded_frames": 41,
+      "size_px": [
+        1012,
+        440
+      ],
+      "playback_duration_s": 5.1,
+      "final_frame_duration_ms": 1100,
+      "minimum_colored_geometry_margin_px": {
+        "left": 92,
+        "top": 48,
+        "right": 45,
+        "bottom": 63
+      }
+    },
+    "robot_motion_top.gif": {
+      "decoded_frames": 41,
+      "size_px": [
+        1012,
+        440
+      ],
+      "playback_duration_s": 5.1,
+      "final_frame_duration_ms": 1100,
+      "minimum_colored_geometry_margin_px": {
+        "left": 69,
+        "top": 87,
+        "right": 39,
+        "bottom": 115
+      }
+    }
+  },
+  "manual_visual_review": {
+    "files": [
+      "robot_motion.png",
+      "robot_motion_top.png",
+      "robot_motion_joint_metrics.png",
+      "backward_wave.png"
+    ],
+    "whole_chain_visible": true,
+    "top_view_four_physical_pivots_visible": true,
+    "perspective_occlusion": "One hinge marker partly overlaps its own plate in the final perspective view; all four are clear in the top view",
+    "actual_joint_angles": "Colored solid lines",
+    "command_joint_angles": "Gray dashed lines",
+    "wave_color": "Commanded cable shortening; separate from actual contraction",
+    "fixed_camera_bounds": true,
+    "no_top_or_bottom_robot_text": true
+  },
+  "peak_joint_motion_review": {
+    "frame_index": 26,
+    "time_s": 0.26,
+    "actual_angles_deg": [
+      -4.238740957078188,
+      5.678904049090405,
+      2.0531400302522957,
+      -11.291410553257974
+    ],
+    "top_view_joint_swing_visible": true,
+    "top_view_four_pivots_visible": true,
+    "unclipped": true
+  },
+  "interpretation": {
+    "wave": "Head-to-tail contraction wave",
+    "actual_contraction_peak_times_s": [
+      0.05,
+      0.13,
+      0.21,
+      0.29,
+      0.37
+    ],
+    "total_com_delta_x_mm": 1.2712871786332847,
+    "net_translation": "Forward during this one cycle; not validated backward locomotion"
+  }
+}

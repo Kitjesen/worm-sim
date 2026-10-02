@@ -24,6 +24,13 @@ def _ribbon_faces(xyz, widths, width):
                      xyz[..., 1:, :]+offset, xyz[..., :-1, :]+offset), axis=-2)
 
 
+def _joint_lines(centers, pivots, links):
+    if len(pivots) != len(links):
+        raise ValueError('Each intersegment connector needs one saved joint pivot')
+    return np.array([[centers[a], pivot, centers[b]]
+                     for (a, b), pivot in zip(links, pivots)])
+
+
 def render(input_dir, output, parameters):
     input_dir, output = Path(input_dir), Path(output)
     summary = json.loads((input_dir/'summary.json').read_text(encoding='utf-8'))
@@ -84,6 +91,16 @@ def render(input_dir, output, parameters):
     else:
         raise ValueError('Plate mapping must contain segment pairs or shared endplates')
     lengths = np.linalg.norm(paired[:, :, 1]-paired[:, :, 0], axis=-1)
+    pivots = data.get('joint_pivots_m')
+    if pivots is not None and pivots.shape == (nt, 0, 3):
+        pivots = None
+    if pivots is not None:
+        if pivots.shape != (nt, len(links), 3) or not np.isfinite(pivots).all():
+            raise ValueError('Saved joint pivots must match trajectory and connector count')
+        joint_lines = np.array([_joint_lines(c, pivot, links)
+                                for c, pivot in zip(plate_centers, pivots)])
+    else:
+        joint_lines = plate_centers[:, np.array(links)].copy() if links else None
     faces = _ribbon_faces(xyz, widths, width)
     rings = np.array([[_ring(c, R, p['plate_stop_radius_m'],
                              p['plate_stop_thickness_m'])
@@ -91,6 +108,9 @@ def render(input_dir, output, parameters):
                       for centers, rotations in zip(plate_centers, plate_R)])
     lo = np.minimum(faces.reshape(-1, 3).min(0), rings.reshape(-1, 3).min(0))
     hi = np.maximum(faces.reshape(-1, 3).max(0), rings.reshape(-1, 3).max(0))
+    if pivots is not None and pivots.size:
+        lo = np.minimum(lo, pivots.reshape(-1, 3).min(0))
+        hi = np.maximum(hi, pivots.reshape(-1, 3).max(0))
     ground = float(metadata.get('ground_height_m', 0.))
     lo[2] = min(lo[2], ground)
     span = np.maximum(hi-lo, .02)
@@ -120,8 +140,11 @@ def render(input_dir, output, parameters):
                       [limits[0,1], limits[1,0], ground*1000],
                       [limits[0,1], limits[1,1], ground*1000],
                       [limits[0,0], limits[1,1], ground*1000]])
+    camera = [19, -68]
     def draw(k):
         ax.clear()
+        ax.set_xlim(limits[0]); ax.set_ylim(limits[1]); ax.set_zlim(limits[2])
+        ax.set_autoscale_on(False)
         ax.add_collection3d(Poly3DCollection([floor], facecolor='#f1f2f3',
                                              edgecolor='#d7dade', linewidth=.35, alpha=.28))
         for s in range(strips):
@@ -135,12 +158,14 @@ def render(input_dir, output, parameters):
                 facecolor='#e1e5e7', edgecolor='#69757e', linewidth=.25, alpha=.82))
         for route in routes[k]*1000:
             ax.plot(*route.T, color='#946843', lw=.7, linestyle=(0, (4, 2)))
-        for a, b in links:
-            line = plate_centers[k, [a,b]]*1000
-            ax.plot(*line.T, color='#56616a', lw=2.)
-        ax.set_xlim(limits[0]); ax.set_ylim(limits[1]); ax.set_zlim(limits[2])
+        if joint_lines is not None:
+            for line in joint_lines[k]*1000:
+                ax.plot(*line.T, color='#56616a', lw=2.)
+        if pivots is not None and pivots.shape[1]:
+            ax.scatter(*pivots[k].T*1000, s=13, color='#d08035',
+                       edgecolors='#74441c', linewidths=.35, depthshade=False)
         ax.set_box_aspect(limits[:,1]-limits[:,0])
-        ax.view_init(elev=19, azim=-68)
+        ax.view_init(elev=camera[0], azim=camera[1])
         ax.set_axis_off()
     draw(nt-1)
     save_options = {} if segments > 1 else dict(bbox_inches='tight', pad_inches=.015)
@@ -152,6 +177,14 @@ def render(input_dir, output, parameters):
     playback = list(range(nt))+[nt-1]*10
     ani = FuncAnimation(fig, draw, frames=playback, interval=100, blit=False)
     ani.save(gif, writer=PillowWriter(fps=10), dpi=110)
+    top = output.with_name(output.stem+'_top.png')
+    if segments > 1:
+        camera[:] = [90, -90]
+        draw(nt-1)
+        fig.savefig(top, **save_options)
+        fig.savefig(top.with_suffix('.svg'), **save_options)
+        ani = FuncAnimation(fig, draw, frames=playback, interval=100, blit=False)
+        ani.save(top.with_suffix('.gif'), writer=PillowWriter(fps=10), dpi=110)
     plt.close(fig)
 
     metric = output.with_name(output.stem+'_metrics.png')
@@ -179,10 +212,64 @@ def render(input_dir, output, parameters):
     fig.savefig(metric, dpi=300)
     fig.savefig(metric.with_suffix('.svg'))
     plt.close(fig)
+    extra = {}
+    if segments > 1:
+        extra.update(top_static=str(top), top_animation=str(top.with_suffix('.gif')))
+    joint_angles = data.get('joint_angles_rad')
+    if joint_angles is not None and joint_angles.shape == (nt, 0):
+        joint_angles = None
+    if segments > 1 and joint_angles is not None:
+        actual = np.asarray(joint_angles)
+        target = np.asarray(data.get('joint_targets_rad', actual))
+        if (actual.shape != (nt, segments-1) or target.shape != actual.shape
+                or not np.isfinite(actual).all() or not np.isfinite(target).all()):
+            raise ValueError('Saved joint angles and targets must match the connectors')
+        fig, axes = plt.subplots(segments-1, 1, figsize=(6.1, 1.5*(segments-1)),
+                                 sharex=True, constrained_layout=True, squeeze=False)
+        for j, axis in enumerate(axes[:, 0]):
+            axis.plot(t, np.rad2deg(actual[:, j]), color=colors[j % len(colors)], label='Actual')
+            axis.plot(t, np.rad2deg(target[:, j]), color='#6f777b', linestyle='--', label='Command')
+            axis.set_ylabel(f'Joint {j+1} (°)')
+            axis.spines[['top', 'right']].set_visible(False)
+            axis.grid(axis='y', color='#eeeeee', linewidth=.6)
+        axes[0,0].legend(ncol=2, frameon=False, loc='upper left')
+        axes[-1,0].set_xlabel('Simulated time (s)')
+        joint_metric = output.with_name(output.stem+'_joint_metrics.png')
+        fig.savefig(joint_metric, dpi=300); fig.savefig(joint_metric.with_suffix('.svg'))
+        plt.close(fig)
+        extra['joint_metrics'] = str(joint_metric)
+        extra['peak_joint_angle_deg'] = np.rad2deg(np.max(np.abs(actual), axis=0)).tolist()
+    rest = data.get('cable_rest_m')
+    if rest is None and all('cable_rest_m' in frame for frame in frames):
+        rest = np.array([frame['cable_rest_m'] for frame in frames])
+    if rest is not None and nt > 1:
+        rest = np.asarray(rest).reshape(nt, segments, 4)
+        base = np.asarray(data.get('base_cable_lengths_m', rest[0])).reshape(segments, 4)
+        shortening = (base[None]-rest).mean(axis=2)*1000
+        fig, axis = plt.subplots(figsize=(6.1, 3.), constrained_layout=True)
+        heat = axis.pcolormesh(t, np.arange(1, segments+1), shortening.T,
+                              shading='nearest', cmap='YlGnBu', vmin=0.)
+        axis.set_yticks(np.arange(1, segments+1))
+        axis.set_ylim(segments+.5, .5)
+        axis.set_xlim(t[0], t[-1])
+        axis.set_ylabel('Segment (1: head; 5: tail)' if segments == 5 else 'Segment (head → tail)')
+        axis.set_xlabel('Simulated time (s)')
+        fig.colorbar(heat, ax=axis, label='Commanded cable shortening (mm)')
+        wave = output.with_name('backward_wave.png')
+        fig.savefig(wave, dpi=300); fig.savefig(wave.with_suffix('.svg'))
+        plt.close(fig)
+        extra['command_wave'] = str(wave)
+    if 'body_mass_kg' in data:
+        masses = np.asarray(data['body_mass_kg'])
+        if masses.shape != (body_com.shape[1],) or masses.sum() <= 0:
+            raise ValueError('Saved body masses must match the rigid bodies')
+        rigid_com = np.einsum('tbi,b->ti', body_com, masses)/masses.sum()
+        extra['rigid_body_com_displacement_mm'] = ((rigid_com[-1]-rigid_com[0])*1000).tolist()
     return dict(status='rendered', static=str(output), animation=str(gif),
                 metrics=str(metric), frames=nt, segments=segments, strips=strips,
                 playback_fps=10, simulated_duration_s=float(t[-1]-t[0]),
-                max_segment_contraction_mm=np.max((lengths[0]-lengths)*1000, axis=0).tolist())
+                max_segment_contraction_mm=np.max((lengths[0]-lengths)*1000, axis=0).tolist(),
+                **extra)
 
 
 def self_check():
@@ -195,7 +282,12 @@ def self_check():
     assert np.allclose((faces[:,1]+faces[:,2])/2, xyz[1:])
     R = np.array([[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]])
     assert np.allclose(_ribbon_faces(xyz@R.T, widths@R.T, .016), faces@R.T)
-    return dict(status='passed', check='surface width, endpoints, and rigid rotation')
+    centers = np.array([[0., 0., 0.], [.02, 0., 0.], [.04, .01, 0.]])
+    pivot = np.array([[.03, .004, .002]])
+    line = _joint_lines(centers, pivot, [(1, 2)])
+    assert line.shape == (1, 3, 3)
+    np.testing.assert_array_equal(line[0], [centers[1], pivot[0], centers[2]])
+    return dict(status='passed', check='ribbon geometry and saved physical joint pivot')
 
 
 if __name__ == '__main__':
