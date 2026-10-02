@@ -6,9 +6,9 @@ The current main line is **V6 deployable bimodal locomotion**: one robot body ca
 
 Repository: https://github.com/Kitjesen/worm-sim
 
-**New navigation demo (2026-10-02): [A* and whole-robot path tracking](record/v6/astar_tracking_20261002/REPORT.zh-CN.md).** The complete wheeled V6 MuJoCo robot follows a 5.84 m A* route around an actual box obstacle in 62.43 s of physical time (18.94 s CPU computation). COM tracking error is 4.53 cm RMS, with no detected obstacle contact. A joint-bias feedback controller drives the existing continuous snake gait; saved MuJoCo states produce the animation. This navigation model uses the original slide springs and visual steel strips, not Sano ribbon/contact mechanics.
+**Updated navigation demo (2026-10-02): [smaller snake amplitudes and real-time playback](record/v6/astar_tracking_20261002/GENTLE_GAIT.zh-CN.md).** The complete wheeled V6 robot still follows the same 5.84 m A* route around a collision box with 15° wave targets. Maximum sampled actual joint angle falls from 42.33° to 17.60°, and cumulative chain bend from 110.72° to 46.73°. It reaches the goal in 158.08 s with 7.35 cm RMS tracking error and no detected obstacle contact. The clip below plays 70–85 s of saved physics at 1× speed. Full-route animation and the earlier faster, larger-amplitude experiment are preserved in the [original report](record/v6/astar_tracking_20261002/REPORT.zh-CN.md). This model uses original slide springs and visual steel strips, not Sano ribbon/contact mechanics.
 
-![A* route and physically computed V6 robot tracking](record/v6/astar_tracking_20261002/closed_loop/robot_tracking.gif)
+![15-degree snake motion and A* tracking, actual 1x speed](record/v6/astar_tracking_20261002/gentle_15deg/robot_tracking_realtime.gif)
 
 The separate [steel-ribbon benchmark](ribbon_bench/README.md) contains eight-strip quasi-static simulations, ideal cable actuation, and publication figures. Start with the [Chinese presentation guide and complete figure gallery](ribbon_bench/PRESENTATION.zh-CN.md), covering all nine figure sets and the verified 205-state prescribed 30° return. The [original methods report](ribbon_bench/REPORT.zh-CN.md) preserves the earlier incomplete-unloading record; the follow-up is documented separately. This mechanics study runs alongside the MuJoCo/RL pipeline.
 

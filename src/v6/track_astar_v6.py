@@ -134,6 +134,11 @@ def point_along(path, progress):
     return path[index] + fraction * (path[index + 1] - path[index])
 
 
+def yaw_targets(t, bias, amplitude, frequency, phase_offsets, startup_s):
+    ramp = 0.5 * (1 - math.cos(math.pi * min(1., t / startup_s)))
+    return ramp * amplitude * np.sin(2 * math.pi * frequency * t + phase_offsets) + bias
+
+
 def make_model(scene=SCENE):
     meshes = ROOT / "meshes"
     tree = ET.fromstring(build_xml(str(meshes), str(meshes / "longworm2/longworm2.SLDASM.urdf")))
@@ -163,7 +168,12 @@ def self_check():
         pass
     else:
         raise AssertionError("Blocked start accepted")
-    print("A* detour, clearance, endpoints and blocked-start checks passed")
+    phases = np.arange(5) * 0.7
+    assert np.allclose(yaw_targets(0., 0., 0.2, 0.4, phases, 2.), 0.)
+    assert np.allclose(yaw_targets(2., 0.01, 0.2, 0.4, phases, 2.),
+                       0.2 * np.sin(2 * math.pi * 0.4 * 2 + phases) + 0.01)
+    assert np.max(np.abs(yaw_targets(3., 0.02, 0.2, 0.4, phases, 2.))) <= 0.22
+    print("A* clearance, endpoints, blocked-start and gentle-wave checks passed")
 
 
 def run(args):
@@ -191,7 +201,8 @@ def run(args):
     obstacle_ids = [getid(mujoco.mjtObj.mjOBJ_GEOM, f"obstacle_{i}") for i in range(len(SCENE["obstacles"]))]
     params_path = ROOT / "runs/cmaes_flat_serpentine/best_gait.json"
     params = np.array(json.loads(params_path.read_text())["best_params"])
-    frequency = params[4] + params[13] * params[1]
+    amplitude = math.radians(args.yaw_amplitude_deg)
+    frequency = args.yaw_frequency
     phase_offsets = 2 * math.pi * params[5] * np.arange(5) / 5
     com = data.subtree_com[head].copy()
     raw_path, path, expanded = astar(com[:2], np.array(SCENE["goal_m"]), SCENE)
@@ -200,7 +211,7 @@ def run(args):
     dt = float(model.opt.timestep)
     if args.duration < dt:
         raise ValueError("Duration must allow at least one physics step")
-    if args.max_bias + params[3] > 1.57:
+    if args.max_bias + amplitude > 1.57:
         raise ValueError("Gait amplitude plus bias exceeds yaw joint limits")
     bias, progress, collision_steps, max_envelope = 0., 0., 0, 0.
     min_clearance, torque_peak, force_peak = math.inf, 0., 0.
@@ -232,9 +243,8 @@ def run(args):
             # Calibration: negative yaw target bias produces positive world yaw.
             command = 0. if args.open_loop else float(np.clip(-args.gain * wrap(desired - heading), -args.max_bias, args.max_bias))
             bias += (1 - math.exp(-10 * dt / 0.35)) * (command - bias)
-        ramp = min(1., t / 1.)
         data.ctrl[:] = 0
-        data.ctrl[yaw_ids] = ramp * params[3] * np.sin(2 * math.pi * frequency * t + phase_offsets) + bias
+        data.ctrl[yaw_ids] = yaw_targets(t, bias, amplitude, frequency, phase_offsets, args.startup)
         mujoco.mj_step(model, data)
         mujoco.mj_forward(model, data)
         torque_peak = max(torque_peak, float(np.max(np.abs(data.actuator_force[yaw_ids]))))
@@ -284,8 +294,9 @@ def run(args):
                "scene": SCENE, "controller": {"lookahead_m": args.lookahead, "gain": args.gain,
                    "max_bias_rad": args.max_bias, "open_loop": args.open_loop,
                    "heading_filter_s": 0.4, "bias_filter_s": 0.35},
-               "gait": {"yaw_amplitude_rad": float(params[3]), "effective_frequency_hz": float(frequency),
-                        "yaw_wave_number": float(params[5]), "slide_target_m": 0., "startup_ramp_s": 1.},
+               "gait": {"yaw_amplitude_rad": amplitude, "effective_frequency_hz": float(frequency),
+                        "yaw_wave_number": float(params[5]), "slide_target_m": 0.,
+                        "startup_ramp_s": args.startup, "startup_shape": "half-cosine"},
                "planned_length_m": float(np.linalg.norm(np.diff(path, axis=0), axis=1).sum()),
                "travelled_com_length_m": float(np.linalg.norm(np.diff(arrays["com_m"][:,:2], axis=0), axis=1).sum()),
                "distance_note": "COM arc length and cross-track errors sampled at 0.1 s; final frame may have a shorter interval",
@@ -309,16 +320,20 @@ def run(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
-    parser.add_argument("--duration", type=float, default=110.)
-    parser.add_argument("--lookahead", type=float, default=0.55)
+    parser.add_argument("--duration", type=float, default=600.)
+    parser.add_argument("--lookahead", type=float, default=0.65)
     parser.add_argument("--gain", type=float, default=0.12)
-    parser.add_argument("--max-bias", type=float, default=0.12)
+    parser.add_argument("--max-bias", type=float, default=0.05)
+    parser.add_argument("--yaw-amplitude-deg", type=float, default=20.)
+    parser.add_argument("--yaw-frequency", type=float, default=0.4)
+    parser.add_argument("--startup", type=float, default=2.)
     parser.add_argument("--open-loop", action="store_true")
     parser.add_argument("--self-check", action="store_true")
     options = parser.parse_args()
     if options.self_check:
         self_check()
     else:
-        if not all(math.isfinite(v) and v > 0 for v in (options.duration, options.lookahead, options.gain, options.max_bias)):
+        if not all(math.isfinite(v) and v > 0 for v in (options.duration, options.lookahead, options.gain,
+                options.max_bias, options.yaw_amplitude_deg, options.yaw_frequency, options.startup)):
             parser.error("Duration and control parameters must be finite and positive")
         run(options)

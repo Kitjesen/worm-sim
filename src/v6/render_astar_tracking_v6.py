@@ -31,6 +31,18 @@ def sample_indices(count, frames):
     return np.unique(np.rint(np.linspace(0, count - 1, min(count, frames))).astype(int))
 
 
+def window_indices(times, frames, start=None, end=None):
+    times = np.asarray(times)
+    if times.ndim != 1 or len(times) < 2 or not np.all(np.isfinite(times)) or np.any(np.diff(times) <= 0):
+        raise ValueError("Source times must be finite and strictly increasing")
+    start = float(times[0]) if start is None else start
+    end = float(times[-1]) if end is None else end
+    if not math.isfinite(start) or not math.isfinite(end) or start > end:
+        raise ValueError("Provide a finite ordered time window")
+    selected = np.flatnonzero((times >= start) & (times <= end))
+    return selected[sample_indices(len(selected), frames)]
+
+
 def line(scene, a, b, rgba, radius=0.012):
     if scene.ngeom >= scene.maxgeom:
         raise ValueError("Render geometry buffer exhausted")
@@ -42,7 +54,7 @@ def line(scene, a, b, rgba, radius=0.012):
     scene.ngeom += 1
 
 
-def plots(output, arrays, summary, comparison=None):
+def plots(output, arrays, summary, comparison=None, prefix="robot_tracking"):
     plt.rcParams.update({"font.size": 10, "axes.spines.top": False,
                          "axes.spines.right": False, "svg.fonttype": "none"})
     fig, axes = plt.subplots(1, 2, figsize=(10.4, 3.6), constrained_layout=True)
@@ -67,7 +79,8 @@ def plots(output, arrays, summary, comparison=None):
     axes[1].set(xlabel="Time (s)", ylabel="Distance to A* path (cm)", ylim=(0, None))
     axes[1].legend(frameon=False, fontsize=9)
     for extension in ("png", "svg"):
-        fig.savefig(output / f"tracking_metrics.{extension}", dpi=180)
+        name = "tracking_metrics" if prefix == "robot_tracking" else f"{prefix}_metrics"
+        fig.savefig(output / f"{name}.{extension}", dpi=180)
     plt.close(fig)
 
 
@@ -85,7 +98,9 @@ def render(args):
         compare_hash = digest(compare_file)
         with np.load(compare_file) as archive:
             comparison = {"com_m": archive["com_m"].copy()}
-    indices = sample_indices(len(arrays["time_s"]), args.frames)
+    indices = window_indices(arrays["time_s"], args.frames, args.start_time, args.end_time)
+    selected_times = arrays["time_s"][indices]
+    physical_duration = float(selected_times[-1]-selected_times[0])
     scene_xml = ET.fromstring(source[2].read_text(encoding="utf-8"))
     mesh_dir = Path(__file__).resolve().parents[2]/"meshes"
     scene_xml.find("compiler").set("meshdir", str(mesh_dir))
@@ -175,7 +190,7 @@ def render(args):
             draw.text((25, height-50), "1 m", fill="#333333")
             draw.text((1210, 13), f"t = {data.time:.1f} s", fill="#333333")
             if number == len(indices)-1:
-                image.save(output/"robot_tracking.png")
+                image.save(output/f"{args.prefix}.png")
             images.append(image.quantize(colors=128))
             if number % 20 == 0:
                 print(f"Rendered {number+1}/{len(indices)} real qpos frames", flush=True)
@@ -184,13 +199,19 @@ def render(args):
         close_renderer.close()
     if com_error > 1e-9 or body_error > 1e-9:
         raise AssertionError(f"Replay differs from saved physics: COM={com_error}, bodies={body_error}")
-    duration = max(10, round(args.playback*1000/len(images)/10)*10)
-    durations = [duration]*len(images)
-    durations[-1] += 1200
-    gif_path = output/"robot_tracking.gif"
+    if args.start_time is not None or args.end_time is not None:
+        frame_times_ms = np.rint((selected_times-selected_times[0])/physical_duration*args.playback*100)*10
+        durations = np.diff(frame_times_ms).astype(int).tolist()+[1200]
+        if min(durations) < 10:
+            raise ValueError("Time window has too many GIF frames for the requested playback")
+    else:
+        duration = max(10, round(args.playback*1000/len(images)/10)*10)
+        durations = [duration]*len(images)
+        durations[-1] += 1200
+    gif_path = output/f"{args.prefix}.gif"
     images[0].save(gif_path, save_all=True, append_images=images[1:],
                    duration=durations, loop=0, optimize=False, disposal=2)
-    plots(output, arrays, summary, comparison)
+    plots(output, arrays, summary, comparison, args.prefix)
     after = {p.name: digest(p) for p in source}
     assert before == after, "Rendering altered the original rollout"
     if args.compare:
@@ -207,12 +228,17 @@ def render(args):
                 "visual_scope": "Global view includes obstacles; CAD close-up hides obstacle visuals for clarity",
                 "source_frame_count": len(arrays["time_s"]), "source_simulation_time_s": float(arrays["time_s"][-1]),
                 "selected_indices": indices.tolist(), "gif_frame_count": count,
+                "selected_start_time_s": float(selected_times[0]),
+                "selected_end_time_s": float(selected_times[-1]),
+                "selected_physical_duration_s": physical_duration,
                 "gif_size_px": [width, height], "gif_playback_s": playback/1000,
-                "playback_speedup": float(arrays["time_s"][-1])/(duration*len(indices)/1000),
+                "gif_motion_playback_s": sum(durations[:-1])/1000,
+                "playback_speedup": physical_duration/(sum(durations[:-1])/1000),
                 "final_frame_hold_s": 1.2, "max_replay_com_error_m": com_error,
                 "max_replay_body_error_m": body_error, "render_wall_time_s": time.perf_counter()-started,
                 "comparison_npz_sha256": compare_hash}
-    (output/"render_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    manifest_name = "render_manifest.json" if args.prefix == "robot_tracking" else f"{args.prefix}_render_manifest.json"
+    (output/manifest_name).write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps({k: v for k, v in manifest.items() if k != "selected_indices"}, indent=2))
 
 
@@ -221,20 +247,32 @@ if __name__ == "__main__":
     parser.add_argument("run", nargs="?")
     parser.add_argument("--frames", type=int, default=160)
     parser.add_argument("--playback", type=float, default=18.)
+    parser.add_argument("--start-time", type=float, help="First recorded time to include, in seconds")
+    parser.add_argument("--end-time", type=float, help="Last recorded time to include, in seconds")
+    parser.add_argument("--prefix", default="robot_tracking", help="Output filename prefix")
     parser.add_argument("--compare", help="Optional open-loop run for the static path plot")
     parser.add_argument("--self-check", action="store_true")
     args = parser.parse_args()
     if args.self_check:
         assert np.array_equal(sample_indices(11, 4), [0, 3, 7, 10])
         assert np.array_equal(sample_indices(3, 100), [0, 1, 2])
-        try:
-            sample_indices(1, 20)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError("Invalid one-frame rollout accepted")
-        print("Frame sampling, endpoints, and invalid-input checks passed")
+        assert np.array_equal(window_indices(np.arange(11.), 4), sample_indices(11, 4))
+        assert np.array_equal(window_indices(np.arange(11.), 100, 2, 8), np.arange(2, 9))
+        assert np.array_equal(window_indices(np.arange(11.), 3, 2.1, 7.9), [3, 5, 7])
+        for check in (lambda: sample_indices(1, 20),
+                      lambda: window_indices(np.arange(11.), 20, 20, 30),
+                      lambda: window_indices(np.arange(11.), 20, 5, 5),
+                      lambda: window_indices(np.arange(11.), 20, 8, 2)):
+            try:
+                check()
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("Invalid frame selection accepted")
+        print("Frame sampling, inclusive window endpoints, and invalid-input checks passed")
     else:
         if not args.run or args.frames < 2 or not math.isfinite(args.playback) or args.playback <= 0:
             parser.error("Provide a run path, frames >= 2, and positive finite playback")
+        if not args.prefix or not all(c.isalnum() or c in "-_" for c in args.prefix):
+            parser.error("Prefix must contain only letters, digits, '-' and '_'")
         render(args)

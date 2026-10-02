@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import xml.etree.ElementTree as ET
 
 import mujoco
@@ -11,7 +12,14 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def check(run):
+def hash_matches(source_bytes, expected):
+    lf_bytes = source_bytes.replace(b"\r\n", b"\n")
+    variants = {"Exact bytes": source_bytes, "LF serialization": lf_bytes,
+                "CRLF serialization": lf_bytes.replace(b"\n", b"\r\n")}
+    return [mode for mode, value in variants.items() if hashlib.sha256(value).hexdigest() == expected]
+
+
+def check(run, source_revision=None):
     summary = json.loads((run / "summary.json").read_text(encoding="utf-8"))
     tree = ET.fromstring((run / "scene.xml").read_bytes())
     tree.find("compiler").set("meshdir", str(ROOT / "meshes"))
@@ -29,6 +37,11 @@ def check(run):
         require(name, bool(np.allclose(actual, expected, atol=tolerance, rtol=0)))
 
     try:
+        revision = None
+        if source_revision is not None:
+            revision = subprocess.run(["git", "rev-parse", "--verify", "--end-of-options",
+                                       f"{source_revision}^{{commit}}"], cwd=ROOT,
+                                      check=True, capture_output=True, text=True).stdout.strip()
         with np.load(run / "trajectory.npz", allow_pickle=False) as saved:
             arrays = {key: saved[key] for key in saved.files}
         times, path, coms = arrays["time_s"], arrays["path_m"], arrays["com_m"]
@@ -123,6 +136,19 @@ def check(run):
                 < obstacle["center_m"][0] - obstacle["half_size_m"][0] for obstacle in scene["obstacles"]))
         yaw = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, f"act_front{i}") for i in range(2, 7)]
         slide = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_ACTUATOR, f"act_back{i}") for i in range(1, 7)]
+        require("complete_yaw_actuators", all(i >= 0 for i in yaw))
+        yaw_joints = model.actuator_trnid[yaw, 0]
+        require("five_unique_yaw_hinges", np.all(model.actuator_trntype[yaw] == mujoco.mjtTrn.mjTRN_JOINT)
+                and np.all(yaw_joints >= 0) and len(np.unique(yaw_joints)) == 5
+                and np.all(model.jnt_type[yaw_joints] == mujoco.mjtJoint.mjJNT_HINGE))
+        yaw_angles = arrays["qpos"][:, model.jnt_qposadr[yaw_joints]]
+        yaw_speeds = arrays["qvel"][:, model.jnt_dofadr[yaw_joints]]
+        sampled_motion = {
+            "joint_names": [mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, int(j)) for j in yaw_joints],
+            "peak_abs_yaw_deg": np.rad2deg(np.max(np.abs(yaw_angles), axis=0)).tolist(),
+            "peak_abs_yaw_speed_deg_s": np.rad2deg(np.max(np.abs(yaw_speeds), axis=0)).tolist(),
+            "max_abs_cumulative_yaw_deg": float(np.rad2deg(np.max(np.abs(np.cumsum(yaw_angles, axis=1))))),
+            "scope": "Actual saved qpos/qvel, normally sampled every 0.1 s; sampled peaks can underestimate continuous peaks. Cumulative yaw sums the five serial hinge angles relative to the root."}
         for name, ids, key in (("yaw", yaw, "peak_yaw_torque_nm"), ("slide", slide, "peak_slide_force_n")):
             require(f"{name}_force_limit", np.isfinite(summary[key]) and summary[key] <= np.max(np.abs(model.actuator_forcerange[ids])) + 1e-9)
             require(f"{name}_sampled_force_consistency", np.max(sample_torque[ids]) <= summary[key] + 1e-9)
@@ -133,21 +159,28 @@ def check(run):
         scene_lf_hash = hashlib.sha256(scene_bytes.replace(b"\r\n", b"\n")).hexdigest()
         scene_hash_mode = "Legacy schema has no scene hash."
         source_hash_modes = {}
+        historical_sources = []
         if "sources_unchanged_during_run" in summary:
             require("sources_unchanged_during_run", summary["sources_unchanged_during_run"] is True)
             for name, expected in summary["source_sha256"].items():
-                source = ROOT / name.replace("\\", "/")
+                repo_name = name.replace("\\", "/")
+                source = ROOT / repo_name
                 source_bytes = source.read_bytes()
-                lf_bytes = source_bytes.replace(b"\r\n", b"\n")
-                variants = {"Exact bytes": source_bytes, "LF serialization": lf_bytes,
-                            "CRLF serialization": lf_bytes.replace(b"\n", b"\r\n")}
-                matched = [mode for mode, value in variants.items() if hashlib.sha256(value).hexdigest() == expected]
+                matched = hash_matches(source_bytes, expected)
+                if not matched and revision is not None:
+                    historical_bytes = subprocess.run(["git", "show", f"{revision}:{repo_name}"],
+                                                      cwd=ROOT, check=True, capture_output=True).stdout
+                    matched = hash_matches(historical_bytes, expected)
+                    if matched:
+                        historical_sources.append(repo_name)
                 require(f"source_hash_{name}", bool(matched))
                 source_hash_modes[name] = matched[0]
             expected_scene = summary["scene_xml_sha256"]
             require("scene_xml_hash_exact_or_CRLF_serialization", expected_scene in (scene_bytes_hash, scene_lf_hash))
             scene_hash_mode = "Exact bytes" if expected_scene == scene_bytes_hash else "Windows CRLF serialization of matching LF XML string"
             provenance = "Startup source hashes match current files, allowing only LF/CRLF text serialization; runner confirmed no changes during rollout."
+            if historical_sources:
+                provenance = "Startup source hashes match current files or the specified Git commit, allowing only LF/CRLF text serialization; historical sources were hashed, not executed; runner confirmed no changes during rollout."
         result.update(passed=True, recomputed_metrics=metrics, maximum_com_error_m=maximum_com_error,
                       maximum_body_position_error_m=maximum_body_error, replay_sample_count=len(times),
                       replay_sample_minimum_clearance_m=minimum_clearance, replay_sample_maximum_envelope_m=maximum_envelope,
@@ -158,8 +191,10 @@ def check(run):
                       replay_resource_mapping="Only compiler.meshdir remapped to current ROOT/meshes; physical XML unchanged.",
                       scene_xml_file_bytes_sha256=scene_bytes_hash, scene_xml_normalized_lf_sha256=scene_lf_hash,
                       scene_xml_hash_match_mode=scene_hash_mode, source_hash_match_modes=source_hash_modes,
+                      source_revision=revision, historical_source_paths=historical_sources,
+                      sampled_joint_motion=sampled_motion,
                       length_scope="COM arc length from stored frames, not continuous 2 ms trajectory.")
-    except (AssertionError, KeyError, ValueError, IndexError, OSError) as error:
+    except (AssertionError, KeyError, ValueError, IndexError, OSError, subprocess.CalledProcessError) as error:
         result["error"] = f"{type(error).__name__}: {error}"
     (run / "validation.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
@@ -169,4 +204,6 @@ def check(run):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run", type=Path, help="Directory containing scene.xml, trajectory.npz and summary.json")
-    raise SystemExit(0 if check(parser.parse_args().run) else 1)
+    parser.add_argument("--source-revision", help="Optional Git commit used only to hash historical sources when current source hashes differ")
+    args = parser.parse_args()
+    raise SystemExit(0 if check(args.run, args.source_revision) else 1)

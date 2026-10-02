@@ -53,22 +53,22 @@
   "contact_scope": "Replay checks saved frames only; 2 ms contact count is the runner's report.",
   "recomputed_metrics": {
     "planned_length_m": 5.840688604160998,
-    "travelled_com_length_m": 6.000947668041432,
-    "net_displacement_m": 4.828570758568386,
-    "goal_error_m": 0.14985390550913333,
-    "cross_track_rms_m": 0.04526054580385816,
-    "cross_track_max_m": 0.1140768146654895
+    "travelled_com_length_m": 6.226042450385282,
+    "net_displacement_m": 4.829532803719197,
+    "goal_error_m": 0.1499300214828463,
+    "cross_track_rms_m": 0.06908178703985197,
+    "cross_track_max_m": 0.14693497251551688
   },
   "maximum_com_error_m": 4.440892098500626e-15,
   "maximum_body_position_error_m": 0.0,
-  "replay_sample_count": 626,
-  "replay_sample_minimum_clearance_m": 0.5968978269900401,
-  "replay_sample_maximum_envelope_m": 0.5738286017562467,
+  "replay_sample_count": 1183,
+  "replay_sample_minimum_clearance_m": 0.725596878576797,
+  "replay_sample_maximum_envelope_m": 0.5738560294924792,
   "replay_obstacle_contact_frames": 0,
   "certified_path_minimum_distance_m": 0.8768125870499452,
-  "provenance": "Startup source hashes match current files or the specified Git commit, allowing only LF/CRLF text serialization; historical sources were hashed, not executed; runner confirmed no changes during rollout.",
-  "replay_minus_runtime_clearance_m": 8.604662357314385e-05,
-  "replay_minus_runtime_envelope_m": -2.6989584445136217e-07,
+  "provenance": "Startup source hashes match current files, allowing only LF/CRLF text serialization; runner confirmed no changes during rollout.",
+  "replay_minus_runtime_clearance_m": 0.000190235766095892,
+  "replay_minus_runtime_envelope_m": -1.5805071863495002e-06,
   "replay_resource_mapping": "Only compiler.meshdir remapped to current ROOT/meshes; physical XML unchanged.",
   "scene_xml_file_bytes_sha256": "4e624c5ee2a8ca34b2ea48be889dd1241570e0dcec97eff54e5d9c0f9af5089a",
   "scene_xml_normalized_lf_sha256": "189be057072c6aa2f375c7206ed8938b8602c510fabeed18109e602ca7851e2f",
@@ -80,10 +80,8 @@
     "runs/cmaes_flat_serpentine/best_gait.json": "Exact bytes",
     "meshes/longworm2/longworm2.SLDASM.urdf": "Exact bytes"
   },
-  "source_revision": "52e08edcd553b673104b370d0d906ba86e8859d2",
-  "historical_source_paths": [
-    "src/v6/track_astar_v6.py"
-  ],
+  "source_revision": null,
+  "historical_source_paths": [],
   "sampled_joint_motion": {
     "joint_names": [
       "front2",
@@ -93,20 +91,20 @@
       "front6"
     ],
     "peak_abs_yaw_deg": [
-      42.156833877964445,
-      42.334041006869555,
-      40.763710022914985,
-      40.805690175817865,
-      41.582802939940684
+      23.34095969391696,
+      23.562169613033316,
+      22.662119413678816,
+      22.03526264663203,
+      22.5941472315104
     ],
     "peak_abs_yaw_speed_deg_s": [
-      163.01579941172375,
-      160.05303201423428,
-      157.54442572064556,
-      161.7891096954352,
-      154.19172290025065
+      61.231194866831565,
+      62.17136561810217,
+      58.773436332939134,
+      62.25341299294649,
+      56.70963311720436
     ],
-    "max_abs_cumulative_yaw_deg": 110.7170277370253,
+    "max_abs_cumulative_yaw_deg": 63.01078667728332,
     "scope": "Actual saved qpos/qvel, normally sampled every 0.1 s; sampled peaks can underestimate continuous peaks. Cumulative yaw sums the five serial hinge angles relative to the root."
   },
   "length_scope": "COM arc length from stored frames, not continuous 2 ms trajectory."
