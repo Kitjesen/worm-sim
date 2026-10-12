@@ -23,3 +23,9 @@ runs/**/incompatible_timing_archive/
 src/v3/__pycache__/
 src/v3/*.png
 src/v3/MUJOCO_LOG.TXT
+
+# Local presentation builds and dependency trees are reproducible scratch data.
+single_segment/**/.build/
+single_segment/**/.ppt_rework_build/
+single_segment/**/.codex-finalizer/
+single_segment/**/node_modules/

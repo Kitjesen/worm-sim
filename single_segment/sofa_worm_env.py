@@ -6,6 +6,7 @@ These are explicit training approximations, not a calibrated hardware twin.
 """
 import json
 import math
+import os
 from pathlib import Path
 import Sofa
 import SofaRuntime
@@ -47,7 +48,8 @@ def horn_lever(theta, radius=.0235, guide_radius=.035):
     return np.where(theta <= alpha, radius*guide_radius*np.sin(theta)/chord, radius)
 
 
-def wheel_contact(velocity, spin, memory, normal, dt, radius=.018, mu=.8, rolling=.015):
+def wheel_contact(velocity, spin, memory, normal, dt, radius=.018, mu=.8, rolling=.015,
+                  diagnostics=False):
     """Compliant sticking/sliding contact, implicit wheel spin, one-way clutch.
 
     Tangential spring stores bounded elastic displacement, so a stationary locked
@@ -70,22 +72,65 @@ def wheel_contact(velocity, spin, memory, normal, dt, radius=.018, mu=.8, rollin
     clutch = inertia*(omega-free)/dt
     slip = velocity-np.array([radius*omega, 0.])
     memory = -(force+damping*slip)/stiffness if sliding else memory+dt*slip
-    return force, omega, memory, clutch-resistance, slip, sliding
+    result = (force, omega, memory, clutch-resistance, slip, sliding)
+    return (*result, {'free_spin_rad_s':free, 'clutch_nm':clutch, 'rolling_nm':resistance}) if diagnostics else result
+
+
+def wheel_envelope_clearance(plate_poses, mounts, radius=.018, halfwidth=.006):
+    """Conservative cross-plate wheel clearance, not a collision response.
+
+    A finite cylinder fits inside a sphere of sqrt(radius^2 + halfwidth^2).
+    This guard can reject valid cylinder poses early; offline cylinder/bracket
+    queries in segment_response.py provide the more precise geometry audit.
+    """
+    centers = np.array([pose[:3]+mounts[i % 2]@rotation(pose[3:]).T
+                        for i,pose in enumerate(plate_poses)]).reshape(-1,3)
+    owner = np.repeat(np.arange(len(plate_poses)),2)
+    separation = np.linalg.norm(centers[:,None]-centers[None,:],axis=2)
+    return float(separation[owner[:,None]!=owner[None,:]].min()-2*math.hypot(radius,halfwidth))
 
 
 class SofaWormEnv(gym.Env):
     metadata = {}
 
-    def __init__(self, count=5, elements=8, randomize=True, dt=.0005, fixed=False):
+    def __init__(self, count=5, elements=8, randomize=True, dt=.0005, fixed=False,
+                 beam_model='native', rolling=.015, yaw_limit_rad=.4, ground_contact=True,
+                 tendon_model='legacy_rate_limited', physics_backend='cpu'):
         super().__init__()
         if not 1 <= count <= 5 or elements < 4 or not 0 < dt <= .001:
             raise ValueError('Invalid topology or time step')
+        if beam_model not in ('native', 'saint_venant') or not math.isfinite(rolling) or not 0 <= rolling <= .2:
+            raise ValueError('Invalid beam model or rolling coefficient')
+        self.beam_model, self.rolling = beam_model, rolling
+        if tendon_model not in ('legacy_rate_limited', 'finite_torque'):
+            raise ValueError('Unknown tendon motor model')
+        self.tendon_model = tendon_model
+        if physics_backend not in ('cpu', 'cuda'):
+            raise ValueError('Physics backend must be cpu or cuda')
+        self.physics_backend = physics_backend
+        self.ground_contact = bool(ground_contact)
+        if not math.isfinite(yaw_limit_rad) or not 0 < yaw_limit_rad <= math.pi/4:
+            raise ValueError('Yaw command limit must be in (0, pi/4]')
+        self.yaw_limit_rad = yaw_limit_rad
         self.count, self.elements, self.randomize, self.dt, self.fixed = count, elements, randomize, dt, fixed
         self.ndrive = 3*count-1
         self.episode_steps = 600  # 12 s: multiple contraction/recovery cycles
         self.action_space = gym.spaces.Box(-1., 1., (self.ndrive,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(-np.inf, np.inf, (15+4*count+2*(count-1)+4*count+self.ndrive,), dtype=np.float32)
         self.params = json.loads((HERE/'parameters_sofa_candidate.json').read_text())
+        self.assembly = None
+        if self.params.get('assembly_geometry_version') == 'cad_holes_v1':
+            from cad_assembly import load_assembly, strip_endpoints
+            self.assembly = load_assembly()
+            self.strip_endpoints_local_m = strip_endpoints(self.params)
+        self.tendon_servo_torque_limit_nm = float(self.params.get('tendon_servo_torque_limit_nm', .5))
+        self.tendon_servo_speed_limit_rad_s = float(self.params.get('tendon_servo_speed_limit_rad_s', 2.))
+        self.tendon_servo_stall_torque_nm = float(self.params.get('tendon_servo_stall_torque_nm', self.tendon_servo_torque_limit_nm))
+        self.yaw_servo_torque_limit_nm = float(self.params.get('yaw_servo_torque_limit_nm', .5))
+        if not all(math.isfinite(value) and value > 0 for value in (
+                self.tendon_servo_torque_limit_nm, self.tendon_servo_speed_limit_rad_s, self.tendon_servo_stall_torque_nm,
+                self.yaw_servo_torque_limit_nm)):
+            raise ValueError('Servo torque and speed limits must be finite and positive')
         self.root = None
 
     def close(self):
@@ -95,6 +140,21 @@ class SofaWormEnv(gym.Env):
 
     def build(self):
         SofaRuntime.importPlugin('BeamAdapter')
+        rigid_template = 'Rigid3d'
+        if self.physics_backend == 'cuda':
+            sofa_root = Path(os.environ['SOFA_ROOT'])
+            for relative in ('plugins/SofaCUDA.Core/lib/libSofaCUDA.Core.so',
+                             'plugins/SofaCUDA.Component/lib/libSofaCUDA.Component.so',
+                             'plugins/BeamAdapter/plugins/BeamAdapter.CUDA/lib/libBeamAdapter.CUDA.so'):
+                plugin = sofa_root/relative
+                if not plugin.is_file() or not SofaRuntime.importPlugin(str(plugin)):
+                    raise RuntimeError(f'Required native CUDA plugin did not load: {plugin}')
+            rigid_template = 'CudaRigid3d'
+        if self.beam_model == 'saint_venant':
+            plugin = Path(os.environ.get('STRIP_SECTION_PLUGIN', HERE/'model_comparison_20261003/build/libStripSection.so'))
+            if not plugin.is_file():
+                raise FileNotFoundError(f'Corrected strip plugin required: {plugin}')
+            SofaRuntime.importPlugin(str(plugin))
         root = self.root = Sofa.Core.Node('CoupledWorm')
         root.gravity = [0, 0, -9.81]
         root.dt = self.dt
@@ -126,9 +186,13 @@ class SofaWormEnv(gym.Env):
             for strip in range(8):
                 front = np.mean(p['front_clamp_hole_pairs_m'][strip], axis=0)
                 back = np.mean(p['back_clamp_hole_pairs_m'][strip], axis=0)
+                if self.assembly is not None:
+                    front, back = self.strip_endpoints_local_m[strip]
                 a = np.array(poses[2*seg][:3])+front
                 b = np.array(poses[2*seg+1][:3])+back
                 radial = np.array([0., front[1], front[2]])
+                if self.assembly is not None:
+                    radial = front-np.asarray(p['front_plate_center_m']); radial[0] = 0.
                 radial /= np.linalg.norm(radial)
                 side = np.subtract(*p['front_clamp_hole_pairs_m'][strip])
                 side /= np.linalg.norm(side)
@@ -156,24 +220,46 @@ class SofaWormEnv(gym.Env):
                 self.strip_nodes.append(nodes)
         self.rest = np.array(poses)
         self.total_mass = 2*self.count*self.plate_mass+sum(lengths)*p['strip_width_m']*p['strip_thickness_m']*p['steel_density_kg_m3']
-        self.dofs = root.addObject('MechanicalObject', template='Rigid3d', name='DOFs', position=poses, rest_position=poses)
+        self.dofs = root.addObject('MechanicalObject', template=rigid_template, name='DOFs', position=poses, rest_position=poses)
         root.addObject('EdgeSetTopologyContainer', name='Edges', edges=edges)
-        root.addObject('BeamInterpolation', name='Beams', edgeList=list(range(len(edges))), lengthList=lengths,
+        # The original single-type CPU StripSection plugin has no template label.
+        beam_template = {} if self.physics_backend == 'cpu' and self.beam_model == 'saint_venant' else {'template': rigid_template}
+        interpolation = root.addObject('RectangularStripInterpolation' if self.beam_model == 'saint_venant' else 'BeamInterpolation', **beam_template, name='Beams', edgeList=list(range(len(edges))), lengthList=lengths,
                        DOF0TransformNode0=transform0, DOF1TransformNode1=transform1, dofsAndBeamsAligned=False,
                        straight=False, crossSectionShape='rectangular', lengthY=p['strip_width_m'],
                        lengthZ=p['strip_thickness_m'], defaultYoungModulus=p['youngs_modulus_pa']*self.factors[0],
                        defaultPoissonRatio=p['poisson_ratio'])
-        root.addObject('AdaptiveBeamForceFieldAndMass', interpolation='@Beams', massDensity=p['steel_density_kg_m3'], computeMass=True)
+        beam_force = root.addObject('AdaptiveBeamForceFieldAndMass', template=rigid_template, interpolation='@Beams', massDensity=p['steel_density_kg_m3'], computeMass=True)
         # Extra masses are assigned only to plate DOFs; beam mass is native FEM.
-        root.addChild('HardwareMass').addObject('UniformMass', template='Rigid3d',
+        hardware_mass = root.addChild('HardwareMass').addObject('UniformMass', template=rigid_template,
                            indices=self.plate_ids.tolist(),
                            vertexMass=f'{self.plate_mass} 1 .0016 0 0 0 .0009 0 0 0 .0009')
         if self.fixed:
-            root.addObject('FixedProjectiveConstraint', indices=[0])
+            fixed_constraint = root.addObject('FixedProjectiveConstraint', template=rigid_template, indices=[0])
         self.anchors = np.array([[-.0165, y, zz] for y in (.0285, -.0285) for zz in (.039, -.039)])
         self.guides = self.anchors.copy(); self.guides[:, 0] = 0.
         self.rest_cable = .101
+        if self.assembly is not None:
+            routes = self.assembly['routes']
+            self.anchors = np.array([r['front_anchor_m'] for r in routes])
+            self.guides = np.array([r['back_entry_m'] for r in routes])
+            # Zero pretension in the specified assembled rest shape. This is an
+            # explicit unmeasured assumption; settling may subsequently load/slacken cords.
+            self.rest_cable = np.linalg.norm(self.rest[1,:3]+self.guides-self.rest[0,:3]-self.anchors,axis=1)
         Sofa.Simulation.init(root)
+        self.backend_components = []
+        checked = [self.dofs, interpolation, beam_force, hardware_mass]
+        if self.fixed:
+            checked.append(fixed_constraint)
+        for component in checked:
+            actual = component.getTemplateName()
+            state = component.componentState.value
+            self.backend_components.append(dict(component=component.getClassName(),template=actual,state=state))
+            legacy_cpu_strip = component is interpolation and self.physics_backend == 'cpu' and self.beam_model == 'saint_venant' and actual == ''
+            if (actual != rigid_template and not legacy_cpu_strip) or state == 'Invalid':
+                raise RuntimeError(f'Unsupported {self.physics_backend} component: {self.backend_components[-1]}')
+        # ponytail: native CUDA data/operations with CPU sparse solve and host force
+        # callbacks; this compatibility stage is not a GPU-resident batched solver.
         assert self.dofs.position.array().shape == self.rest.shape
 
     def reset(self, seed=None, options=None):
@@ -182,17 +268,25 @@ class SofaWormEnv(gym.Env):
         self.factors = self.np_random.uniform([.85, .8, .9, .8], [1.15, 1.2, 1.1, 1.2]) if self.randomize else np.ones(4)
         self.build()
         self.servo = np.zeros(2*self.count)
+        self.servo_velocity = np.zeros(2*self.count)
+        self.servo_torque = np.zeros(2*self.count)
+        self.tendon_reference = None  # Validation-only absolute angle input.
         self.yaw_target = np.zeros(self.count-1)
         self.wheel_speed = np.zeros(4*self.count)
         self.wheel_angle = np.zeros(4*self.count)
         self.contact_memory = np.zeros((4*self.count, 3))
         self.contact_slip = np.zeros((4*self.count, 2))
+        self.contact_sliding = np.zeros(4*self.count, dtype=bool)
+        self.clutch_torque = np.zeros(4*self.count)
+        self.free_wheel_speed = np.zeros(4*self.count)
         self.previous = np.zeros(self.ndrive)
         self.steps = 0
         self.support = np.zeros(4*self.count)
         self.tensions = np.zeros((self.count, 4))
         for _ in range(round(.25/self.dt)):
             self.physics()
+            if self.wheel_guard_clearance < .002:
+                raise ValueError('Wheel envelope guard violated during initial settling')
         self.start_x = float(self.dofs.position.array()[0, 0])
         self.start_center_x = float(self.dofs.position.array()[self.plate_ids, 0].mean())
         self.start_leading_x = float(self.dofs.position.array()[2*self.count-1, 0])
@@ -202,6 +296,13 @@ class SofaWormEnv(gym.Env):
         x = self.dofs.position.array()
         v = self.dofs.velocity.array()
         f = np.zeros_like(v)
+        # Optional observer receives the exact pre-integration loads; no force-law change.
+        observer = getattr(self, 'load_observer', None)
+        if observer is not None:
+            cable_load = np.zeros((2*self.count, 6))
+            stop_load = np.zeros_like(cable_load)
+            wheel_load = np.zeros((4*self.count, 3))
+            wheel_reaction = np.zeros(4*self.count)
         mats = np.array([rotation(x[i, 3:]) for i in self.plate_ids])
         # Axial tension-only elastic tendons, two per side, transmit equal/opposite forces.
         for seg in range(self.count):
@@ -215,18 +316,25 @@ class SofaWormEnv(gym.Env):
             vb = v[b, :3]+np.cross(v[b, 3:], br)
             rest = self.rest_cable-np.repeat(horn_takeup(self.servo[2*seg:2*seg+2]), 2)
             speed = np.sum((vb-va)*direction, axis=1)
+            if self.tendon_model == 'finite_torque':
+                # Relative strain rate includes moving horn takeup, not only span speed.
+                speed = speed+np.repeat(horn_lever(self.servo[2*seg:2*seg+2])*self.servo_velocity[2*seg:2*seg+2], 2)
             tension = np.where(length >= rest, np.maximum(0., 2000*(length-rest)+.5*speed), 0.)
             self.tensions[seg] = tension
             force = tension[:, None]*direction
             f[a, :3] += force.sum(axis=0); f[b, :3] -= force.sum(axis=0)
             f[a, 3:] += np.cross(ar, force).sum(axis=0)
             f[b, 3:] -= np.cross(br, force).sum(axis=0)
+            if observer is not None:
+                cable_load[[a,b]] = f[[a,b]]
             # Candidate motor/plate stop: 10 mm motor clearance at 75 mm plate spacing.
             gap = np.dot(x[b, :3]-x[a, :3], -mats[a][:, 0])
             if gap < .075:
                 push = 50000*(.075-gap)*(-mats[a][:, 0])
                 f[b, :3] += push; f[a, :3] -= push
                 f[a, 3:] -= np.cross(x[b, :3]-x[a, :3], push)
+            if observer is not None:
+                stop_load[[a,b]] = f[[a,b]]-cable_load[[a,b]]
         for seg in range(self.count-1):
             a, b = 2*seg+1, 2*seg+2
             # Compliant revolute connector. Native JointSpringForceField lacks
@@ -241,7 +349,8 @@ class SofaWormEnv(gym.Env):
             relative = mats[a].T @ mats[b]
             yaw = math.atan2(relative[1, 0], relative[0, 0])
             axis = mats[a][:, 2]
-            torque = np.clip(2*(self.yaw_target[seg]-yaw)-.03*np.dot(v[b, 3:]-v[a, 3:], axis), -.5, .5)*axis
+            torque = np.clip(2*(self.yaw_target[seg]-yaw)-.03*np.dot(v[b, 3:]-v[a, 3:], axis),
+                             -self.yaw_servo_torque_limit_nm, self.yaw_servo_torque_limit_nm)*axis
             omega = v[b, 3:]-v[a, 3:]
             torque += 20*np.cross(mats[b][:, 2], axis)-.1*(omega-axis*np.dot(omega, axis))
             f[b, 3:] += torque; f[a, 3:] -= torque
@@ -249,7 +358,10 @@ class SofaWormEnv(gym.Env):
         self.internal_torque_residual = float(np.linalg.norm((np.cross(x[:, :3], f[:, :3])+f[:, 3:]).sum(axis=0)))
         # Analytic wheel/plane contact: real load-dependent forces, no root-position prescription.
         self.support.fill(0.)
-        for plate in self.plate_ids:
+        self.contact_sliding.fill(False)
+        self.clutch_torque.fill(0.)
+        self.free_wheel_speed.fill(0.)
+        for plate in self.plate_ids if self.ground_contact else []:
             R = mats[plate]
             axle = R[:, 1]
             forward = np.cross([0., 0., 1.], axle); forward /= max(1e-9, np.linalg.norm(forward))
@@ -270,21 +382,34 @@ class SofaWormEnv(gym.Env):
                 normal = max(0., 5000*penetration-8*velocity[2])
                 self.support[wheel] = normal
                 basis = np.array([forward, lateral])
-                tangent, omega, memory, reaction, slip, _ = wheel_contact(
+                tangent, omega, memory, reaction, slip, sliding, detail = wheel_contact(
                     basis@velocity, self.wheel_speed[wheel], basis@self.contact_memory[wheel],
-                    normal, self.dt, radius=self.radius, mu=.8*self.factors[3])
+                    normal, self.dt, radius=self.radius, mu=.8*self.factors[3], rolling=self.rolling,
+                    diagnostics=True)
+                self.contact_sliding[wheel] = sliding
+                self.clutch_torque[wheel] = detail['clutch_nm']
+                self.free_wheel_speed[wheel] = detail['free_spin_rad_s']
                 self.wheel_speed[wheel] = omega
                 self.contact_memory[wheel] = memory@basis
                 self.contact_slip[wheel] = slip
                 self.wheel_angle[wheel] += self.dt*self.wheel_speed[wheel]
                 force = tangent@basis+np.array([0., 0., normal])
+                if observer is not None:
+                    wheel_load[wheel] = force
+                    wheel_reaction[wheel] = reaction
                 f[plate, :3] += force
                 rim_torque = np.cross(rim, force)
                 f[plate, 3:] += np.cross(offset, force)+rim_torque-axle*np.dot(rim_torque, axle)+reaction*axle
         self.dofs.externalForce = f.tolist()
+        if observer is not None:
+            observer(self, x, v, cable_load, stop_load, wheel_load, wheel_reaction)
         Sofa.Simulation.animate(self.root, self.dt)
         if not np.isfinite(self.dofs.position.array()).all():
             raise RuntimeError('SOFA nonfinite whole-body state')
+        # Reject unsupported wheel contact in every boundary condition, including
+        # suspended benches. This terminates a trial; it is not a contact force.
+        self.wheel_guard_clearance = wheel_envelope_clearance(
+            self.dofs.position.array()[self.plate_ids],self.wheel_mounts,self.radius)
 
     def metrics(self):
         x = self.dofs.position.array()
@@ -292,8 +417,11 @@ class SofaWormEnv(gym.Env):
         beam_z = x[2*self.count:, 2]
         clearance = min(float(plate_z.min()-.055), float(beam_z.min()-.008))
         gaps = [float(np.linalg.norm(x[2*i+1, :3]-x[2*i, :3])) for i in range(self.count)]
+        wheel_clearance = wheel_envelope_clearance(x[self.plate_ids],self.wheel_mounts,self.radius)
         return {'wheel_support_ratio': float(np.mean(self.support > .05)), 'support_n': float(self.support.sum()),
                 'body_clearance_m': clearance, 'min_plate_spacing_m': min(gaps),
+                'wheel_envelope_clearance_m': wheel_clearance, 'geometry_valid': wheel_clearance >= .002,
+                'geometry_guard_enabled': True,
                 'forward_m': getattr(self, 'start_center_x', float(x[self.plate_ids, 0].mean()))-float(x[self.plate_ids, 0].mean()),
                 'leading_forward_m': getattr(self, 'start_leading_x', float(x[2*self.count-1, 0]))-float(x[2*self.count-1, 0]),
                 'mean_contact_slip_m_s': float(np.mean(np.linalg.norm(self.contact_slip[self.support>.05],axis=1))) if np.any(self.support>.05) else 0.,
@@ -325,23 +453,40 @@ class SofaWormEnv(gym.Env):
             raise ValueError('Invalid whole-body action')
         action = np.clip(action, -1, 1)
         target = np.clip(self.servo+action[:2*self.count]*.08, 0., np.pi)
-        self.yaw_target = np.clip(self.yaw_target+action[2*self.count:]*.03, -.4, .4)
+        if self.tendon_model == 'finite_torque' and self.tendon_reference is not None:
+            target = np.asarray(self.tendon_reference, dtype=float)
+            if target.shape != self.servo.shape or not np.isfinite(target).all() or np.any((target<0)|(target>np.pi)):
+                raise ValueError('Invalid absolute validation reference')
+        self.yaw_target = np.clip(self.yaw_target+action[2*self.count:]*.03,
+                                  -self.yaw_limit_rad, self.yaw_limit_rad)
         before = self.dofs.position.array()[2*self.count-1, :3].copy()
-        for _ in range(round(.02/self.dt)):
+        for substep in range(round(.02/self.dt)):
             load = self.tensions.reshape(-1, 2).sum(axis=1)*horn_lever(self.servo)
-            increment = np.clip(target-self.servo, -2*self.dt, 2*self.dt)
-            # Candidate .5 Nm motor limit: stall rather than silently clipping
-            # cable force while the horn keeps rotating through a physical stop.
-            increment *= np.where(increment > 0, np.clip(1-load/.5, 0., 1.), 1.)
-            self.servo += increment
+            if self.tendon_model == 'finite_torque':
+                # Opt-in verification model; legacy/frozen training behavior is preserved.
+                from segment_response import finite_servo_step
+                self.servo, self.servo_velocity, self.servo_torque, _, _ = finite_servo_step(
+                    self.servo, self.servo_velocity, target, load, self.dt,
+                    tau_max=self.tendon_servo_torque_limit_nm,
+                    stall_torque=self.tendon_servo_stall_torque_nm,
+                    free_speed=self.tendon_servo_speed_limit_rad_s)
+            else:
+                max_increment = self.tendon_servo_speed_limit_rad_s*self.dt
+                increment = np.clip(target-self.servo, -max_increment, max_increment)
+                increment *= np.where(increment > 0, np.clip(1-load/self.tendon_servo_torque_limit_nm, 0., 1.), 1.)
+                self.servo_velocity = increment/self.dt
+                self.servo += increment
             self.physics()
+            if self.wheel_guard_clearance < .002:
+                break
         self.steps += 1
         info = self.metrics()
-        delta = (self.dofs.position.array()[2*self.count-1, :3]-before)/.02
+        elapsed=(substep+1)*self.dt
+        delta = (self.dofs.position.array()[2*self.count-1, :3]-before)/elapsed
         vx = -float(delta[0])
         info['forward_velocity_m_s'] = vx
         bad = info['body_clearance_m'] < .005 or info['min_plate_spacing_m'] < .065
-        bad = bad or info['connector_error_m'] > .005
+        bad = bad or info['connector_error_m'] > .005 or not info['geometry_valid']
         reward = vx-.1*abs(float(delta[1]))-.001*float(np.square(action-self.previous).sum())-float(bad)
         self.previous = action.copy()
         return self.observation(), reward, bool(bad), self.steps >= self.episode_steps, info

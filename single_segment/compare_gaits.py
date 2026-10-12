@@ -15,7 +15,7 @@ HERE=Path(__file__).resolve().parent
 
 def run(args):
     args.out.mkdir(parents=True,exist_ok=False)
-    env=physics.SofaWormEnv(randomize=False,dt=args.dt)
+    env=physics.SofaWormEnv(randomize=False,dt=args.dt,rolling=getattr(args,'rolling',.015))
     env.episode_steps=round(args.seconds/.02)
     rows=[];poses=[];controls=[];wheel_angles=[];actions=[];joint_angles=[];gaps=[];gap_targets=[]
     contact_steps=[];contact=np.zeros((20,12),dtype=np.float32)
@@ -111,7 +111,7 @@ def run(args):
             max_tension_n=max(r['max_tension_n'] for r in rows),max_connector_error_m=max(r['connector_error_m'] for r in rows),
             min_clearance_m=min(r['body_clearance_m'] for r in rows),
             gap_min_mm=float(np.min(gaps)*1000),gap_max_mm=float(np.max(gaps)*1000),
-            settings=dict(worm_stroke_m=.035,wave_period_s=4.,worm_delay_s=.65,snake_amplitude_deg=args.amplitude,snake_phase_delay_rad=math.pi/2,startup_s=1.,mu=.8,rolling_coefficient=.015),
+            settings=dict(worm_stroke_m=.035,wave_period_s=4.,worm_delay_s=.65,snake_amplitude_deg=args.amplitude,snake_phase_delay_rad=math.pi/2,startup_s=1.,mu=.8,rolling_coefficient=env.rolling),
             observation_dimension=int(obs.size),policy='Designed deterministic controllers; no PPO',
             scope='Same nominal plant and initial state; chosen inputs, not equal-power or optimized-gait comparison. Plate mean is not mass-weighted COM.')
         np.savez_compressed(args.out/'whole_rollout.npz',poses=poses,initial_poses=initial,initial_velocity=initial_velocity,

@@ -1,4 +1,4 @@
-"""Sensor-only residual control of the frozen five-module SOFA snake."""
+"""Sensor-only residual control of worm, snake and mixed five-module gaits."""
 import sofa_worm_env as physics  # SOFA must load before Conda numerical libraries.
 import math
 import numpy as np
@@ -7,14 +7,22 @@ from sensor_observation import make_env
 
 
 class SnakeResidualEnv(gym.Wrapper):
-    """10 Hz policy, 50 Hz sensor/controller, 2 kHz physics; no tendon action."""
-    def __init__(self, randomize=True):
-        super().__init__(make_env(randomize=randomize))
-        self.action_space = gym.spaces.Box(-1., 1., (4,), dtype=np.float32)
-        # 50 measured/controller features + 4 known filtered residual commands.
-        self.observation_space = gym.spaces.Box(-np.inf, np.inf, (54,), dtype=np.float32)
-        self.filtered = np.zeros(4)
-        self.last_action = np.zeros(4)
+    """10 Hz policy, 50 Hz sensor/controller, 2 kHz physics.
+
+    Tendon actions change the amplitude of a prescribed backward travelling wave;
+    no true segment length enters the controller. Phase ordering is a prior, not
+    a guarantee about physical contraction peaks under load.
+    """
+    def __init__(self, randomize=True, mode='snake', beam_model='native', rolling=.015, elements=8):
+        if mode not in ('worm', 'snake', 'mixed'):
+            raise ValueError('Unknown gait mode')
+        super().__init__(make_env(randomize=randomize, beam_model=beam_model, rolling=rolling, elements=elements))
+        self.mode = mode
+        n = {'worm': 5, 'snake': 4, 'mixed': 9}[mode]
+        self.action_space = gym.spaces.Box(-1., 1., (n,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(-np.inf, np.inf, (50+n,), dtype=np.float32)
+        self.filtered = np.zeros(n)
+        self.last_action = np.zeros(n)
 
     def reset(self, *, seed=None, options=None):
         # Keep measurement noise reproducible across vector-env automatic resets.
@@ -23,14 +31,15 @@ class SnakeResidualEnv(gym.Wrapper):
         obs, info = self.env.reset(seed=seed, options=options)
         self.filtered.fill(0.); self.last_action.fill(0.)
         self.elapsed = 0.; self.slip_integral = 0.; self.work_proxy = 0.
+        self.servo_work_proxy = 0.
         self.peak_tension = 0.; self.peak_joint = 0.; self.episode_return = 0.
         self.initial_y = float(self.unwrapped.dofs.position.array()[:10,1].mean())
         return np.r_[obs, self.filtered].astype(np.float32), info
 
     def step(self, action):
         action = np.asarray(action, float)
-        if action.shape != (4,) or not np.isfinite(action).all():
-            raise ValueError('Expected four finite normalized residual commands')
+        if action.shape != self.action_space.shape or not np.isfinite(action).all():
+            raise ValueError('Invalid normalized gait residual commands')
         action = np.clip(action, -1, 1)
         reward = -.01*float(np.mean((action-self.last_action)**2))
         core = self.unwrapped
@@ -39,9 +48,18 @@ class SnakeResidualEnv(gym.Wrapper):
             self.filtered += .1*(action-self.filtered)
             t = core.steps*.02
             ramp = .5*(1-math.cos(math.pi*min(t,1.)))
-            base = math.radians(20)*ramp*np.sin(2*np.pi*t/4.-(3-np.arange(4))*np.pi/2)
-            target = np.clip(base+math.radians(5)*self.filtered, -math.radians(20), math.radians(20))
-            command = np.r_[np.zeros(10), np.clip((target-core.yaw_target)/.03, -1, 1)]
+            target = np.zeros(4)
+            motor = np.zeros(10)
+            if self.mode != 'worm':
+                base = math.radians(20)*ramp*np.sin(2*np.pi*t/4.-(3-np.arange(4))*np.pi/2)
+                target = np.clip(base+math.radians(5)*self.filtered[-4:], -math.radians(20), math.radians(20))
+            if self.mode != 'snake':
+                age = t-(4-np.arange(5))*.65
+                pulse = np.where(age>=0, .5*(1-np.cos(2*np.pi*np.maximum(age,0)/4.)), 0.)*ramp
+                motor = np.repeat(1.5*pulse*(1+.2*self.filtered[:5]), 2)
+            command = np.r_[np.clip((motor-core.servo)/.08,-1,1), np.clip((target-core.yaw_target)/.03, -1, 1)]
+            old_servo = core.servo.copy()
+            old_load = core.tensions.reshape(-1,2).sum(axis=1)*physics.horn_lever(core.servo)
             obs, _, done, truncated, info = self.env.step(command)
             x, v = core.dofs.position.array(), core.dofs.velocity.array()
             after = x[:10,:3].mean(axis=0)
@@ -51,12 +69,17 @@ class SnakeResidualEnv(gym.Wrapper):
                 R = physics.rotation(x[a,3:]); relative = R.T@physics.rotation(x[b,3:])
                 yaw = math.atan2(relative[1,0],relative[0,0])
                 speed = float(np.dot(v[b,3:]-v[a,3:],R[:,2]))
-                torque = float(np.clip(2*(core.yaw_target[j]-yaw)-.03*speed,-.5,.5))
+                torque = float(np.clip(2*(core.yaw_target[j]-yaw)-.03*speed,
+                                       -core.yaw_servo_torque_limit_nm, core.yaw_servo_torque_limit_nm))
                 power += abs(torque*speed); peak = max(peak,abs(yaw))
             slip = info['mean_contact_slip_m_s']
+            load = core.tensions.reshape(-1,2).sum(axis=1)*physics.horn_lever(core.servo)
+            servo_work = float(np.sum(np.abs(.5*(old_load+load)*(core.servo-old_servo))))
             # Reward-only simulator truth never enters the policy packet.
             reward += 20*(before[0]-after[0])-10*abs(after[1]-before[1])
             reward -= .02*(50*slip+.2*power+.05*float(np.mean(self.filtered**2)))
+            reward -= .2*servo_work
+            self.servo_work_proxy += servo_work
             self.elapsed += .02; self.slip_integral += .02*slip; self.work_proxy += .02*power
             self.peak_joint = max(self.peak_joint,peak)
             self.peak_tension = max(self.peak_tension,info['max_tension_n'])
@@ -69,10 +92,15 @@ class SnakeResidualEnv(gym.Wrapper):
             lateral_m=float(after[1]-self.initial_y),
             mean_sampled_slip_m_s=self.slip_integral/self.elapsed,
             joint_abs_work_proxy_j=self.work_proxy, peak_joint_deg=math.degrees(self.peak_joint),
+            servo_abs_work_proxy_j=self.servo_work_proxy,
+            total_abs_work_proxy_j=self.work_proxy+self.servo_work_proxy,
             peak_tension_n=self.peak_tension, task_return=self.episode_return,
             # A simulator evaluation criterion, not a hardware safety claim.
-            success=bool(truncated and not done and info['forward_m']>.2 and abs(after[1]-self.initial_y)<.1))
-        assert np.all(core.servo == 0)
+            success=bool(truncated and not done and info['forward_m']>.02 and abs(after[1]-self.initial_y)<.1))
+        if self.mode == 'snake':
+            assert np.all(core.servo == 0)
+        if self.mode == 'worm':
+            assert np.all(core.yaw_target == 0)
         return np.r_[obs,self.filtered].astype(np.float32), float(reward), done, truncated, info
 
 

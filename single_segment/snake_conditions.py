@@ -13,7 +13,8 @@ HERE = Path(__file__).resolve().parent
 
 def run(args):
     args.out.mkdir(parents=True, exist_ok=False)
-    env = physics.SofaWormEnv(randomize=False)
+    env = physics.SofaWormEnv(randomize=False, beam_model=getattr(args,'beam_model','native'),
+                            rolling=getattr(args,'rolling',.015), elements=getattr(args,'elements',8))
     original_contact = physics.wheel_contact
     contact = dict(samples=0, slip_sum=0., slip_max=0., saturated=0)
 
@@ -67,6 +68,7 @@ def run(args):
         assert np.all(np.asarray(servos) == 0) and contact['samples'] > 0
         report = dict(failed=failed, physical_s=len(rows)*.02, wall_s=time.perf_counter()-started,
             settings=dict(amplitude_deg=args.amplitude, period_s=args.period, phase_deg=args.phase,
+                          beam_model=env.beam_model,rolling=env.rolling,elements=env.elements,
                           startup_s=1, dt_s=.0005, control_dt_s=.02, seed=7, randomize=False),
             initial_state_sha256=initial_hash,
             source_sha256={n:hashlib.sha256((HERE/n).read_bytes()).hexdigest()
@@ -106,6 +108,9 @@ if __name__ == '__main__':
     p.add_argument('--phase', type=float, default=90)
     p.add_argument('--out', type=Path, required=True)
     p.add_argument('--seconds', type=float, default=12)
+    p.add_argument('--beam-model',choices=['native','saint_venant'],default='native')
+    p.add_argument('--rolling',type=float,default=.015)
+    p.add_argument('--elements',type=int,default=8)
     args = p.parse_args()
     if not 0 < args.amplitude <= 20 or not 2 <= args.period <= 6 or not 0 <= args.phase <= 120:
         p.error('Bounds: amplitude (0,20], period [2,6], phase [0,120]')

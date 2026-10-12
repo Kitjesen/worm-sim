@@ -1,4 +1,9 @@
-"""Bounded first PPO run, sensor histories and a periodic residual controller."""
+"""Legacy gait-prior SOFA PPO comparisons; navigation uses move_control.py --task goals.
+
+Worm/mixed modes tie the two tendon servos of each segment together. These old
+paired-action experiments and their frozen checkpoints are not the current
+14-independent-action navigation route.
+"""
 from snake_rl_env import SnakeResidualEnv  # Initializes SOFA before Torch/NumPy.
 import argparse
 from datetime import datetime, timezone
@@ -28,9 +33,9 @@ def write_json(path, data):
     os.replace(temporary,path)
 
 
-def evaluate(checkpoint, learned):
+def evaluate(checkpoint, learned, physics_settings):
     """One nominal and four randomized seeds, identical conditions for both controllers."""
-    raw=VecMonitor(SubprocVecEnv([partial(SnakeResidualEnv,randomize=i>0) for i in range(5)],start_method='spawn'))
+    raw=VecMonitor(SubprocVecEnv([partial(SnakeResidualEnv,randomize=i>0,**physics_settings) for i in range(5)],start_method='spawn'))
     norm=VecNormalize.load(str(checkpoint/'normalization.pkl'),raw)
     norm.training=False; norm.norm_reward=False
     env=VecFrameStack(norm,n_stack=4)
@@ -38,12 +43,13 @@ def evaluate(checkpoint, learned):
         model=PPO.load(checkpoint/'model.zip',device='cpu') if learned else None
         env.seed(1000); obs=env.reset(); results={}
         for _ in range(120):
-            action=model.predict(obs,deterministic=True)[0] if learned else np.zeros((5,4))
+            action=model.predict(obs,deterministic=True)[0] if learned else np.zeros((5,*env.action_space.shape))
             obs,_,dones,infos=env.step(action)
             for i,done in enumerate(dones):
                 if done and i not in results:
                     keys=['physical_s','mean_plate_forward_m','lateral_m','mean_sampled_slip_m_s',
-                          'joint_abs_work_proxy_j','peak_joint_deg','peak_tension_n','task_return','success']
+                          'joint_abs_work_proxy_j','servo_abs_work_proxy_j','total_abs_work_proxy_j',
+                          'peak_joint_deg','peak_tension_n','task_return','success']
                     results[i]=dict(seed=1000+i,randomized=i>0,**{k:infos[i][k] for k in keys})
             if len(results)==5:
                 break
@@ -54,35 +60,52 @@ def evaluate(checkpoint, learned):
 
 
 def train(args):
+    if args.mode in ('worm', 'mixed') and not getattr(args, 'allow_paired_legacy', False):
+        raise ValueError('Legacy worm/mixed modes bind left and right tendons. Use '
+            'move_control.py --task goals for 10 independent tendon + 4 yaw targets. '
+            'Use --allow-paired-legacy only for an intentional paired-gait comparison; '
+            'its old checkpoint/action dimensions are incompatible with GoalEnv.')
+    if args.mode in ('worm', 'mixed'):
+        print('LEGACY COMPARISON: paired left/right tendons; not independent navigation control.', flush=True)
     gate=json.loads(args.gate.read_text())
     if not gate.get('passed'):
         raise ValueError('A passing residual-environment gate is required')
     for name,digest in gate['source_sha256'].items():
         if hashlib.sha256((HERE/name).read_bytes()).hexdigest()!=digest:
             raise ValueError('Gate source mismatch: '+name)
+    physics_settings=dict(mode=args.mode,beam_model='saint_venant',rolling=args.rolling,elements=args.elements)
+    if gate.get('physics_settings') != physics_settings:
+        raise ValueError('Gate settings do not match training')
+    plugin=Path(os.environ['STRIP_SECTION_PLUGIN'])
+    if hashlib.sha256(plugin.read_bytes()).hexdigest()!=gate['plugin_sha256']:
+        raise ValueError('Gate plugin mismatch')
+    n={'worm':5,'snake':4,'mixed':9}[args.mode]
     args.out.mkdir(parents=True,exist_ok=False)
     source=args.out/'source'; source.mkdir()
     for name in SOURCES:
         (source/name).write_bytes((HERE/name).read_bytes())
     config=dict(started_utc=datetime.now(timezone.utc).isoformat(),requested_policy_steps=args.steps,
         workers=args.workers,max_training_hours=args.hours,seed=7,algorithm='SB3 PPO MlpPolicy',
+        legacy_paired_tendon_comparison=args.mode in ('worm', 'mixed'),
         sb3_version=stable_baselines3.__version__,torch_version=torch.__version__,device='cpu',physics='SOFA CPU',
         policy_dt_s=.1,controller_dt_s=.02,physics_dt_s=.0005,episode_s=12,
-        raw_observation_dim=54,history_frames=4,policy_observation_dim=216,action_dim=4,
-        observation='50 encoder/IMU/controller inputs + 4 filtered residual commands; no privileged physical state',
-        action='Four residual target angles +/-5 deg, filtered at 50 Hz; 20 deg/4 s/90 deg sine prior; total target clipped +/-20 deg; tendons fixed',
-        reward='sum at 50 Hz: 20*forward_dx -10*abs(lateral_dy) -dt*(50*sampled_slip +0.2*sampled_abs_yaw_power +0.05*mean(filtered_action^2)); minus 0.01*mean(action_delta^2) per decision and 2 on failure',
+        physics_settings=physics_settings,plugin_sha256=gate['plugin_sha256'],
+        raw_observation_dim=50+n,history_frames=4,policy_observation_dim=4*(50+n),action_dim=n,
+        observation='50 encoder/IMU/controller inputs + filtered residual commands; no privileged physical state',
+        action='worm: five paired-servo amplitude residuals +/-20%, 1.5 rad peak prior, 4 s period, backward phase onset delay .65 s per segment; snake: four yaw residuals +/-5 deg on 20 deg/4 s/90 deg sine prior, clipped +/-20 deg; mixed: both',
+        reward='sum at 50 Hz: 20*forward_dx -10*abs(lateral_dy) -dt*(50*sampled_slip +0.2*sampled_abs_yaw_power +0.05*mean(filtered_action^2)) -0.2*abs_servo_work_proxy; minus 0.01*mean(action_delta^2) per decision and 2 on failure; no commanded speed',
         normalization='VecNormalize observations only, saved with each checkpoint; frozen in evaluation',
         randomization='Per episode: E x U(.85,1.15), stiffness Rayleigh damping x U(.8,1.2), plate mass x U(.9,1.1), mu x U(.8,1.2)',
         sensor_assumptions=dict(angle_noise_rad=.002,gyro_noise_rad_s=.01,accel_noise_m_s2=.1,delay_s=.02),
         ppo=dict(n_steps=32,batch_size=128,n_epochs=5,gamma=.995,gae_lambda=.95,learning_rate=.0003,
                  clip_range=.2,ent_coef=.001,target_kl=.03,net_arch=[64,64],log_std_init=-1.5),
-        evaluation='Zero residual baseline versus deterministic learned policy, nominal seed1000 and UDR seeds1001..1004; success=12 s survival, >0.2 m mean-plate advance and |lateral|<0.1 m',
+        evaluation='Zero residual baseline versus deterministic learned policy, nominal seed1000 and UDR seeds1001..1004; success=12 s survival, >0.02 m mean-plate advance and |lateral|<0.1 m',
         limitations=['Uncalibrated physical and sensor parameters','No self/body-ground collision response',
-                     'Yaw mechanical-work proxy sampled at 50 Hz, not electrical energy','Single training seed pilot'],
+                     'Mechanical-work proxies sampled at 50 Hz, not electrical energy','Single training seed pilot',
+                     'Backward phase prior does not enforce measured contraction peak ordering','Sano not integrated into whole-body training'],
         source_sha256={n:hashlib.sha256((HERE/n).read_bytes()).hexdigest() for n in SOURCES},gate=gate)
     write_json(args.out/'config.json',config)
-    raw=VecMonitor(SubprocVecEnv([partial(SnakeResidualEnv,randomize=True) for _ in range(args.workers)],start_method='spawn'))
+    raw=VecMonitor(SubprocVecEnv([partial(SnakeResidualEnv,randomize=True,**physics_settings) for _ in range(args.workers)],start_method='spawn'))
     norm=VecNormalize(raw,norm_obs=True,norm_reward=False,clip_obs=10.)
     env=VecFrameStack(norm,n_stack=4)
     torch.set_num_threads(1)
@@ -92,7 +115,7 @@ def train(args):
     # Start deterministic mean at the known zero-residual controller, not old privileged weights.
     with torch.no_grad():
         model.policy.action_net.weight.zero_(); model.policy.action_net.bias.zero_()
-    assert model.observation_space.shape==(216,) and model.action_space.shape==(4,)
+    assert model.observation_space.shape==(4*(50+n),) and model.action_space.shape==(n,)
     model.set_logger(configure(str(args.out),['stdout','csv']))
     started=time.monotonic(); stop=[False]; latest=[None]; last_saved=[-1]
     for sig in (signal.SIGINT,signal.SIGTERM):
@@ -143,9 +166,9 @@ def train(args):
         return
     try:
         checkpoint=args.out/latest[0]
-        baseline=evaluate(checkpoint,False)
+        baseline=evaluate(checkpoint,False,physics_settings)
         write_json(args.out/'baseline_evaluation.json',baseline)
-        learned=evaluate(checkpoint,True)
+        learned=evaluate(checkpoint,True,physics_settings)
         result=dict(baseline=baseline,learned=learned,
             baseline_success_rate=float(np.mean([r['success'] for r in baseline])),
             learned_success_rate=float(np.mean([r['success'] for r in learned])),
@@ -163,7 +186,12 @@ if __name__=='__main__':
     p.add_argument('--steps',type=int,default=32768)
     p.add_argument('--workers',type=int,default=16)
     p.add_argument('--hours',type=float,default=3.)
+    p.add_argument('--mode',choices=['worm','snake','mixed'],default='snake')
+    p.add_argument('--allow-paired-legacy',action='store_true',
+        help='Explicitly opt into the old paired-tendon worm/mixed comparison, not 14-action navigation')
+    p.add_argument('--rolling',type=float,default=.06)
+    p.add_argument('--elements',type=int,default=16)
     a=p.parse_args()
-    if a.workers<4 or a.workers>32 or a.steps<128 or not 0<a.hours<=4:
+    if a.workers<4 or a.workers>32 or a.steps<128 or not 0<a.hours<=4 or not 0<=a.rolling<=.2 or not 4<=a.elements<=64:
         p.error('Use 4..32 workers, >=128 steps and a positive time budget <=4 h')
     train(a)
