@@ -1,0 +1,15 @@
+{
+  "nodes": 33,
+  "wall_seconds": 18.48825059994124,
+  "reference_wall_seconds": 67.42805430013686,
+  "adaptive_subdivisions": 32,
+  "attempts": 88,
+  "reference_subdivisions": 59,
+  "max_force_difference_n": 1.3297446477267272e-08,
+  "force_difference_relative_to_peak": 3.007299200342783e-08,
+  "max_energy_difference_j": 3.469446951953614e-18,
+  "energy_difference_relative_to_peak": 7.3243203129650905e-16,
+  "max_node_difference_m": 2.0268133111874413e-11,
+  "max_free_force_residual_n": 7.975959059880466e-09,
+  "max_free_moment_residual_nm": 1.0252312345436498e-11
+}

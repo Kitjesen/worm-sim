@@ -1,0 +1,54 @@
+{
+  "source": "D:\\doso\\robot\\worm-sim\\meshes\\longworm2\\front2_Link.STL",
+  "source_sha256": "bb8c8b31fcf08ba876b9dc2d15c7f844e142efb6a552bc6caaa1da6e4fcbbc5a",
+  "source_triangles": 5026,
+  "connected_vertex_tolerance_m": 1e-08,
+  "components": [
+    {
+      "component": 0,
+      "bbox_mm": [
+        [
+          -30.0,
+          -70.26012,
+          -71.47764
+        ],
+        [
+          -11.5,
+          70.26012,
+          57.53584
+        ]
+      ],
+      "triangles": 3872,
+      "role": "gray_structure"
+    },
+    {
+      "component": 1,
+      "bbox_mm": [
+        [
+          -30.0,
+          -10.0,
+          -23.41955
+        ],
+        [
+          10.0,
+          10.0,
+          28.58045
+        ]
+      ],
+      "triangles": 1154,
+      "role": "black_motor"
+    }
+  ],
+  "unchanged": [
+    "facet bytes",
+    "coordinates",
+    "topology",
+    "source CAD"
+  ],
+  "semantics": "visual groups: mass=0, disable collision; back2 horns excluded from static groups. Separate motor contact copies preserve exact source facets; MuJoCo collision uses their convex hulls.",
+  "exported_files": [
+    "front2_Link_structure.stl",
+    "front2_Link_motors.stl"
+  ],
+  "contact_copies_excluded_from_visual_partition": []
+}

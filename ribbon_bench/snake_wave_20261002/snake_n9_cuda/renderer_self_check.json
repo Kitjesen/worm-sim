@@ -1,0 +1,4 @@
+{
+  "status": "passed",
+  "check": "ribbon geometry, saved joint pivot, binary STL, surface LOD, plate transform and animation stride"
+}

@@ -1,0 +1,299 @@
+{
+  "status": "rendered",
+  "static": "ribbon_bench\\gpu_joint_wave_20261002\\v6_snake_n9_cuda_probe\\robot_motion.png",
+  "animation": "ribbon_bench\\gpu_joint_wave_20261002\\v6_snake_n9_cuda_probe\\robot_motion.gif",
+  "metrics": "ribbon_bench\\gpu_joint_wave_20261002\\v6_snake_n9_cuda_probe\\robot_motion_metrics.png",
+  "frames": 13,
+  "segments": 5,
+  "strips": 40,
+  "static_frame": 12,
+  "cad_mesh_sources": [
+    {
+      "link": "front2_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\front2_Link.STL",
+      "sha256": "bb8c8b31fcf08ba876b9dc2d15c7f844e142efb6a552bc6caaa1da6e4fcbbc5a",
+      "original_triangles": 5026,
+      "rendered_triangles": 4214,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0006127399392426014,
+      "bounds_plate_local_m": [
+        [
+          -0.013499999329447745,
+          -0.07026012241840363,
+          -0.07405808369490814
+        ],
+        [
+          0.026499999776482583,
+          0.07026012241840363,
+          0.05495539133575249
+        ]
+      ],
+      "plate_center_local_m": [
+        -0.0165,
+        0.0,
+        0.002580447
+      ]
+    },
+    {
+      "link": "back2_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\back2_Link.STL",
+      "sha256": "a08643fe7ae8ac917cf4bfb0884d21e71eed2b07848feeb93ca73de83261afe4",
+      "original_triangles": 31598,
+      "rendered_triangles": 10103,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0008190294445790728,
+      "bounds_plate_local_m": [
+        [
+          -0.0679914578795433,
+          -0.07026012241840363,
+          -0.07405808889975357
+        ],
+        [
+          0.028200000524520874,
+          0.07026012241840363,
+          0.054955393581487655
+        ]
+      ],
+      "plate_center_local_m": [
+        0.0,
+        0.0,
+        0.001535173
+      ]
+    },
+    {
+      "link": "front3_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\front3_Link.STL",
+      "sha256": "0eed072796c3c70546257e3333c70de398f6011e2db7ba90516950d0ac0febe2",
+      "original_triangles": 5026,
+      "rendered_triangles": 4214,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0006127399392426014,
+      "bounds_plate_local_m": [
+        [
+          -0.013499999329447745,
+          -0.07026012241840363,
+          -0.07405808369490814
+        ],
+        [
+          0.026499999776482583,
+          0.07026012241840363,
+          0.05495539133575249
+        ]
+      ],
+      "plate_center_local_m": [
+        -0.0165,
+        0.0,
+        0.002580447
+      ]
+    },
+    {
+      "link": "back3_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\back3_Link.STL",
+      "sha256": "d9be405da3cdbc7b83051edb17d58dc3e77ac79cab51e56c3db79ab3d9177e12",
+      "original_triangles": 31598,
+      "rendered_triangles": 10103,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0008190294445790728,
+      "bounds_plate_local_m": [
+        [
+          -0.0679914578795433,
+          -0.07026012241840363,
+          -0.07405808889975357
+        ],
+        [
+          0.028200000524520874,
+          0.07026012241840363,
+          0.054955393581487655
+        ]
+      ],
+      "plate_center_local_m": [
+        0.0,
+        0.0,
+        0.001535173
+      ]
+    },
+    {
+      "link": "front4_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\front4_Link.STL",
+      "sha256": "26bc442c3cf53ee164d9c2026d5f3a55e270d500c1a6c654d42ee6f642a7e4aa",
+      "original_triangles": 5026,
+      "rendered_triangles": 4214,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0006127399392426014,
+      "bounds_plate_local_m": [
+        [
+          -0.013499999329447745,
+          -0.07026012241840363,
+          -0.07405808369490814
+        ],
+        [
+          0.026499999776482583,
+          0.07026012241840363,
+          0.05495539133575249
+        ]
+      ],
+      "plate_center_local_m": [
+        -0.0165,
+        0.0,
+        0.002580447
+      ]
+    },
+    {
+      "link": "back4_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\back4_Link.STL",
+      "sha256": "a69e2586eeab15a9993ecef1f1f87e2026bdd62cccdebbb1e111f1b0a1c022ee",
+      "original_triangles": 31598,
+      "rendered_triangles": 10103,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0008190294445790728,
+      "bounds_plate_local_m": [
+        [
+          -0.0679914578795433,
+          -0.07026012241840363,
+          -0.07405808889975357
+        ],
+        [
+          0.028200000524520874,
+          0.07026012241840363,
+          0.054955393581487655
+        ]
+      ],
+      "plate_center_local_m": [
+        0.0,
+        0.0,
+        0.001535173
+      ]
+    },
+    {
+      "link": "front5_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\front5_Link.STL",
+      "sha256": "55a108baa68b6a86fd4872cec7aa8810bbd1670f51dec4ca44b734591dee52d8",
+      "original_triangles": 5026,
+      "rendered_triangles": 4214,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0006127399392426014,
+      "bounds_plate_local_m": [
+        [
+          -0.013499999329447745,
+          -0.07026012241840363,
+          -0.07405808369490814
+        ],
+        [
+          0.026499999776482583,
+          0.07026012241840363,
+          0.05495539133575249
+        ]
+      ],
+      "plate_center_local_m": [
+        -0.0165,
+        0.0,
+        0.002580447
+      ]
+    },
+    {
+      "link": "back5_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\back5_Link.STL",
+      "sha256": "e2f70975e71a1600a608437f46ad1335acdce665d511ee1075667b1a36ca42a0",
+      "original_triangles": 31598,
+      "rendered_triangles": 10103,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0008190294445790728,
+      "bounds_plate_local_m": [
+        [
+          -0.0679914578795433,
+          -0.07026012241840363,
+          -0.07405808889975357
+        ],
+        [
+          0.028200000524520874,
+          0.07026012241840363,
+          0.054955393581487655
+        ]
+      ],
+      "plate_center_local_m": [
+        0.0,
+        0.0,
+        0.001535173
+      ]
+    },
+    {
+      "link": "front6_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\front6_Link.STL",
+      "sha256": "c28e9ca67848fd6a0a47bfca87a8c4608948a827919aa69c76111abbc1b59e9d",
+      "original_triangles": 5026,
+      "rendered_triangles": 4214,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.0006127399392426014,
+      "bounds_plate_local_m": [
+        [
+          -0.013499999329447745,
+          -0.07026012241840363,
+          -0.07405808369490814
+        ],
+        [
+          0.026499999776482583,
+          0.07026012241840363,
+          0.05495539133575249
+        ]
+      ],
+      "plate_center_local_m": [
+        -0.0165,
+        0.0,
+        0.002580447
+      ]
+    },
+    {
+      "link": "back6_Link",
+      "source_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\meshes\\longworm2\\back6_Link.STL",
+      "sha256": "cee7c26c636539ac33e6f7b3140201fcdd0a043a5deeadd28997e7d013d31efc",
+      "original_triangles": 26828,
+      "rendered_triangles": 6332,
+      "lod_tolerance_m": 0.001,
+      "max_vertex_displacement_m": 0.000765561861476676,
+      "bounds_plate_local_m": [
+        [
+          -0.016249999403953552,
+          -0.07026012241840363,
+          -0.07405808889975357
+        ],
+        [
+          0.028200000524520874,
+          0.07026012241840363,
+          0.054955393581487655
+        ]
+      ],
+      "plate_center_local_m": [
+        0.0,
+        0.0,
+        0.001535173
+      ]
+    }
+  ],
+  "cad_mesh_transform": "world = saved_plate_center + (STL_vertex - parameter_plate_center_local) @ saved_plate_R.T",
+  "cad_mesh_scope": "CAD front/back2..6; wheel visuals and wheel spin omitted",
+  "cad_mesh_role": "Visual replay only; STL surfaces are not added as collision geometry",
+  "playback_fps": 10,
+  "simulated_duration_s": 0.24,
+  "max_segment_contraction_mm": [
+    2.7610672461282486,
+    7.074535936479346,
+    6.474449576823749,
+    0.8442262786535898,
+    1.4884407994937565
+  ],
+  "top_static": "ribbon_bench\\gpu_joint_wave_20261002\\v6_snake_n9_cuda_probe\\robot_motion_top.png",
+  "top_animation": "ribbon_bench\\gpu_joint_wave_20261002\\v6_snake_n9_cuda_probe\\robot_motion_top.gif",
+  "joint_metrics": "ribbon_bench\\gpu_joint_wave_20261002\\v6_snake_n9_cuda_probe\\robot_motion_joint_metrics.png",
+  "peak_joint_angle_deg": [
+    37.65601205816837,
+    25.05687703417031,
+    9.113238322044554,
+    33.21152936966888
+  ],
+  "command_wave": "ribbon_bench\\gpu_joint_wave_20261002\\v6_snake_n9_cuda_probe\\backward_wave.png",
+  "rigid_body_com_displacement_mm": [
+    -1.957661701399327,
+    7.942078349272892,
+    -3.3064502858623084
+  ]
+}

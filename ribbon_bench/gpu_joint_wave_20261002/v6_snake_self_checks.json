@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "joint": {
+    "constraint_J_max_abs_error": 2.4885882243808055e-10,
+    "signed_CAD_yaw": true,
+    "force_moment_balance": true,
+    "implicit_PD": true,
+    "torque_clipping": true,
+    "passive_damping_outside_motor_limit": true,
+    "compliant_limit": true
+  },
+  "full_robot": {
+    "status": "passed",
+    "nodes": 9,
+    "strips": 8,
+    "chain_segments": 2,
+    "chain_strips": 16,
+    "articulated_joint_angle_rad": 0.0006407050246708672,
+    "joint_KKT": true,
+    "backward_wave_order": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "v6_snake_name_mapping": true,
+    "v6_snake_zero_start": true,
+    "v6_snake_matches_original_anchor": true,
+    "chain_residual": 3.116005818301626e-08,
+    "shared_connector": true,
+    "residual_n": 2.1660789631047783e-07,
+    "max_penetration_m": 1.5921458987887586e-07,
+    "contact_force_n": 0.09829945231185128,
+    "masses_kg": [
+      0.08311192437499113,
+      0.5603828000385844
+    ],
+    "scope": "Single/two-segment coupled implicit steps; no experimental calibration"
+  }
+}

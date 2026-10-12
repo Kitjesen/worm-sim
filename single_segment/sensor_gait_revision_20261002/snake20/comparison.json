@@ -1,0 +1,52 @@
+{
+  "mode": "snake",
+  "failed": false,
+  "physical_s": 12.0,
+  "wall_s": 213.35256970115006,
+  "dt_s": 0.0005,
+  "control_dt_s": 0.02,
+  "seed": 7,
+  "randomize": false,
+  "factors": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "initial_state_sha256": "8c3415f644cd1e1f4fef99b944e81f3589742629ea82b62c64879128a2aef912",
+  "source_sha256": {
+    "sofa_worm_env.py": "add2b651e1e8d6215172dde091fbaf1c6ad680792249df9ec004579b00fd2bd4",
+    "parameters_sofa_candidate.json": "9a10628789abf3a04b93c3564e0cf6902c9aa332aa38b418a57dad2b3576c722",
+    "compare_gaits.py": "0de51afc69979b177866da81bbf44451fe8492e3eb0fac3167141a8569cbdf98"
+  },
+  "mean_plate_forward_m": 0.6268130751589872,
+  "head_forward_m": 0.62343101445545,
+  "tail_forward_m": 0.6311857776395129,
+  "mean_plate_lateral_m": -0.013422508999318381,
+  "last_cycle_advance_m": 0.24006083058428251,
+  "last_cycle_fitted_speed_m_s": 0.06142613498715789,
+  "loaded_wheel_slip_mean_m_s": 0.008081871084868908,
+  "loaded_wheel_slip_max_m_s": 0.07313652336597443,
+  "loaded_friction_limit_fraction": 0.49907732009887695,
+  "loaded_low_slip_fraction": 0.23936591531493576,
+  "contact_duty_fraction": 0.99145,
+  "max_joint_deg": 18.165388655703502,
+  "max_tension_n": 0.3677309443367935,
+  "max_connector_error_m": 0.00037499540849965146,
+  "min_clearance_m": 0.03266180559049689,
+  "gap_min_mm": 115.30681577412601,
+  "gap_max_mm": 117.61427268871195,
+  "settings": {
+    "worm_stroke_m": 0.035,
+    "wave_period_s": 4.0,
+    "worm_delay_s": 0.65,
+    "snake_amplitude_deg": 20.0,
+    "snake_phase_delay_rad": 1.5707963267948966,
+    "startup_s": 1.0,
+    "mu": 0.8,
+    "rolling_coefficient": 0.015
+  },
+  "observation_dimension": 77,
+  "policy": "Designed deterministic controllers; no PPO",
+  "scope": "Same nominal plant and initial state; chosen inputs, not equal-power or optimized-gait comparison. Plate mean is not mass-weighted COM."
+}

@@ -1,0 +1,3 @@
+[submodule "ribbon_bench/vendor/discrete-elastic-ribbon"]
+	path = ribbon_bench/vendor/discrete-elastic-ribbon
+	url = https://github.com/StructuresComp/discrete-elastic-ribbon.git

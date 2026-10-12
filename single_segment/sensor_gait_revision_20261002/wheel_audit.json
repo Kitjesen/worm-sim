@@ -1,0 +1,45 @@
+{
+  "worm": {
+    "loaded_rpm_p50_p95_p99_max": [
+      38.78007125854492,
+      105.2673110961914,
+      130.1548181152344,
+      196.76953125
+    ],
+    "frame_rpm_p50_p95_p99_max": [
+      39.475620462956954,
+      98.51908579729941,
+      123.0521515257174,
+      187.53598079389664
+    ],
+    "loaded_nominal_rolling_torque_median_nm": 0.0003816736279986799,
+    "loaded_nominal_viscous_torque_median_nm": 8.122078725136817e-06
+  },
+  "snake": {
+    "loaded_rpm_p50_p95_p99_max": [
+      9.367549896240234,
+      23.139601898193355,
+      27.684935684204103,
+      38.131221771240234
+    ],
+    "frame_rpm_p50_p95_p99_max": [
+      9.242562431807443,
+      22.908989666452364,
+      27.46810304865642,
+      37.724987667557876
+    ],
+    "loaded_nominal_rolling_torque_median_nm": 0.0003995281003881246,
+    "loaded_nominal_viscous_torque_median_nm": 1.9619351405708585e-06
+  },
+  "scope": "Airborne substep rows are zero placeholders. Histogram/stats use N>0.05 N. Torque summaries precede the no-reversal cap.",
+  "parameters": {
+    "radius_m": 0.018,
+    "wheel_mass_kg": 0.009,
+    "inertia_kg_m2": 1.4579999999999996e-06,
+    "axle_viscous_nm_s": 2e-06,
+    "rolling_coefficient": 0.015,
+    "tangential_damping_ns_m": 8,
+    "normal_damping_ns_m": 8,
+    "mu": 0.8
+  }
+}

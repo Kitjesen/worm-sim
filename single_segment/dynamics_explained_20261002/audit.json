@@ -1,0 +1,108 @@
+{
+  "source_sha256": "add2b651e1e8d6215172dde091fbaf1c6ad680792249df9ec004579b00fd2bd4",
+  "wheel_tests": {
+    "Locked: -0.5 N": {
+      "final_position_m": -0.0002499999999999998,
+      "final_speed_m_s": -4.633849133975566e-17,
+      "peak_abs_slip_m_s": 0.02165946777914022,
+      "final_slip_m_s": -4.633849133975566e-17,
+      "friction_limit_hit_fraction": 0.0
+    },
+    "Overload: -1.15 N": {
+      "final_position_m": -0.7881603512580909,
+      "final_speed_m_s": -0.5831336747853614,
+      "peak_abs_slip_m_s": 0.5830265319282185,
+      "final_slip_m_s": -0.5830265319282185,
+      "friction_limit_hit_fraction": 0.9956
+    },
+    "Free roll: +0.05 N": {
+      "final_position_m": 0.6077886244477558,
+      "final_speed_m_s": 0.4767285297032051,
+      "peak_abs_slip_m_s": 0.000882594234104707,
+      "final_slip_m_s": 5.393695867716986e-07,
+      "friction_limit_hit_fraction": 0.0
+    },
+    "Coast: initial 0.1 m/s": {
+      "final_position_m": 0.03372569219169633,
+      "final_speed_m_s": -4.7120337477968854e-52,
+      "peak_abs_slip_m_s": 0.0018661571177882585,
+      "final_slip_m_s": -1.096369477835561e-51,
+      "friction_limit_hit_fraction": 0.0
+    }
+  },
+  "isolated_fixtures": {
+    "duration_s": 4.0,
+    "dt_s": 0.0005,
+    "hanging_mass_kg": 0.28,
+    "yaw_inertia_kg_m2": 0.0009,
+    "peak_tension_n": 2.7535528115753696,
+    "peak_yaw_deg": 26.014807407663206,
+    "peak_yaw_torque_nm": 0.5,
+    "scope": "One hanging mass driven by prescribed horn angle and one fixed-base yaw inertia; no steel or whole-robot dynamics."
+  },
+  "wheel_test_parameters": {
+    "dt_s": 0.0005,
+    "duration_s": 2.5,
+    "mass_kg": 0.14,
+    "normal_n": 1.4,
+    "mu": 0.8
+  },
+  "saved_run_stats": {
+    "leading_forward_m": {
+      "mean": 0.4028012714597841,
+      "min": -0.005490088000763671,
+      "max": 0.9222547307735233,
+      "final": 0.9222547307735233
+    },
+    "forward_m": {
+      "mean": 0.45246915476192084,
+      "min": 6.0419975384529145e-06,
+      "max": 0.9645862507106989,
+      "final": 0.9645862507106989
+    },
+    "forward_velocity_m_s": {
+      "mean": 0.0576409206733452,
+      "min": -0.0775043573457479,
+      "max": 0.262754950113786,
+      "final": 0.1280898676683906
+    },
+    "mean_contact_slip_m_s": {
+      "mean": 0.005508672747776732,
+      "min": 0.00022211300956789397,
+      "max": 0.016955638148327866,
+      "final": 0.004767212508607137
+    },
+    "wheel_support_ratio": {
+      "mean": 0.956875,
+      "min": 0.9,
+      "max": 1.0,
+      "final": 0.95
+    },
+    "max_tension_n": {
+      "mean": 2.615466028433085,
+      "min": 0.009205721958751543,
+      "max": 4.810551294579835,
+      "final": 3.3653542758957093
+    },
+    "connector_error_m": {
+      "mean": 0.000291542651340576,
+      "min": 2.8026388503849885e-05,
+      "max": 0.0007013894026935675,
+      "final": 0.00019585107255382892
+    }
+  },
+  "head_advance_per_4s_m": [
+    0.1637718715378672,
+    0.243718457755415,
+    0.23949686720532903,
+    0.275267534274912
+  ],
+  "mean_head_forward_speed_m_s": 0.057640920673345204,
+  "new_whole_body_simulation": false,
+  "limitations": [
+    "Original records omit per-wheel force, instantaneous speed, friction saturation and contact memory.",
+    "Mean plate position is not whole-robot mass-weighted COM.",
+    "Whole-body source snapshot may postdate the saved run.",
+    "Wheel tests use constant normal load and nominal friction, not the randomized whole-body loads."
+  ]
+}

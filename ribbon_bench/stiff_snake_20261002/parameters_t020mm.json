@@ -1,0 +1,386 @@
+{
+  "status": "Steel clamp candidates use eight CAD hole pairs (10 mm spacing, 3.2 mm diameter); hardware occupancy and 16 mm strip width remain unmeasured. User confirms one crease against each partition, directly joining the bolted flat tab to the arched steel. No offset curved transition or forced straight exit stub. Tab dimensions (3 mm inward / 4 mm bolt-to-crease), parabolic 50.5 mm bow, ideal fixed crease and zero assembly preload remain unmeasured assumptions; the finite physical bend radius is unresolved. User confirms four axial rope spans, two per side. Current candidate uses independent upper/lower cords at opposite CAD horn holes, CAD x-axis pivots and 23.5 mm radius; this exact binding and 30 degree neutral phase remain assumptions. Back passage candidates are B15/B20 and B16/B19; front anchors are axially aligned provisional points. Same-plate external guides at x=-25 mm are an UNCONFIRMED added routing provision needed to avoid the source CAD servo housings. Guide friction, guide brackets, full finite-radius clearance and real assembly mapping are not validated.",
+  "rope_model": "flexible",
+  "rope_radius_m": 0.0004,
+  "rope_density_kg_m3": 1200,
+  "rope_max_edge_m": 0.0125,
+  "rope_joint_damping_nms": 1e-08,
+  "rope_gravity_m_s2": 9.81,
+  "strip_count": 8,
+  "elements_per_strip": 12,
+  "strip_width_m": 0.016,
+  "strip_thickness_m": 0.0002,
+  "tab_bolt_to_fold_m": 0.004,
+  "tab_inner_margin_m": 0.003,
+  "youngs_modulus_pa": 200000000000.0,
+  "poisson_ratio": 0.3,
+  "steel_density_kg_m3": 7850.0,
+  "front_clamp_hole_pairs_m": [
+    [
+      [
+        -0.0165,
+        0.04810739,
+        0.01709522
+      ],
+      [
+        -0.0165,
+        0.04428056,
+        0.02633402
+      ]
+    ],
+    [
+      [
+        -0.0165,
+        0.02375357,
+        0.046861
+      ],
+      [
+        -0.0165,
+        0.01451477,
+        0.05068784
+      ]
+    ],
+    [
+      [
+        -0.0165,
+        -0.01451477,
+        0.05068784
+      ],
+      [
+        -0.0165,
+        -0.02375357,
+        0.046861
+      ]
+    ],
+    [
+      [
+        -0.0165,
+        -0.04428056,
+        0.02633402
+      ],
+      [
+        -0.0165,
+        -0.04810739,
+        0.01709522
+      ]
+    ],
+    [
+      [
+        -0.0165,
+        -0.04810739,
+        -0.01193433
+      ],
+      [
+        -0.0165,
+        -0.04428056,
+        -0.02117312
+      ]
+    ],
+    [
+      [
+        -0.0165,
+        -0.02375357,
+        -0.04170011
+      ],
+      [
+        -0.0165,
+        -0.01451477,
+        -0.04552695
+      ]
+    ],
+    [
+      [
+        -0.0165,
+        0.01451477,
+        -0.04552695
+      ],
+      [
+        -0.0165,
+        0.02375357,
+        -0.04170011
+      ]
+    ],
+    [
+      [
+        -0.0165,
+        0.04428056,
+        -0.02117312
+      ],
+      [
+        -0.0165,
+        0.04810739,
+        -0.01193433
+      ]
+    ]
+  ],
+  "back_clamp_hole_pairs_m": [
+    [
+      [
+        0,
+        0.04810739,
+        0.01604995
+      ],
+      [
+        0,
+        0.04428056,
+        0.02528874
+      ]
+    ],
+    [
+      [
+        0,
+        0.02375357,
+        0.04581573
+      ],
+      [
+        0,
+        0.01451477,
+        0.04964257
+      ]
+    ],
+    [
+      [
+        0,
+        -0.01451477,
+        0.04964257
+      ],
+      [
+        0,
+        -0.02375357,
+        0.04581573
+      ]
+    ],
+    [
+      [
+        0,
+        -0.04428056,
+        0.02528874
+      ],
+      [
+        0,
+        -0.04810739,
+        0.01604995
+      ]
+    ],
+    [
+      [
+        0,
+        -0.04810739,
+        -0.0129796
+      ],
+      [
+        0,
+        -0.04428056,
+        -0.0222184
+      ]
+    ],
+    [
+      [
+        0,
+        -0.02375357,
+        -0.04274539
+      ],
+      [
+        0,
+        -0.01451477,
+        -0.04657222
+      ]
+    ],
+    [
+      [
+        0,
+        0.01451477,
+        -0.04657222
+      ],
+      [
+        0,
+        0.02375357,
+        -0.04274539
+      ]
+    ],
+    [
+      [
+        0,
+        0.04428056,
+        -0.0222184
+      ],
+      [
+        0,
+        0.04810739,
+        -0.0129796
+      ]
+    ]
+  ],
+  "front_plate_center_m": [
+    -0.0165,
+    0,
+    0.002580447
+  ],
+  "back_plate_center_m": [
+    0,
+    0,
+    0.001535173
+  ],
+  "stress_free_bow_m": 0.0505,
+  "stiffness_proportional_damping_s": 0.002,
+  "tendon_guide_hole_ids": [
+    [
+      "B15",
+      "B20"
+    ],
+    [
+      "B16",
+      "B19"
+    ]
+  ],
+  "tendon_guides_m": [
+    [
+      [
+        [
+          -0.025,
+          0.0285,
+          0.0413943
+        ],
+        [
+          -0.003,
+          0.0285,
+          0.0413943
+        ],
+        [
+          0,
+          0.0285,
+          0.0413943
+        ]
+      ],
+      [
+        [
+          -0.025,
+          0.0285,
+          -0.038323951667
+        ],
+        [
+          -0.003,
+          0.0285,
+          -0.038323951667
+        ],
+        [
+          0,
+          0.0285,
+          -0.038323951667
+        ]
+      ]
+    ],
+    [
+      [
+        [
+          -0.025,
+          -0.0285,
+          0.0413943
+        ],
+        [
+          -0.003,
+          -0.0285,
+          0.0413943
+        ],
+        [
+          0,
+          -0.0285,
+          0.0413943
+        ]
+      ],
+      [
+        [
+          -0.025,
+          -0.0285,
+          -0.038323951667
+        ],
+        [
+          -0.003,
+          -0.0285,
+          -0.038323951667
+        ],
+        [
+          0,
+          -0.0285,
+          -0.038323951667
+        ]
+      ]
+    ]
+  ],
+  "tendon_anchors_m": [
+    [
+      [
+        -0.0165,
+        0.0285,
+        0.042439574
+      ],
+      [
+        -0.0165,
+        0.0285,
+        -0.037278677667
+      ]
+    ],
+    [
+      [
+        -0.0165,
+        -0.0285,
+        0.042439574
+      ],
+      [
+        -0.0165,
+        -0.0285,
+        -0.037278677667
+      ]
+    ]
+  ],
+  "effective_tendon_stiffness_n_m": 20000.0,
+  "plate_stop_radius_m": 0.055,
+  "plate_stop_thickness_m": 0.003,
+  "servo_pivots_m": [
+    [
+      -0.01375,
+      0.02854903,
+      0.00031017
+    ],
+    [
+      -0.01375,
+      -0.02845097,
+      0.00031017
+    ]
+  ],
+  "servo_axes": [
+    [
+      1,
+      0,
+      0
+    ],
+    [
+      -1,
+      0,
+      0
+    ]
+  ],
+  "servo_hole_offsets_m": [
+    [
+      0,
+      -0.01175,
+      0.020351596989
+    ],
+    [
+      0,
+      0.01175,
+      0.020351596989
+    ]
+  ],
+  "servo_angle_limits_deg": [
+    -30,
+    120
+  ],
+  "servo_position_gain_nm_rad": 2.0,
+  "servo_velocity_gain_nms_rad": 0.03,
+  "horn_mass_kg": 0.001,
+  "servo_torque_limit_nm": 0.5,
+  "servo_speed_limit_rad_s": 2.0,
+  "timestep_s": 2e-05,
+  "gravity_m_s2": 0.0
+}

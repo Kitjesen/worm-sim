@@ -1,0 +1,39 @@
+{
+  "nodes": 65,
+  "direct_first_step_min_edge_projection": 0.3451186743405112,
+  "predicted_first_step_min_edge_projection": 0.9769707866952151,
+  "frames": [
+    {
+      "progress": 0.16666666666666666,
+      "residual": 3.055649190272791e-08,
+      "support_force_x_n": 0.08333628975678287
+    },
+    {
+      "progress": 0.33333333333333337,
+      "residual": 3.257486957952693e-08,
+      "support_force_x_n": 0.1595762017839324
+    },
+    {
+      "progress": 0.5,
+      "residual": 3.967997930232059e-08,
+      "support_force_x_n": 0.23007090942016228
+    },
+    {
+      "progress": 0.6666666666666666,
+      "residual": 3.563998296485238e-08,
+      "support_force_x_n": 0.2958759779378033
+    },
+    {
+      "progress": 0.8333333333333334,
+      "residual": 3.2135191174731403e-08,
+      "support_force_x_n": 0.3578315409298414
+    },
+    {
+      "progress": 1.0,
+      "residual": 3.24837809428935e-08,
+      "support_force_x_n": 0.4166177889209912
+    }
+  ],
+  "wall_seconds": 0.45674800011329353,
+  "subdivisions": 0
+}

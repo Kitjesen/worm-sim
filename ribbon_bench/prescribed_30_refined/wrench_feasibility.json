@@ -1,0 +1,71 @@
+{
+  "length_scale_m": 0.055,
+  "scaling": "[force_N, moment_Nm / length_scale_m]; both rows are N",
+  "wrench_columns_per_newton": [
+    [
+      0.9987151453706665,
+      0.9987151453706665,
+      0.9966812446657857,
+      0.9966812446657857
+    ],
+    [
+      -0.025372144781720556,
+      -0.025372144781720556,
+      0.02343981444264439,
+      0.02343981444264439
+    ]
+  ],
+  "required_wrench_n_nm": [
+    4.4353416906823515,
+    0.43750436652359387
+  ],
+  "nonnegative_tensions_n": [
+    0.0,
+    0.0,
+    6.647405177355576,
+    0.0
+  ],
+  "nonnegative_achieved_wrench_n_nm": [
+    6.625344065964542,
+    0.1558139438822883
+  ],
+  "nonnegative_residual_achieved_minus_required_n_nm": [
+    2.190002375282191,
+    -0.28169042264130556
+  ],
+  "scaled_cone_distance_n": 5.5702197585372355,
+  "scaled_feasibility_tolerance_n": 1e-05,
+  "nonnegative_fit_feasible": false,
+  "signed_minimum_norm_tensions_n": [
+    -3.409701377546456,
+    -3.409701377546457,
+    5.641714723119517,
+    5.641714723119517
+  ],
+  "signed_residual_n_nm": [
+    2.6645352591003757e-15,
+    2.7755575615628914e-16
+  ],
+  "scaled_matrix_condition": 2.249366085250414,
+  "separating_plane": {
+    "normal_in_scaled_wrench_space": [
+      -0.39316265250139704,
+      0.9194689383976306
+    ],
+    "max_dot_with_cable_column": 1.5160604779612742e-16,
+    "dot_with_required_wrench_n": 5.570219758537236
+  },
+  "reference_results": "D:\\doso\\robot\\ribbon_bench\\prescribed_30_refined\\loading_results.json",
+  "frame_index": 12,
+  "reference_path_status": "loading_only",
+  "reference_unloading_converged": false,
+  "target_compression_mm": 40.0,
+  "target_yaw_deg": 29.999999999999996,
+  "cable_order": "snapshot [side, upper/lower], row-major flattening",
+  "reference_free_force_residual_n": 4.0029783932027385e-09,
+  "reference_free_moment_residual_nm": 3.075813909125813e-12,
+  "reference_contact_force_n": -0.0,
+  "wrench_derivative_max_abs_difference": 7.425071668620831e-11,
+  "scope": "Static cable-wrench feasibility at this saved prescribed target branch only; not a full-workspace reachability conclusion",
+  "signed_solution_meaning": "Exact minimum-norm algebraic fit; negative tension is not available to a cable"
+}

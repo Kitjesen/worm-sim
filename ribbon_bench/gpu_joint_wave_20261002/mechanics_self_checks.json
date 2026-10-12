@@ -1,0 +1,491 @@
+{
+  "full_body_loads": {
+    "status": "passed",
+    "gradient_fd_relative_error": 1.3630461061370743e-08,
+    "hessian_fd_relative_error": 1.0506203533999089e-08,
+    "force_balance_n": 0.0,
+    "moment_balance_nm": 1.1957467920563633e-15,
+    "mass_kg": [
+      0.08311192437499113,
+      0.5603828000385844
+    ],
+    "com_local_m": [
+      [
+        0.0033128539578480432,
+        -4.822736950038705e-10,
+        -0.0172572306420957
+      ],
+      [
+        0.0054453459161706306,
+        -8.325135314046771e-07,
+        0.004606337079247599
+      ]
+    ],
+    "inertia_com_local_kgm2": [
+      [
+        [
+          0.0001792071463238664,
+          1.3058328377031685e-13,
+          -9.742730175341987e-07
+        ],
+        [
+          1.3058328377031685e-13,
+          9.53427332279478e-05,
+          7.383636311684896e-13
+        ],
+        [
+          -9.742730175341987e-07,
+          7.383636311684896e-13,
+          9.492078437182939e-05
+        ]
+      ],
+      [
+        [
+          0.00031031207747020937,
+          -3.1983616275172775e-09,
+          -8.445843156198489e-06
+        ],
+        [
+          -3.1983616275172775e-09,
+          0.00022404429815646535,
+          1.5590482398036344e-08
+        ],
+        [
+          -8.445843156198489e-06,
+          1.5590482398036344e-08,
+          0.00011995992115584981
+        ]
+      ]
+    ],
+    "provenance": {
+      "urdf_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\publication\\data\\cad_reference.urdf",
+      "urdf_sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818",
+      "body_links": [
+        "front2_Link",
+        "back2_Link"
+      ],
+      "components": [
+        [
+          {
+            "link": "front2_Link",
+            "mass_kg": 0.0655692709973457,
+            "com_local_m": [
+              0.003530328012573301,
+              -6.11280770793088e-10,
+              -0.002729371915715078
+            ],
+            "inertia_com_local_kgm2": [
+              [
+                4.53813611204454e-05,
+                1.21867547085637e-13,
+                7.19798006186176e-09
+              ],
+              [
+                1.21867547085637e-13,
+                2.74467734034707e-05,
+                1.56150219334163e-13
+              ],
+              [
+                7.19798006186176e-09,
+                1.56150219334163e-13,
+                2.66452408682436e-05
+              ]
+            ]
+          },
+          {
+            "link": "w2-1_Link",
+            "mass_kg": 0.00877132668882271,
+            "com_local_m": [
+              0.0024999999999999224,
+              0.06176012862208707,
+              -0.07155808726479157
+            ],
+            "inertia_com_local_kgm2": [
+              [
+                6.73836019478271e-07,
+                3.14880086511853e-23,
+                -1.21642048662492e-22
+              ],
+              [
+                3.14880086511853e-23,
+                1.1581669813018e-06,
+                1.80290907677704e-23
+              ],
+              [
+                -1.21642048662492e-22,
+                1.80290907677704e-23,
+                6.73836019478271e-07
+              ]
+            ]
+          },
+          {
+            "link": "w2-2_Link",
+            "mass_kg": 0.00877132668882271,
+            "com_local_m": [
+              0.002500000000000467,
+              -0.06176012862225355,
+              -0.0715580872647949
+            ],
+            "inertia_com_local_kgm2": [
+              [
+                6.73836019478271e-07,
+                -2.60584589037555e-23,
+                -1.75393339426476e-22
+              ],
+              [
+                -2.60584589037555e-23,
+                1.1581669813018e-06,
+                -3.53727498605078e-23
+              ],
+              [
+                -1.75393339426476e-22,
+                -3.53727498605078e-23,
+                6.73836019478271e-07
+              ]
+            ]
+          }
+        ],
+        [
+          {
+            "link": "back2_Link",
+            "mass_kg": 0.542840146660939,
+            "com_local_m": [
+              0.00563747824694816,
+              -8.59417394482448e-07,
+              0.0070676990633232505
+            ],
+            "inertia_com_local_kgm2": [
+              [
+                0.000136997260417333,
+                -3.28799640991211e-09,
+                -2.45398279683093e-07
+              ],
+              [
+                -3.28799640991211e-09,
+                0.000116033877132066,
+                1.4442192335441e-08
+              ],
+              [
+                -2.45398279683093e-07,
+                1.4442192335441e-08,
+                5.10589482767007e-05
+              ]
+            ]
+          },
+          {
+            "link": "w2-3_Link",
+            "mass_kg": 0.00877132668882271,
+            "com_local_m": [
+              -0.000499999999999945,
+              0.06176012862220677,
+              -0.07155808751822582
+            ],
+            "inertia_com_local_kgm2": [
+              [
+                6.73836019478271e-07,
+                1.12737657086959e-23,
+                -1.06281477016677e-22
+              ],
+              [
+                1.12737657086959e-23,
+                1.1581669813018e-06,
+                -7.8335774957651e-24
+              ],
+              [
+                -1.06281477016677e-22,
+                -7.8335774957651e-24,
+                6.7383601947827e-07
+              ]
+            ]
+          },
+          {
+            "link": "w2-4_Link",
+            "mass_kg": 0.00877132668882271,
+            "com_local_m": [
+              -0.0005000000000001671,
+              -0.06176012862213093,
+              -0.07155808751822582
+            ],
+            "inertia_com_local_kgm2": [
+              [
+                6.7383601947827e-07,
+                -1.39048893828173e-23,
+                6.06821023496675e-23
+              ],
+              [
+                -1.39048893828173e-23,
+                1.1581669813018e-06,
+                2.36231987406696e-23
+              ],
+              [
+                6.06821023496675e-23,
+                2.36231987406696e-23,
+                6.73836019478271e-07
+              ]
+            ]
+          }
+        ]
+      ],
+      "include_locked_wheels": true,
+      "omitted_wheel_links": [],
+      "assumption": "URDF wheel joints with zero lower/upper limits are locked rigidly to their own plate; no wheel spin or one-way clutch dynamics",
+      "omitted": "Other robot segments, separate steel ribbons, unmodeled fasteners/cable/guide additions; servo internals remain as exported in plate-link inertials",
+      "aggregation": "Rotate COM inertial tensors into plate axes, then parallel-axis sum at aggregate COM; no duplicate plate mass"
+    },
+    "five_segment_chain_masses_kg": [
+      0.08311192437499113,
+      0.6434947244135746,
+      0.6434947244135898,
+      0.6434947244135957,
+      0.6434947244135998,
+      0.5274616245044794
+    ],
+    "chain_physical_plates": 10,
+    "chain_dynamic_bodies": 6,
+    "unlocked_chain_masses_kg": [
+      0.08311192437499113,
+      0.5603828000385844,
+      0.08311192437499011,
+      0.5603828000385994,
+      0.0831119243749903,
+      0.5603828000386054,
+      0.08311192437499022,
+      0.5603828000386094,
+      0.0831119243749903,
+      0.5274616245044794
+    ],
+    "unlocked_chain_dynamic_bodies": 10,
+    "unlocked_chain_revolute_joints": [
+      {
+        "name": "front3",
+        "parent_body": 1,
+        "child_body": 2,
+        "pivot_parent_local_m": [
+          -0.06344534591634104,
+          8.325135314046771e-07,
+          -0.007186784332967461
+        ],
+        "pivot_child_local_m": [
+          0.013187146041986371,
+          4.819928838810337e-10,
+          0.01467678364168325
+        ],
+        "axis_parent_local": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "axis_child_local": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "reference_rotation_parent_child": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "limits_rad": [
+          -1.57,
+          1.57
+        ],
+        "lower_limit_rad": -1.57,
+        "upper_limit_rad": 1.57
+      },
+      {
+        "name": "front4",
+        "parent_body": 3,
+        "child_body": 4,
+        "pivot_parent_local_m": [
+          -0.06344534591577049,
+          8.325135746057493e-07,
+          -0.00718678433268996
+        ],
+        "pivot_child_local_m": [
+          0.013187146042569625,
+          4.841546580775257e-10,
+          0.014676783642294165
+        ],
+        "axis_parent_local": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "axis_child_local": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "reference_rotation_parent_child": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "limits_rad": [
+          -1.57,
+          1.57
+        ],
+        "lower_limit_rad": -1.57,
+        "upper_limit_rad": 1.57
+      },
+      {
+        "name": "front5",
+        "parent_body": 5,
+        "child_body": 6,
+        "pivot_parent_local_m": [
+          -0.06344534591553741,
+          8.32513180887809e-07,
+          -0.007186784332055965
+        ],
+        "pivot_child_local_m": [
+          0.013187146042745233,
+          4.843213155693211e-10,
+          0.014676783643034066
+        ],
+        "axis_parent_local": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "axis_child_local": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "reference_rotation_parent_child": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "limits_rad": [
+          -1.57,
+          1.57
+        ],
+        "lower_limit_rad": -1.57,
+        "upper_limit_rad": 1.57
+      },
+      {
+        "name": "front6",
+        "parent_body": 7,
+        "child_body": 8,
+        "pivot_parent_local_m": [
+          -0.06344534591545334,
+          8.325130841557755e-07,
+          -0.007186784331831907
+        ],
+        "pivot_child_local_m": [
+          0.013187146042871115,
+          4.834391455653767e-10,
+          0.014676783642492981
+        ],
+        "axis_parent_local": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "axis_child_local": [
+          0.0,
+          0.0,
+          -1.0
+        ],
+        "reference_rotation_parent_child": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "limits_rad": [
+          -1.57,
+          1.57
+        ],
+        "lower_limit_rad": -1.57,
+        "upper_limit_rad": 1.57
+      }
+    ]
+  },
+  "revolute_joints": {
+    "constraint_J_max_abs_error": 2.4885882243808055e-10,
+    "signed_CAD_yaw": true,
+    "force_moment_balance": true,
+    "implicit_PD": true,
+    "torque_clipping": true,
+    "compliant_limit": true
+  },
+  "full_robot": {
+    "status": "passed",
+    "nodes": 9,
+    "strips": 8,
+    "chain_segments": 2,
+    "chain_strips": 16,
+    "articulated_joint_angle_rad": 0.0006407050246708672,
+    "joint_KKT": true,
+    "backward_wave_order": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "chain_residual": 3.116005818301626e-08,
+    "shared_connector": true,
+    "residual_n": 2.1660789631047783e-07,
+    "max_penetration_m": 1.5921458987887586e-07,
+    "contact_force_n": 0.09829945231185128,
+    "masses_kg": [
+      0.08311192437499113,
+      0.5603828000385844
+    ],
+    "scope": "Single/two-segment coupled implicit steps; no experimental calibration"
+  },
+  "render_full_robot": {
+    "status": "passed",
+    "check": "ribbon geometry and saved physical joint pivot"
+  }
+}

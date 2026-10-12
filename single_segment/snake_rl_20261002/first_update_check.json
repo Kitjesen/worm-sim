@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "checkpoint": "checkpoint_00000512",
+  "policy_steps": 512,
+  "optimizer_epochs": 5,
+  "actor_max_abs_weight_change": 0.005383240524679422,
+  "normalizer_observation_count": 528.0001,
+  "raw_observation_dimension": 54,
+  "policy_history_dimension": 216,
+  "action_dimension": 4,
+  "scope": "First real PPO update verified; no claim of improved locomotion"
+}

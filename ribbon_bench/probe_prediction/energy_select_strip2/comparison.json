@@ -1,0 +1,19 @@
+{
+  "wall_seconds": 59.72572229988873,
+  "subdivisions": 104,
+  "reference_subdivisions": 38,
+  "reference_solve_wall_seconds": null,
+  "counts": {
+    "legacy": 6,
+    "predicted": 226,
+    "translation_legacy": 6,
+    "translation_predicted": 14,
+    "yaw_legacy": 0,
+    "yaw_predicted": 212
+  },
+  "max_force_difference_n": 1.595006591248449e-07,
+  "max_energy_difference_j": 6.938893903907228e-18,
+  "max_node_difference_m": 3.289352372831789e-11,
+  "max_force_residual_n": 3.1799295904799685e-08,
+  "max_moment_residual_nm": 1.8752851733823442e-11
+}

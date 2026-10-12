@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "frames": 41,
+  "segments": 5,
+  "ribbons": 40,
+  "nodes_per_ribbon": 33,
+  "rigid_attachment_max_error_m": 1.1102230246251565e-16,
+  "rotation_orthogonality_max_error": 4.218847493575595e-15,
+  "saved_frame_max_residual": 7.297956192824025e-06,
+  "simulated_time_s": 0.2,
+  "max_segment_contraction_mm": [
+    12.174377222803137,
+    8.137666446561415,
+    7.966406734838991,
+    7.5787177143167295,
+    21.22417987146963
+  ],
+  "peak_tension_all_accepted_substeps_n": 11.359648617428885,
+  "max_penetration_all_accepted_substeps_um": 59.2371051041373,
+  "accepted_substeps": 89,
+  "recovery_substeps": 2,
+  "wall_seconds": 504.77659670077264
+}

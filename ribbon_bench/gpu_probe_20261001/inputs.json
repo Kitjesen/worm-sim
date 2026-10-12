@@ -1,0 +1,246 @@
+{
+  "status": "exported_and_reference_peak_validated",
+  "upstream_commit": "c9d341164e2927fc24b2c43dff97fcfb492cf700",
+  "source_result": "D:\\doso\\robot\\ribbon_bench\\solver_benchmark_20261001\\fast_1\\results.json",
+  "source_result_sha256": "f28d21fb532464dfd387e3ce5c455db85335cdbbdb65a6faefc7935163746f02",
+  "sources": [
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\solver_benchmark_20261001\\fast_1\\results.json",
+      "sha256": "f28d21fb532464dfd387e3ce5c455db85335cdbbdb65a6faefc7935163746f02"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\solver_benchmark_20261001\\fast_1\\parameters.snapshot.json",
+      "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+    },
+    {
+      "path": "D:\\doso\\robot\\worm-sim\\meshes\\longworm2\\longworm2.SLDASM.urdf",
+      "sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\export_gpu_inputs.py",
+      "sha256": "10b9c60f45dc95dcf1b50de49c80dac1e417c7e72faa6818f98dc49f2a5e897d"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\fast_sano.py",
+      "sha256": "218faeabe8490f7f269f3857ad734eb13656b26ab77bc4284067a4ce76c9d469"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\run.py",
+      "sha256": "94670e07ae5aff95ac42c519b9781843a7f0740629035d7bcf163fe4e471e2c8"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\actuate.py",
+      "sha256": "c06b5699a9e3202e42cf9e75e31a24d1f31c793c779c8a3f31ff92a894fcaadf"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\cable_loads.py",
+      "sha256": "5b4a05a0812b3e1dc0c7b35f93e54a469ce362bd14c5a6490d32ae8c0b3b9c48"
+    },
+    {
+      "path": "D:\\doso\\robot\\ribbon_bench\\prescribed_30_unload_diagnostic\\continue.py",
+      "sha256": "eeabd63064c70fac11afae44ca3a4b19e49ba2da938429bec69713cd4c3f9b05"
+    }
+  ],
+  "selected_frame_roles": {
+    "initial": 0,
+    "peak_yaw": 12,
+    "peak_compression": 12,
+    "yaw_unloading": 15,
+    "compression_unloading": 21,
+    "returned": 24
+  },
+  "selected_frame_indices": [
+    0,
+    12,
+    15,
+    21,
+    24
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "progress": 0.0,
+      "compression_m": 0.0,
+      "yaw_rad": 0.0
+    },
+    {
+      "index": 12,
+      "progress": 2.0,
+      "compression_m": 0.04758545194116482,
+      "yaw_rad": 0.22447581731784977
+    },
+    {
+      "index": 15,
+      "progress": 2.5,
+      "compression_m": 0.04192562920010749,
+      "yaw_rad": 0.186720044913893
+    },
+    {
+      "index": 21,
+      "progress": 3.5,
+      "compression_m": 0.019955863297561063,
+      "yaw_rad": -7.144959306565377e-17
+    },
+    {
+      "index": 24,
+      "progress": 4.0,
+      "compression_m": 2.1883894514663782e-14,
+      "yaw_rad": 9.774605306959621e-17
+    }
+  ],
+  "rows": 1240,
+  "rows_per_strip_frame": 31,
+  "peak_rows": 248,
+  "single_rows": 31,
+  "layout": {
+    "x": {
+      "shape": [
+        1240,
+        4
+      ],
+      "dtype": "float64"
+    },
+    "energy": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "gradient": {
+      "shape": [
+        1240,
+        4
+      ],
+      "dtype": "float64"
+    },
+    "hessian": {
+      "shape": [
+        1240,
+        4,
+        4
+      ],
+      "dtype": "float64"
+    },
+    "EA": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "EI1": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "EI2": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "GJ": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "delta_l": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "inv_dl": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "scaling": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "energy_norm": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "zeta": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "h": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "frame_index": {
+      "shape": [
+        1240
+      ],
+      "dtype": "int64"
+    },
+    "strip_index": {
+      "shape": [
+        1240
+      ],
+      "dtype": "int64"
+    },
+    "spring_index": {
+      "shape": [
+        1240
+      ],
+      "dtype": "int64"
+    },
+    "physical_energy_scale": {
+      "shape": [
+        1240
+      ],
+      "dtype": "float64"
+    },
+    "peak_indices": {
+      "shape": [
+        248
+      ],
+      "dtype": "int64"
+    },
+    "single_indices": {
+      "shape": [
+        31
+      ],
+      "dtype": "int64"
+    }
+  },
+  "normalized_strain": "x=(current-natural); columns 1:4 multiplied by h/l_eff in CPU float64 before any downcast",
+  "coefficients": "Per-row actual model attributes; normalized material E/g/H. Multiply E by physical_energy_scale for Joules.",
+  "row_order": "Selected frame ascending, then strip 0..7, then spring 0..30",
+  "batch_examples": {
+    "31": "single_indices",
+    "248": "peak_indices",
+    "7936": "tile peak_indices 32 times",
+    "63488": "tile peak_indices 256 times"
+  },
+  "float32_output_rounding_at_peak": {
+    "scope": "Only E/g/H outputs rounded to float32 and promoted to float64; input/geometry/assembly remain float64; no Newton solve",
+    "max_node_force_component_error_n": 7.225201610339127e-07,
+    "max_free_node_force_component_error_n": 7.225201610339127e-07,
+    "max_free_twist_moment_error_nm": 6.759607266287881e-10,
+    "plate_force_error_n": 3.024783787886065e-07,
+    "plate_moment_error_nm": 5.24724350428607e-08,
+    "baseline_free_force_residual_n": 5.972460748182584e-09,
+    "rounded_free_force_residual_n": 7.224962725871364e-07,
+    "baseline_scaled_equilibrium_error": 0.005972460748182584,
+    "rounded_scaled_equilibrium_error": 0.7224962725871364,
+    "steel_energy_reference_j": 0.20730094960364978,
+    "steel_energy_rounded_j": 0.20730094953756056,
+    "steel_energy_absolute_error_j": 6.608921743200824e-11
+  },
+  "inputs_npz_sha256": "20863574b7ce7b23dd8f1f8c8d40d92048415bba70ffc98028bb1b93889ee332"
+}

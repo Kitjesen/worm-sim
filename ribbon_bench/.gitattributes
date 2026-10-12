@@ -1,0 +1,4 @@
+* -text whitespace=cr-at-eol
+*.json linguist-generated=true
+*.svg linguist-generated=true
+publication/** linguist-generated=true

@@ -1,0 +1,34 @@
+{
+  "backend": "cpu",
+  "compiled": false,
+  "dtype": "float64",
+  "status": "completed",
+  "scope": "Unchanged fast CPU solver and NumPy material adapter",
+  "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+  "python": "3.12.3 | packaged by Anaconda, Inc. | (main, May  6 2024, 19:46:43) [GCC 11.2.0]",
+  "torch": "2.8.0+cu128",
+  "numpy": "2.3.2",
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+  },
+  "counter_timing_scope": "End-to-end adapter wall time; CPU input upload plus material computation plus complete E/g/H CPU readback; no intermediate CUDA synchronizations; constant uploads tracked separately",
+  "source_sha256": {
+    "cuda_solver_probe.py": "9ba98bea910f8db45dd93162e25a7b16eb469c0d55568023a28ea19f90bff106",
+    "actuate.py": "c06b5699a9e3202e42cf9e75e31a24d1f31c793c779c8a3f31ff92a894fcaadf",
+    "fast_sano.py": "218faeabe8490f7f269f3857ad734eb13656b26ab77bc4284067a4ce76c9d469",
+    "gpu_probe.py": "585b6ccbc3c04b188dcc8462110418b570970777b4cd10a439bc7f80cc1ff2f8",
+    "benchmark_solver.py": "2ca6613be6399912ff832f42337ba727630fef5b8f0f7b8a8396bbf1db810464"
+  },
+  "wrapper_seconds": 32.0813839957118,
+  "path_counters": {
+    "cuda_calls": 0,
+    "material_rows": 0,
+    "coefficient_uploads": 0,
+    "coefficient_upload_seconds": 0.0,
+    "total_adapter_seconds": 0.0,
+    "h2d_bytes": 0,
+    "d2h_bytes": 0
+  }
+}

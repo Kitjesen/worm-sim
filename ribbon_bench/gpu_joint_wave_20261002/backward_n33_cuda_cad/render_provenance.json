@@ -1,0 +1,21 @@
+{
+  "files": [
+    {
+      "path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\render_full_robot.py",
+      "sha256": "aaddad6dff65770e0662dff90b5a928b2f8b3d871ab59412b61b9d3808ce59b6"
+    },
+    {
+      "path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\gpu_joint_wave_20261002\\backward_n33_cuda\\summary.json",
+      "sha256": "cb985a819a0646a7ce134ccddf2cdcade8a17560d4b007af4b28a0be6dfb592e"
+    },
+    {
+      "path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\gpu_joint_wave_20261002\\backward_n33_cuda\\trajectory.npz",
+      "sha256": "046d3220be78a80ba300ffbb592f7af33610b2f679d355d924a1f58f491fe240"
+    },
+    {
+      "path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\output\\parameters.snapshot.json",
+      "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+    }
+  ],
+  "role": "Original CAD front/back plate STL visual replay; no added STL collision, no wheel visuals, saved mechanical trajectory unchanged."
+}

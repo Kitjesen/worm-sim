@@ -1,0 +1,74 @@
+[
+  {
+    "seed": 200,
+    "failed": false,
+    "physical_s": 12.0,
+    "contraction_recovery_cycles": 43,
+    "four_second_advance_m": [
+      0.8562236847701258,
+      1.1372175028233098,
+      0.899368060666244
+    ],
+    "wheel_support_ratio": 0.9,
+    "support_n": 25.905060488489482,
+    "body_clearance_m": 0.029545721174256474,
+    "min_plate_spacing_m": 0.1068565205853757,
+    "forward_m": 2.9184328667418122,
+    "leading_forward_m": 2.8928092482596797,
+    "mean_contact_slip_m_s": 0.008706174083789608,
+    "max_tension_n": 1.752026280692753,
+    "servo_max_deg": 38.75027188190821,
+    "internal_force_residual_n": 0.0,
+    "internal_torque_residual_nm": 1.7772239894833365e-15,
+    "connector_error_m": 0.0003095019664424919,
+    "forward_velocity_m_s": -0.06662196931825903
+  },
+  {
+    "seed": 201,
+    "failed": false,
+    "physical_s": 12.0,
+    "contraction_recovery_cycles": 42,
+    "four_second_advance_m": [
+      0.8337659065949586,
+      1.187796888275293,
+      0.8708857729832284
+    ],
+    "wheel_support_ratio": 0.95,
+    "support_n": 28.593667614840633,
+    "body_clearance_m": 0.02805655152145694,
+    "min_plate_spacing_m": 0.10229293896075989,
+    "forward_m": 2.92300957885045,
+    "leading_forward_m": 2.89244856785348,
+    "mean_contact_slip_m_s": 0.004339563074363426,
+    "max_tension_n": 0.4341167486916276,
+    "servo_max_deg": 41.748090590825996,
+    "internal_force_residual_n": 4.440892098500626e-16,
+    "internal_torque_residual_nm": 9.930136612989092e-16,
+    "connector_error_m": 0.0003961063912004056,
+    "forward_velocity_m_s": 0.022727879176542842
+  },
+  {
+    "seed": 202,
+    "failed": false,
+    "physical_s": 12.0,
+    "contraction_recovery_cycles": 38,
+    "four_second_advance_m": [
+      0.8185978245836398,
+      1.0712408023829803,
+      0.8056044465068206
+    ],
+    "wheel_support_ratio": 1.0,
+    "support_n": 30.24006012117897,
+    "body_clearance_m": 0.026390515017082686,
+    "min_plate_spacing_m": 0.09622854164048923,
+    "forward_m": 2.7313296658760535,
+    "leading_forward_m": 2.6954430734734407,
+    "mean_contact_slip_m_s": 0.005625043459215343,
+    "max_tension_n": 0.0,
+    "servo_max_deg": 32.34130564489063,
+    "internal_force_residual_n": 0.0,
+    "internal_torque_residual_nm": 2.7018595191470222e-15,
+    "connector_error_m": 0.00043444885529116166,
+    "forward_velocity_m_s": 0.29820074274296005
+  }
+]

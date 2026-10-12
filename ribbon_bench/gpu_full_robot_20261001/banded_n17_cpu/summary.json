@@ -1,0 +1,130 @@
+{
+  "status": "completed",
+  "metadata": {
+    "parameters_sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1",
+    "urdf_sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818",
+    "source_parameters": "/root/autodl-tmp/worm_gpu/ribbon_bench/output/parameters.snapshot.json",
+    "source_urdf": "/root/autodl-tmp/worm_gpu/worm-sim/meshes/longworm2/longworm2.SLDASM.urdf",
+    "nodes": 17,
+    "strips": 8,
+    "steel_dof_per_strip": 53,
+    "steel_dof_total": 424,
+    "newton_dof": 436,
+    "independent_strip_coordinates": true,
+    "dt_s": 0.002,
+    "duration_s": 0.002,
+    "command_amplitude_mm": 0.0,
+    "model": "Sano steel + CAD rigid bodies + ideal tension-only cables + sampled plane penalty/friction contact",
+    "contact": "12 surface samples per steel edge plus 2x rim samples per plate; no continuous CCD; quasi-Newton contact geometric Hessian",
+    "solve_backend": "cpu",
+    "cuda_device": 0,
+    "local_solver": "scipy.solve_banded",
+    "local_bandwidth": 10,
+    "solve_seconds": 0.0,
+    "vendor_commit": "c9d341164e2927fc24b2c43dff97fcfb492cf700",
+    "source_sha256": "0f5cdf7a3381d06b808a977c90de4abadcc55706ae1877753c070b50a57fe3c0"
+  },
+  "frames": [
+    {
+      "time_s": 0.0,
+      "iterations": 0,
+      "residual_max": 0.0,
+      "max_penetration_m": 0.0,
+      "contact_normal_force_n": 0.0,
+      "cable_energy_j": 0.0,
+      "tensions_n": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "body_com": [
+        [
+          -0.013187146042151958,
+          -4.822736950038705e-10,
+          0.08243780954367677
+        ],
+        [
+          -0.11205465408382936,
+          -8.325135314046769e-07,
+          0.10430140326502006
+        ]
+      ]
+    },
+    {
+      "time_s": 0.002,
+      "energy_j": 1.3627325519880675e-08,
+      "steel_energy_j": 0.0,
+      "cable_energy_j": 1.3627325519880675e-08,
+      "tensions_n": [
+        0.0,
+        0.01650857419072116,
+        0.0,
+        0.01650939123604145
+      ],
+      "cable_lengths_m": [
+        0.10099927286055302,
+        0.10100082542871287,
+        0.10099927290140528,
+        0.10100082546956514
+      ],
+      "max_penetration_m": 3.1578294251141453e-07,
+      "contact_normal_force_n": 0.09787048666670828,
+      "iterations": 17,
+      "residual_max": 4.9296681385105345e-06,
+      "body_com": [
+        [
+          -0.013187208359011248,
+          -4.851161096590203e-10,
+          0.0824051356069441
+        ],
+        [
+          -0.11205466844723294,
+          -8.325137156589268e-07,
+          0.10426329112279803
+        ]
+      ],
+      "body_R": [
+        [
+          [
+            0.9999999999999448,
+            6.611248920554664e-10,
+            3.324551971312965e-07
+          ],
+          [
+            -6.611248512692189e-10,
+            1.0,
+            -1.2268204718178706e-10
+          ],
+          [
+            -3.324551971313776e-07,
+            1.226818273873875e-10,
+            0.9999999999999448
+          ]
+        ],
+        [
+          [
+            0.9999999998038187,
+            1.377768214680304e-09,
+            1.9808147781345254e-05
+          ],
+          [
+            -1.3777420167828656e-09,
+            1.0,
+            -1.3225955306340659e-09
+          ],
+          [
+            -1.9808147781347077e-05,
+            1.3225682398571243e-09,
+            0.9999999998038187
+          ]
+        ]
+      ],
+      "status_counts": {
+        "separated": 1628,
+        "slip": 4
+      }
+    }
+  ],
+  "wall_seconds": 7.363999843597412
+}

@@ -1,0 +1,46 @@
+{
+  "controller": "Designed head-to-tail wave + length feedback + joint/path feedback",
+  "mode": "wave",
+  "seed": 100,
+  "checkpoint_steps": null,
+  "lookahead_m": 0.25,
+  "physical_s": 16.0,
+  "failed": false,
+  "path_error_rmse_m": 0.017635956801972136,
+  "path_error_max_m": 0.031002643756149622,
+  "path_error_final_m": 0.02889738464838244,
+  "path_progress_m": 0.9299999999999999,
+  "leading_forward_m": 0.9222547307735233,
+  "minimum_clearance_m": 0.02332409516076312,
+  "wall_s": 274.7913625370711,
+  "scope": "Uncalibrated SOFA candidate, spatial path-following demo; no timed-trajectory command, no new RL training",
+  "actual_joint_min_deg": [
+    -14.323158831356436,
+    -11.749035518515715,
+    -10.764985210718292,
+    -9.643448323020918
+  ],
+  "actual_joint_max_deg": [
+    0.5082932131205472,
+    6.911246593363033,
+    12.706270772982794,
+    14.128647165203967
+  ],
+  "joint_peak_to_peak_deg": [
+    14.831452044476983,
+    18.660282111878747,
+    23.471255983701084,
+    23.772095488224885
+  ],
+  "wave_period_s": 4.0,
+  "head_to_tail_delay_s": 0.65,
+  "first_contraction_peak_times_head_to_tail_s": [
+    2.02,
+    2.6,
+    3.3200000000000003,
+    3.96,
+    4.58
+  ],
+  "head_to_tail_order_verified": true,
+  "length_tracking_rmse_mm": 1.8022539368396286
+}

@@ -1,0 +1,87 @@
+{
+  "parameters_sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1",
+  "urdf_sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818",
+  "source_parameters": "D:\\doso\\robot\\ribbon_bench\\output\\parameters.snapshot.json",
+  "source_urdf": "D:\\doso\\robot\\worm-sim\\meshes\\longworm2\\longworm2.SLDASM.urdf",
+  "vendor_commit": "c9d341164e2927fc24b2c43dff97fcfb492cf700",
+  "nodes": 17,
+  "strip": 0,
+  "source_sha256": "e64f9674266d939f4973862f782c6e42cebee1975c4e5214dd58d44e66e17ede",
+  "material_backend": "closed_form_adapter",
+  "fast_sano_sha256": "218faeabe8490f7f269f3857ad734eb13656b26ab77bc4284067a4ce76c9d469",
+  "method": "Implicit Euler; diagonal physical mass; Sano elastic force/Hessian; incremental-potential line search",
+  "mass_kg": 0.0028085908507013645,
+  "polar_area_m4": 5.12045e-11,
+  "damping_alpha_per_s": 2.0,
+  "preload_force_n": 0.01,
+  "preload_displacement_m": 4.7215653315484915e-06,
+  "natural_frequencies_hz": [
+    84.95103431730111,
+    192.7086350587137,
+    303.9874433351139,
+    324.99239591272,
+    475.3968324595078,
+    641.1507523093189
+  ],
+  "zero_input_max_motion_m": 0.0,
+  "dominant_linear_modes": [
+    {
+      "frequency_hz": 192.7086350587137,
+      "linear_preload_energy_fraction": 0.7621964837060178
+    },
+    {
+      "frequency_hz": 475.3968324595078,
+      "linear_preload_energy_fraction": 0.11531194549867815
+    },
+    {
+      "frequency_hz": 822.8165775923818,
+      "linear_preload_energy_fraction": 0.05803425731310191
+    }
+  ],
+  "zero_input_max_twist_rad": 0.0,
+  "boundary": "First and last two nodes and end twist angles fixed at natural-state clamps",
+  "limits": "One ribbon; no ropes, moving plates, contact, gravity, measured preload or calibrated damping",
+  "runs": [
+    {
+      "label": "dt",
+      "dt_s": 5e-06,
+      "duration_s": 0.015,
+      "steps": 3000,
+      "wall_seconds": 40.918110999977216,
+      "initial_energy_j": 2.3597763928112964e-08,
+      "final_energy_j": 1.7170501704218168e-08,
+      "max_kinetic_energy_j": 2.096657678366613e-08,
+      "zero_crossings": 6,
+      "max_energy_increase_j": -1.1293108824387616e-12,
+      "final_viscous_dissipation_j": 6.006362730282229e-10,
+      "final_numerical_energy_loss_j": 5.826625950866573e-09,
+      "max_force_residual_n": 9.98855956288805e-08,
+      "max_moment_residual_nm": 3.3142559071357064e-13
+    },
+    {
+      "label": "half_dt",
+      "dt_s": 2.5e-06,
+      "duration_s": 0.015,
+      "steps": 6000,
+      "wall_seconds": 82.76039810013026,
+      "initial_energy_j": 2.3597763928112964e-08,
+      "final_energy_j": 1.899980340933241e-08,
+      "max_kinetic_energy_j": 2.1433771288040467e-08,
+      "zero_crossings": 6,
+      "max_energy_increase_j": -4.351888907523781e-13,
+      "final_viscous_dissipation_j": 6.39816234237004e-10,
+      "final_numerical_energy_loss_j": 3.958144284543551e-09,
+      "max_force_residual_n": 9.994402329089463e-08,
+      "max_moment_residual_nm": 3.450625025681001e-13
+    }
+  ],
+  "dt_half_comparison": {
+    "max_displacement_difference_m": 2.0650641971813353e-07,
+    "normalized_rms_difference": 0.014369092605688286,
+    "max_energy_difference_over_initial": 0.07752012905489405,
+    "rms_displacement_limit": 0.05,
+    "normalized_energy_difference_limit": 0.1
+  },
+  "wall_seconds": 123.70385799999349,
+  "status": "validated"
+}

@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "max_absolute_differences": {
+    "nodes_m": 6.194242341273082e-11,
+    "width_directors": 2.399797027763384e-10,
+    "compression_m": 1.0257281135572782e-12,
+    "yaw_rad": 4.824143862158792e-11,
+    "energy_j": 4.0615844021374414e-12,
+    "back_support_force_n": 3.355375135516425e-07,
+    "front_support_force_n": 3.4848713248436525e-08,
+    "tensions_n": 2.9639346532661648e-08,
+    "total_energy_j": 3.608224830031759e-16
+  },
+  "limits": {
+    "nodes_m": 1e-06,
+    "width_directors": 0.0001,
+    "compression_m": 1e-06,
+    "yaw_rad": 1e-05,
+    "energy_j": 1e-07,
+    "back_support_force_n": 0.0002,
+    "front_support_force_n": 0.0002,
+    "tensions_n": 0.0002,
+    "total_energy_j": 1e-06
+  },
+  "nodes": 33,
+  "strips": 8,
+  "states": 25,
+  "path_seconds": {
+    "cpu": 31.462233372032642,
+    "cuda": 36.32517911307514
+  },
+  "single_run_speedup": 0.8661274119005764,
+  "timing_scope": "actuate path timer; excludes initialization/CUDA warmup/rendering; CUDA calls complete on CPU result readback",
+  "reference_sha256": "285d2decf207e5399bb1b74c14a9a6d2e36f12b4a932d063ec30375644f1fea3",
+  "candidate_sha256": "066271b6c4e927e062aa0620e911c7d19d93c1b64fd039c3a14e77e68aa619f0"
+}

@@ -1,0 +1,11 @@
+{
+  "python": "3.11.16 (main, Aug 27 2026, 14:44:21) [GCC 14.3.0]",
+  "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+  "packages": {
+    "numpy": "1.26.0",
+    "scipy": "1.15.3",
+    "torch": "2.7.0+cu128"
+  },
+  "wrapper_sha256": "f3d1555ee0155290a2603d54c32388162dc8a5d939bcc39bfa2ecf83898053f6",
+  "wrapper_role": "NumPy 1.x np.concat alias before the unchanged physics entry point"
+}

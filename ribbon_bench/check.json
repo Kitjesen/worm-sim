@@ -1,0 +1,14 @@
+{
+  "sano": {
+    "passed": true,
+    "support_force_n": 0.04600802954114597,
+    "energy_derivative_n": 0.046005101954760125,
+    "free_residual": 1.1142374002626187e-10
+  },
+  "kirchhoff": {
+    "passed": true,
+    "support_force_n": 0.046008154509974676,
+    "energy_derivative_n": 0.04600522689991255,
+    "free_residual": 1.2980488212077645e-10
+  }
+}

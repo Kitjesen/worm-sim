@@ -1,0 +1,22 @@
+{
+  "renderer_original_path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\render_full_robot.py",
+  "files": [
+    {
+      "path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\snake_wave_20261002\\snake_n9_cuda\\render_full_robot.snapshot.py",
+      "sha256": "36d1aaa6b2368a04d730d9d39a2ec130d0953f45f6adcb6f9b360a1e87cf511f"
+    },
+    {
+      "path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\snake_wave_20261002\\snake_n9_cuda\\summary.json",
+      "sha256": "4ff917b22f8f92b4e6a3a56b11b7b39672aefada2e2cf45f15f72f1d7e5d0798"
+    },
+    {
+      "path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\snake_wave_20261002\\snake_n9_cuda\\trajectory.npz",
+      "sha256": "0d48c5ac96bdef11c876237f8a0e323b8b5767761642053a6a804f9d9237a7ee"
+    },
+    {
+      "path": "D:\\doso\\robot\\worm-sim-ribbon-publish\\ribbon_bench\\output\\parameters.snapshot.json",
+      "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+    }
+  ],
+  "role": "Original CAD front/back STL visual replay; no added STL collision or wheel visuals. GIF frame stride changes display only; all mechanical trajectory data remain unchanged."
+}

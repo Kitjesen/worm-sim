@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "segments": 5,
+  "strips": 40,
+  "nodes": 17,
+  "frames": 4,
+  "max_absolute_errors": {
+    "q": 2.4202861936828413e-14,
+    "body_com": 5.551115123125783e-16,
+    "body_R": 1.1134322630557136e-14,
+    "width_directors": 1.8818280267396403e-14,
+    "cable_routes_m": 9.645062526431047e-16,
+    "tensions_n": 2.220446049250313e-11,
+    "steel_energy_j": 4.544975507059235e-16,
+    "cable_energy_j": 5.477562847744366e-14,
+    "max_penetration_m": 5.5429836068321414e-18,
+    "contact_normal_force_n": 3.625544309215911e-12
+  },
+  "same_contact_status_counts": true,
+  "scope": "Same 6 ms five-segment dynamic trajectory; Windows CPU vs remote CUDA; timings are not a controlled speed benchmark."
+}

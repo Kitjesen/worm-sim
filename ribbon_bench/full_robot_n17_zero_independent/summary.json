@@ -1,0 +1,121 @@
+{
+  "status": "completed",
+  "metadata": {
+    "parameters_sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1",
+    "urdf_sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818",
+    "source_parameters": "D:\\doso\\robot\\ribbon_bench\\output\\parameters.snapshot.json",
+    "source_urdf": "D:\\doso\\robot\\worm-sim\\meshes\\longworm2\\longworm2.SLDASM.urdf",
+    "nodes": 17,
+    "strips": 8,
+    "dt_s": 0.002,
+    "duration_s": 0.002,
+    "command_amplitude_mm": 0.0,
+    "model": "Sano steel + CAD rigid bodies + ideal tension-only cables + sampled plane penalty/friction contact",
+    "contact": "12 surface samples per steel edge plus 2x rim samples per plate; no continuous CCD; quasi-Newton contact geometric Hessian",
+    "vendor_commit": "c9d341164e2927fc24b2c43dff97fcfb492cf700",
+    "source_sha256": "db72aea73dd580097c113b991c6278e00c1f65570d27f03cb3759a6d7eccdbc2"
+  },
+  "frames": [
+    {
+      "time_s": 0.0,
+      "iterations": 0,
+      "residual_max": 0.0,
+      "max_penetration_m": 0.0,
+      "contact_normal_force_n": 0.0,
+      "cable_energy_j": 0.0,
+      "tensions_n": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "body_com": [
+        [
+          -0.013187146042151958,
+          -4.822736950038705e-10,
+          0.08243780954367677
+        ],
+        [
+          -0.11205465408382936,
+          -8.325135314046771e-07,
+          0.10430140326502006
+        ]
+      ]
+    },
+    {
+      "time_s": 0.002,
+      "energy_j": 1.3627325569138912e-08,
+      "steel_energy_j": 0.0,
+      "cable_energy_j": 1.3627325569138912e-08,
+      "tensions_n": [
+        0.0,
+        0.016508574220974737,
+        0.0,
+        0.01650939126546236
+      ],
+      "cable_lengths_m": [
+        0.10099927286055245,
+        0.10100082542871439,
+        0.1009992729014047,
+        0.10100082546956661
+      ],
+      "max_penetration_m": 3.157829424974554e-07,
+      "contact_normal_force_n": 0.0978704866625634,
+      "iterations": 17,
+      "residual_max": 4.930160246087445e-06,
+      "body_com": [
+        [
+          -0.013187208359010653,
+          -4.851161166873871e-10,
+          0.08240513560694401
+        ],
+        [
+          -0.11205466844723304,
+          -8.325137156586514e-07,
+          0.10426329112279802
+        ]
+      ],
+      "body_R": [
+        [
+          [
+            0.9999999999999448,
+            6.611278330954518e-10,
+            3.324551808079509e-07
+          ],
+          [
+            -6.611277923090879e-10,
+            1.0,
+            -1.2268240294267223e-10
+          ],
+          [
+            -3.32455180808032e-07,
+            1.226821831473057e-10,
+            0.9999999999999448
+          ]
+        ],
+        [
+          [
+            0.9999999998038187,
+            1.3777706639445108e-09,
+            1.9808147790824694e-05
+          ],
+          [
+            -1.3777444660476e-09,
+            1.0,
+            -1.322595503374863e-09
+          ],
+          [
+            -1.9808147790826517e-05,
+            1.3225682125493928e-09,
+            0.9999999998038187
+          ]
+        ]
+      ],
+      "status_counts": {
+        "separated": 1628,
+        "slip": 4
+      }
+    }
+  ],
+  "wall_seconds": 109.42303190007806
+}

@@ -1,0 +1,154 @@
+{
+  "status": "passed",
+  "algorithm_self_check": "straight/right-angle passed",
+  "cases": [
+    {
+      "source": "snake_wave_20261002/snake_n9_cuda",
+      "summary_sha256": "4ff917b22f8f92b4e6a3a56b11b7b39672aefada2e2cf45f15f72f1d7e5d0798",
+      "trajectory_sha256": "0d48c5ac96bdef11c876237f8a0e323b8b5767761642053a6a804f9d9237a7ee",
+      "nodes": 9,
+      "saved_frames": 201,
+      "initial_max_turn_angle_deg": 38.39619302011401,
+      "all_frames_max_turn_angle_deg": 56.05739631206996,
+      "max_turn_location": {
+        "time_s": 2.16,
+        "frame": 108,
+        "steel_index_zero_based": 31,
+        "module_index_one_based": 4,
+        "cad_module_index": 5,
+        "steel_in_module_one_based": 8,
+        "vertex_index_zero_based": 4,
+        "at_clamp_transition": false
+      },
+      "max_absolute_turn_angle_change_from_rest_deg": 36.34010728834412,
+      "max_angle_change_location": {
+        "time_s": 0.62,
+        "frame": 31,
+        "steel_index_zero_based": 13,
+        "module_index_one_based": 2,
+        "cad_module_index": 3,
+        "steel_in_module_one_based": 6,
+        "vertex_index_zero_based": 6,
+        "at_clamp_transition": false
+      },
+      "min_reference_edge_length_mm": 18.564299203875297,
+      "min_current_edge_length_mm": 18.564005994045132,
+      "min_edge_length_ratio_to_rest": 0.9999842057150253,
+      "max_edge_length_ratio_to_rest": 1.0000044052219008,
+      "min_edge_ratio_location": {
+        "time_s": 0.62,
+        "steel_index_zero_based": 13,
+        "edge_index_zero_based": 5
+      },
+      "near_180deg_turn_samples": 0,
+      "near_180deg_reporting_threshold_deg": 165.0,
+      "modules": [
+        {
+          "module_index_one_based": 1,
+          "cad_module_index": 2,
+          "max_turn_angle_deg": 42.812961985310686,
+          "max_turn_change_from_rest_deg": 25.263635070942414
+        },
+        {
+          "module_index_one_based": 2,
+          "cad_module_index": 3,
+          "max_turn_angle_deg": 47.636728587322224,
+          "max_turn_change_from_rest_deg": 36.34010728834412
+        },
+        {
+          "module_index_one_based": 3,
+          "cad_module_index": 4,
+          "max_turn_angle_deg": 55.5516441423004,
+          "max_turn_change_from_rest_deg": 29.15389670944471
+        },
+        {
+          "module_index_one_based": 4,
+          "cad_module_index": 5,
+          "max_turn_angle_deg": 56.05739631206996,
+          "max_turn_change_from_rest_deg": 30.17705340627684
+        },
+        {
+          "module_index_one_based": 5,
+          "cad_module_index": 6,
+          "max_turn_angle_deg": 40.3964796829565,
+          "max_turn_change_from_rest_deg": 33.684373015715266
+        }
+      ],
+      "scope": "Saved-frame N9 polygonal turning angle and length only. Angles include stress-free bow; angle change is geometric, not a material curvature/strain or plastic yield measure. Clamp transition vertices are 1 and N-2; idealized CAD mounting-tab folds lie outside this elastic chain. No interpolation or new solve."
+    },
+    {
+      "source": "stiff_snake_20261002/t020_n9_cuda",
+      "summary_sha256": "5126c40ca9413437f1942a05de87d498921c152bb56e085bf9761108a998fc9a",
+      "trajectory_sha256": "5081282e485ee8a294056852ab6d0fddf80f9b8e49c1e65b528e2a1ac4ac7896",
+      "nodes": 9,
+      "saved_frames": 201,
+      "initial_max_turn_angle_deg": 38.4201667531881,
+      "all_frames_max_turn_angle_deg": 47.75501798607986,
+      "max_turn_location": {
+        "time_s": 3.88,
+        "frame": 194,
+        "steel_index_zero_based": 23,
+        "module_index_one_based": 3,
+        "cad_module_index": 4,
+        "steel_in_module_one_based": 8,
+        "vertex_index_zero_based": 4,
+        "at_clamp_transition": false
+      },
+      "max_absolute_turn_angle_change_from_rest_deg": 14.92080249134472,
+      "max_angle_change_location": {
+        "time_s": 0.92,
+        "frame": 46,
+        "steel_index_zero_based": 29,
+        "module_index_one_based": 4,
+        "cad_module_index": 5,
+        "steel_in_module_one_based": 6,
+        "vertex_index_zero_based": 3,
+        "at_clamp_transition": false
+      },
+      "min_reference_edge_length_mm": 18.55974329510271,
+      "min_current_edge_length_mm": 18.559428498086227,
+      "min_edge_length_ratio_to_rest": 0.999983038719254,
+      "max_edge_length_ratio_to_rest": 1.000007040191478,
+      "min_edge_ratio_location": {
+        "time_s": 0.78,
+        "steel_index_zero_based": 29,
+        "edge_index_zero_based": 3
+      },
+      "near_180deg_turn_samples": 0,
+      "near_180deg_reporting_threshold_deg": 165.0,
+      "modules": [
+        {
+          "module_index_one_based": 1,
+          "cad_module_index": 2,
+          "max_turn_angle_deg": 40.12880976503354,
+          "max_turn_change_from_rest_deg": 9.473815612259767
+        },
+        {
+          "module_index_one_based": 2,
+          "cad_module_index": 3,
+          "max_turn_angle_deg": 42.299455694851524,
+          "max_turn_change_from_rest_deg": 12.369490115220593
+        },
+        {
+          "module_index_one_based": 3,
+          "cad_module_index": 4,
+          "max_turn_angle_deg": 47.75501798607986,
+          "max_turn_change_from_rest_deg": 12.741109345946526
+        },
+        {
+          "module_index_one_based": 4,
+          "cad_module_index": 5,
+          "max_turn_angle_deg": 46.533077347245516,
+          "max_turn_change_from_rest_deg": 14.92080249134472
+        },
+        {
+          "module_index_one_based": 5,
+          "cad_module_index": 6,
+          "max_turn_angle_deg": 38.77404440157247,
+          "max_turn_change_from_rest_deg": 10.443513067610429
+        }
+      ],
+      "scope": "Saved-frame N9 polygonal turning angle and length only. Angles include stress-free bow; angle change is geometric, not a material curvature/strain or plastic yield measure. Clamp transition vertices are 1 and N-2; idealized CAD mounting-tab folds lie outside this elastic chain. No interpolation or new solve."
+    }
+  ]
+}

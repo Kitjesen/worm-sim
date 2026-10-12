@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "initial_max_pose_error": 3.6540041825627867e-13,
+  "zero_residual_max_pose_error": 2.4658261543741844e-12,
+  "baseline": {
+    "wheel_support_ratio": 1.0,
+    "support_n": 28.51618624926617,
+    "body_clearance_m": 0.03326209809139502,
+    "min_plate_spacing_m": 0.11681988780432567,
+    "forward_m": 0.6268130751575641,
+    "leading_forward_m": 0.6234310144538885,
+    "mean_contact_slip_m_s": 0.005722441091620513,
+    "max_tension_n": 0.11558332975995811,
+    "servo_max_deg": 0.0,
+    "internal_force_residual_n": 0.0,
+    "internal_torque_residual_nm": 1.1857187100668868e-16,
+    "connector_error_m": 0.00027807694296469123,
+    "forward_velocity_m_s": 0.04686935713013041,
+    "physical_s": 11.999999999999833,
+    "mean_plate_forward_m": 0.6268130751575641,
+    "lateral_m": -0.013422508999206781,
+    "mean_sampled_slip_m_s": 0.007763781120210178,
+    "joint_abs_work_proxy_j": 2.4744698060382886,
+    "peak_joint_deg": 18.16538865570507,
+    "peak_tension_n": 0.3677309443504522,
+    "task_return": 6.9488124079463525,
+    "success": true
+  },
+  "raw_observation_dim": 54,
+  "policy_history_dim": 216,
+  "action_dim": 4,
+  "source_sha256": {
+    "sofa_worm_env.py": "add2b651e1e8d6215172dde091fbaf1c6ad680792249df9ec004579b00fd2bd4",
+    "sensor_observation.py": "b37c70485310aa50ec9f72e55f2660a6dc62c15b852d1902ed0e2849459d90da",
+    "snake_rl_env.py": "ef58d6deb6ee7c236ada89c88b6d1a070dd087530cc55b28f8bea0aa0356ede5",
+    "parameters_sofa_candidate.json": "9a10628789abf3a04b93c3564e0cf6902c9aa332aa38b418a57dad2b3576c722"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "backend": "cuda",
+  "compiled": true,
+  "dtype": "float64",
+  "status": "completed",
+  "scope": "Hybrid: batch material E/g/H on CUDA only; standalone forward energy, geometry, assembly, banded blocks, Schur, Newton and line search on CPU",
+  "platform": "Linux-5.15.0-78-generic-x86_64-with-glibc2.35",
+  "python": "3.12.3 | packaged by Anaconda, Inc. | (main, May  6 2024, 19:46:43) [GCC 11.2.0]",
+  "torch": "2.8.0+cu128",
+  "numpy": "2.3.2",
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1"
+  },
+  "counter_timing_scope": "End-to-end adapter wall time; CPU input upload plus material computation plus complete E/g/H CPU readback; no intermediate CUDA synchronizations; constant uploads tracked separately",
+  "source_sha256": {
+    "cuda_solver_probe.py": "9ba98bea910f8db45dd93162e25a7b16eb469c0d55568023a28ea19f90bff106",
+    "actuate.py": "c06b5699a9e3202e42cf9e75e31a24d1f31c793c779c8a3f31ff92a894fcaadf",
+    "fast_sano.py": "218faeabe8490f7f269f3857ad734eb13656b26ab77bc4284067a4ce76c9d469",
+    "gpu_probe.py": "585b6ccbc3c04b188dcc8462110418b570970777b4cd10a439bc7f80cc1ff2f8",
+    "benchmark_solver.py": "2ca6613be6399912ff832f42337ba727630fef5b8f0f7b8a8396bbf1db810464"
+  },
+  "device": "cuda:0",
+  "gpu": "NVIDIA GeForce RTX 5090",
+  "cuda_version": "12.8",
+  "precision_probe": [
+    0.0,
+    9.094947017729282e-13
+  ],
+  "device_setup_seconds": 1.293012112379074,
+  "compile_options": {
+    "fullgraph": true,
+    "dynamic": false
+  },
+  "warmup_seconds": 3.189451741054654,
+  "warmup_rows_per_call": 31,
+  "warmup_counters": {
+    "cuda_calls": 8,
+    "material_rows": 248,
+    "coefficient_uploads": 8,
+    "coefficient_upload_seconds": 0.0007192883640527725,
+    "total_adapter_seconds": 3.1883121766149998,
+    "h2d_bytes": 7936,
+    "d2h_bytes": 41664
+  },
+  "wrapper_seconds": 39.77421121485531,
+  "path_counters": {
+    "cuda_calls": 6512,
+    "material_rows": 201872,
+    "coefficient_uploads": 0,
+    "coefficient_upload_seconds": 0.0,
+    "total_adapter_seconds": 4.184909600764513,
+    "h2d_bytes": 6459904,
+    "d2h_bytes": 33914496
+  }
+}

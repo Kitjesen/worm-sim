@@ -1,0 +1,144 @@
+{
+  "status": "passed",
+  "validated_at_utc": "2026-09-30T16:15:39.390255+00:00",
+  "validator_path": "../benchmark_solver.py",
+  "validator_sha256": "2ca6613be6399912ff832f42337ba727630fef5b8f0f7b8a8396bbf1db810464",
+  "scope": "JSON-only revalidation of three completed reference/fast pairs and deepcopy corruption tests; no physics solves or source changes",
+  "original_timing_source_snapshot": "source_snapshot/benchmark_solver.py",
+  "original_timing_validator_sha256": "02a8d7c53a0935614a482ad893418b15745361f9e3b22ea4a3e102054a59b4f2",
+  "pairs": [
+    {
+      "pair": 1,
+      "reference_path": "reference_1/results.json",
+      "reference_sha256": "305337dd1efdb42baf273878840ebe8a3f88995760b480a5d7ae2aab5f948c71",
+      "fast_path": "fast_1/results.json",
+      "fast_sha256": "f28d21fb532464dfd387e3ce5c455db85335cdbbdb65a6faefc7935163746f02",
+      "validation": {
+        "status": "passed",
+        "max_absolute_differences": {
+          "nodes_m": 1.336292188014454e-12,
+          "width_directors": 1.4461848385494136e-11,
+          "compression_m": 4.3692133244732645e-13,
+          "yaw_rad": 1.5767387395726473e-11,
+          "energy_j": 1.02454156269971e-12,
+          "back_support_force_n": 1.198072308028486e-08,
+          "front_support_force_n": 1.3429705125744817e-09,
+          "tensions_n": 5.051514762044462e-11,
+          "total_energy_j": 2.498001805406602e-16
+        },
+        "limits": {
+          "nodes_m": 1e-06,
+          "width_directors": 0.0001,
+          "compression_m": 1e-06,
+          "yaw_rad": 1e-05,
+          "energy_j": 1e-07,
+          "back_support_force_n": 0.0002,
+          "front_support_force_n": 0.0002,
+          "tensions_n": 0.0002,
+          "total_energy_j": 1e-06
+        }
+      }
+    },
+    {
+      "pair": 2,
+      "reference_path": "reference_2/results.json",
+      "reference_sha256": "1411be43eaa232934f999629294ee57d915c9338e50019b3b144a5f9ffa2afa1",
+      "fast_path": "fast_2/results.json",
+      "fast_sha256": "e33794ef00076e09928287c9d04db88b33bad0979fc6268966e5922fa404e7c6",
+      "validation": {
+        "status": "passed",
+        "max_absolute_differences": {
+          "nodes_m": 1.336292188014454e-12,
+          "width_directors": 1.4461848385494136e-11,
+          "compression_m": 4.3692133244732645e-13,
+          "yaw_rad": 1.5767387395726473e-11,
+          "energy_j": 1.02454156269971e-12,
+          "back_support_force_n": 1.198072308028486e-08,
+          "front_support_force_n": 1.3429705125744817e-09,
+          "tensions_n": 5.051514762044462e-11,
+          "total_energy_j": 2.498001805406602e-16
+        },
+        "limits": {
+          "nodes_m": 1e-06,
+          "width_directors": 0.0001,
+          "compression_m": 1e-06,
+          "yaw_rad": 1e-05,
+          "energy_j": 1e-07,
+          "back_support_force_n": 0.0002,
+          "front_support_force_n": 0.0002,
+          "tensions_n": 0.0002,
+          "total_energy_j": 1e-06
+        }
+      }
+    },
+    {
+      "pair": 3,
+      "reference_path": "reference_3/results.json",
+      "reference_sha256": "dd5ce6592e9a61187198f85827d419b6719a1dcb3237cf65ee1afa25450dc716",
+      "fast_path": "fast_3/results.json",
+      "fast_sha256": "0ac440b360a1f6b1612f7be5e5ca794d2403ccd83b629b62b96e6c489520dc6b",
+      "validation": {
+        "status": "passed",
+        "max_absolute_differences": {
+          "nodes_m": 1.336292188014454e-12,
+          "width_directors": 1.4461848385494136e-11,
+          "compression_m": 4.3692133244732645e-13,
+          "yaw_rad": 1.5767387395726473e-11,
+          "energy_j": 1.02454156269971e-12,
+          "back_support_force_n": 1.198072308028486e-08,
+          "front_support_force_n": 1.3429705125744817e-09,
+          "tensions_n": 5.051514762044462e-11,
+          "total_energy_j": 2.498001805406602e-16
+        },
+        "limits": {
+          "nodes_m": 1e-06,
+          "width_directors": 0.0001,
+          "compression_m": 1e-06,
+          "yaw_rad": 1e-05,
+          "energy_j": 1e-07,
+          "back_support_force_n": 0.0002,
+          "front_support_force_n": 0.0002,
+          "tensions_n": 0.0002,
+          "total_energy_j": 1e-06
+        }
+      }
+    }
+  ],
+  "negative_tests": [
+    {
+      "test": "candidate_nan_node",
+      "status": "rejected_as_expected",
+      "exception": "AssertionError",
+      "message": "nodes_m",
+      "validator_line": 34
+    },
+    {
+      "test": "reference_nan_node",
+      "status": "rejected_as_expected",
+      "exception": "AssertionError",
+      "message": "nodes_m",
+      "validator_line": 34
+    },
+    {
+      "test": "both_empty_trajectories",
+      "status": "rejected_as_expected",
+      "exception": "AssertionError",
+      "message": "",
+      "validator_line": 28
+    },
+    {
+      "test": "both_truncated_paths",
+      "status": "rejected_as_expected",
+      "exception": "AssertionError",
+      "message": "",
+      "validator_line": 29
+    },
+    {
+      "test": "both_duplicate_strip_ids",
+      "status": "rejected_as_expected",
+      "exception": "AssertionError",
+      "message": "",
+      "validator_line": 26
+    }
+  ]
+}

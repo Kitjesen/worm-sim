@@ -1,0 +1,18 @@
+{
+  "status": "rendered",
+  "static": "gpu_chain_20261002\\chain_n33_cuda_motion\\robot_motion.png",
+  "animation": "gpu_chain_20261002\\chain_n33_cuda_motion\\robot_motion.gif",
+  "metrics": "gpu_chain_20261002\\chain_n33_cuda_motion\\robot_motion_metrics.png",
+  "frames": 41,
+  "segments": 5,
+  "strips": 40,
+  "playback_fps": 10,
+  "simulated_duration_s": 0.2,
+  "max_segment_contraction_mm": [
+    12.174377222803137,
+    8.137666446561415,
+    7.966406734838991,
+    7.5787177143167295,
+    21.22417987146963
+  ]
+}

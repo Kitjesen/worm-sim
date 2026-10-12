@@ -1,0 +1,16 @@
+{
+  "nodes": 33,
+  "strip": 2,
+  "wall_seconds": 71.8747238998767,
+  "subdivisions": 100,
+  "reference_subdivisions": 38,
+  "length_scale_m": 0.10085000000000448,
+  "linear_solves": 12965,
+  "regularizations": 1021,
+  "max_condition_seen": 3.4070442118954563e+30,
+  "max_force_difference_n": 1.5950065795911073e-07,
+  "max_energy_difference_j": 5.204170427930421e-18,
+  "max_node_difference_m": 3.289352372831789e-11,
+  "max_force_residual_n": 5.657059709562873e-09,
+  "max_moment_residual_nm": 9.081636050817243e-12
+}

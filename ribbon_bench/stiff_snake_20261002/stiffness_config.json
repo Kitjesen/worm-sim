@@ -1,0 +1,61 @@
+{
+  "status": "passed",
+  "baseline_parameters": "output/parameters.snapshot.json",
+  "candidate_parameters": "stiff_snake_20261002/parameters_t020mm.json",
+  "baseline_sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1",
+  "candidate_sha256": "4a5ebdc0e597e21a7db488b1e845db43a234a6d54fda4a3a85aa9820548e4f29",
+  "changed_keys": [
+    "strip_thickness_m"
+  ],
+  "nodes": 9,
+  "segments": 5,
+  "strips": 40,
+  "thickness_m": [
+    0.00015,
+    0.0002
+  ],
+  "nominal_mass_and_axial_stiffness_ratio": 1.3333333333333333,
+  "nominal_weak_axis_bending_stiffness_ratio": 2.37037037037037,
+  "constructed_material_and_mass": [
+    {
+      "EA": 479999.99999999994,
+      "EI1": 0.0008999999999999998,
+      "EI2": 10.24,
+      "GJ": 0.001376437500005264,
+      "h": 0.00015,
+      "zeta": 0.18434106875471248,
+      "steel_total_mass_kg": 0.11192044704032755,
+      "rigid_total_mass_kg": 3.1845524465338304,
+      "reference_length_m": 0.14851439363100788
+    },
+    {
+      "EA": 640000.0,
+      "EI1": 0.002133333333333334,
+      "EI2": 13.653333333333334,
+      "GJ": 0.003256205128257713,
+      "h": 0.0002,
+      "zeta": 0.13825580156603434,
+      "steel_total_mass_kg": 0.14919064050335934,
+      "rigid_total_mass_kg": 3.1845524465338304,
+      "reference_length_m": 0.14847794636082734
+    }
+  ],
+  "ratios": {
+    "EA": 1.3333333333333335,
+    "EI1": 2.3703703703703716,
+    "EI2": 1.3333333333333335,
+    "GJ": 2.3656759774746474,
+    "h": 1.3333333333333335,
+    "zeta": 0.7499999999999999,
+    "steel_total_mass_kg": 1.333006116832275,
+    "rigid_total_mass_kg": 1.0,
+    "reference_length_m": 0.9997545876242063
+  },
+  "cpu_cuda_surface_max_error_m": 1.3877787807814457e-17,
+  "cpu_cuda_force_max_error_n": 2.6848701059777644e-11,
+  "cpu_cuda_hessian_max_error": 3.725290298461914e-09,
+  "torch_check_device": "cpu",
+  "scope": "No dynamics here; CUDA numerical formulas checked on CPU. Thickness reaches Sano material, node/edge inertia and steel contact surfaces. Ground-law stiffness/friction and rigid CAD masses are unchanged.",
+  "geometry_note": "Thickness offsets both clamp endpoints by half thickness; reference chord lengths and actual steel mass change slightly beyond nominal fixed-length ratios.",
+  "fold_scope": "Elastic model only: no yield stress, hardening or plastic crease variable. N9 ribbon rendering is piecewise linear. Existing attachment-fold geometry is an idealized prescribed CAD tab, not newly predicted plastic folding."
+}

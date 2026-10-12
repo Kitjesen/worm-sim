@@ -1,0 +1,14 @@
+{
+  "status": "loading_only_passed",
+  "unloading_converged": false,
+  "strips": 8,
+  "nodes": 33,
+  "saved_states": 13,
+  "compression_mm": 40,
+  "peak_yaw_deg": 30,
+  "solve_seconds_to_peak": 446.912661699811,
+  "max_free_force_residual_n": 4.3397752691465286e-07,
+  "max_free_moment_residual_nm": 6.568264161732618e-11,
+  "gif_frames": 13,
+  "gif_duration_ms": 2600
+}

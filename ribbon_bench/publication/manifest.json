@@ -1,0 +1,399 @@
+{
+  "status": "verified figure archive; numerical sources unchanged",
+  "report": {
+    "path": "REPORT.zh-CN.md",
+    "sha256": "b9b58b47f6d4dd13ad22acb4de299d111a4ccd95391ca912165c6cfc15dc2b4e"
+  },
+  "environment": "environment.json",
+  "numerical_summary": "results_summary.json",
+  "upstream_commit": "c9d341164e2927fc24b2c43dff97fcfb492cf700",
+  "code_snapshot_note": "Source snapshot for traceability; execute the matching scripts in the ribbon_bench root after installing dependencies and initializing the pinned vendor submodule. See README.md.",
+  "limitations": "All sequences are quasi-static. Figure 7 is loading only; unloading failed. Mesh comparison is not a convergence proof. See report captions.",
+  "figures": [
+    {
+      "figure": "fig01_baseline17",
+      "source_directory": "output",
+      "files": [
+        {
+          "path": "figures/fig01_baseline17.png",
+          "sha256": "25cc80e8972a1ebf9ff9a95bd0251fc77fef2aff20e8338b6f58ff6d464b5cc8"
+        },
+        {
+          "path": "figures/fig01_baseline17.svg",
+          "sha256": "21511fbccf5084c7efdea9d383fd791e15c84957b47686d6f2b9e4214f74386d"
+        },
+        {
+          "path": "figures/fig01_baseline17.gif",
+          "sha256": "8bba99c9d71a4e3ef934ffac3b116a0cd344755e23b45697033627db81f6695e"
+        }
+      ],
+      "gif_frames": 25,
+      "gif_duration_ms": 5000,
+      "gif_size_px": [
+        900,
+        900
+      ],
+      "png_size_px": [
+        2160,
+        1860
+      ],
+      "data": [
+        {
+          "path": "data/output/results.json",
+          "sha256": "3f1c94535e0c5e1f93bc5ce9f792ed2b511e6fb1ac283bd60053869a8012a2da"
+        },
+        {
+          "path": "data/output/parameters.snapshot.json",
+          "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+        }
+      ]
+    },
+    {
+      "figure": "fig02_mesh33",
+      "source_directory": "mesh_demo/n33",
+      "files": [
+        {
+          "path": "figures/fig02_mesh33.png",
+          "sha256": "775d1c344b46ebf7790da0f997d0ae5fbad26384a33becb138b37e52a8808fd4"
+        },
+        {
+          "path": "figures/fig02_mesh33.svg",
+          "sha256": "27a859ddfc47783bdb5dd9177dbe046bbad7ff7c68a1d39a9b26e6387f964f26"
+        },
+        {
+          "path": "figures/fig02_mesh33.gif",
+          "sha256": "3a1395a63fd9e3a3151b7e1335608766fd0465910c62f8ba444109c4ad094c99"
+        }
+      ],
+      "gif_frames": 25,
+      "gif_duration_ms": 5000,
+      "gif_size_px": [
+        900,
+        900
+      ],
+      "png_size_px": [
+        2160,
+        1860
+      ],
+      "data": [
+        {
+          "path": "data/mesh_demo/n33/results.json",
+          "sha256": "30f6a76765c3d658fd319bf6fe73438a12cb47844d1c7d0970a2a00d8902c84a"
+        },
+        {
+          "path": "data/mesh_demo/n33/parameters.snapshot.json",
+          "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+        }
+      ]
+    },
+    {
+      "figure": "fig03_mesh65",
+      "source_directory": "mesh_demo/n65",
+      "files": [
+        {
+          "path": "figures/fig03_mesh65.png",
+          "sha256": "750d4088e92c9b660f33d22a8bb4c8444b242b0d4e6fdbf37da60b09eaf0e97f"
+        },
+        {
+          "path": "figures/fig03_mesh65.svg",
+          "sha256": "6622f09b844a7542742b24f4c5177b3ab01863a737fa4cf9579c0e4b529d5da2"
+        },
+        {
+          "path": "figures/fig03_mesh65.gif",
+          "sha256": "009630749b6b09042789eedf43dd6db425b7b507a200f2a4e12ce59b99cac47e"
+        }
+      ],
+      "gif_frames": 25,
+      "gif_duration_ms": 5000,
+      "gif_size_px": [
+        900,
+        900
+      ],
+      "png_size_px": [
+        2160,
+        1860
+      ],
+      "data": [
+        {
+          "path": "data/mesh_demo/n65/results.json",
+          "sha256": "6377a5bb2b978a6ae87d9d2698e95b7624c52b040d742643e75cd91701e0e8e1"
+        },
+        {
+          "path": "data/mesh_demo/n65/parameters.snapshot.json",
+          "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+        }
+      ]
+    },
+    {
+      "figure": "fig04_mesh129",
+      "source_directory": "mesh_demo/n129",
+      "files": [
+        {
+          "path": "figures/fig04_mesh129.png",
+          "sha256": "09981b6e504e91385fd07092c8b206bc22841ca7c1a6c574b80b30da557340ea"
+        },
+        {
+          "path": "figures/fig04_mesh129.svg",
+          "sha256": "f13bfd837e74634c51e03989ea2bd2e98938b7d5dac3a7b8cfa22bbe715cc8f6"
+        },
+        {
+          "path": "figures/fig04_mesh129.gif",
+          "sha256": "e0bfc16cb82ba8d736f230f46d3d77b42444d41b588c063c58a11d3519634240"
+        }
+      ],
+      "gif_frames": 25,
+      "gif_duration_ms": 5000,
+      "gif_size_px": [
+        900,
+        900
+      ],
+      "png_size_px": [
+        2160,
+        1860
+      ],
+      "data": [
+        {
+          "path": "data/mesh_demo/n129/results.json",
+          "sha256": "aa0e14147750764cc2c0c855fad52acd70c734efd095c118815a16c840ac0385"
+        },
+        {
+          "path": "data/mesh_demo/n129/parameters.snapshot.json",
+          "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+        }
+      ]
+    },
+    {
+      "figure": "fig05_mesh_comparison",
+      "source_directory": "mesh_demo",
+      "files": [
+        {
+          "path": "figures/fig05_mesh_comparison.png",
+          "sha256": "b6958fc2e00fb0e27e20bc13b107f4b1a59e6144876b947af5d5aeff47d80686"
+        },
+        {
+          "path": "figures/fig05_mesh_comparison.svg",
+          "sha256": "fdb1af13a2f0479d3f335f4aba0dbad1e58009debb3dd480707ac4d8e6fa180c"
+        },
+        {
+          "path": "figures/fig05_mesh_comparison.gif",
+          "sha256": "e953d27b98308a85cb546ad1533e892572c4b020bed1ec9ab0bce5d51febcd66"
+        }
+      ],
+      "gif_frames": 25,
+      "gif_duration_ms": 5000,
+      "gif_size_px": [
+        1344,
+        455
+      ],
+      "png_size_px": [
+        2880,
+        1740
+      ],
+      "data": [
+        {
+          "path": "data/mesh_demo/timings.json",
+          "sha256": "b8b31fbbca263213f0e104096a74e239305f8bbbde12e54f13644250463a8a16"
+        }
+      ],
+      "source_figures": [
+        "fig02_mesh33",
+        "fig03_mesh65",
+        "fig04_mesh129"
+      ]
+    },
+    {
+      "figure": "fig06_large_motion15",
+      "source_directory": "large_motion_demo",
+      "files": [
+        {
+          "path": "figures/fig06_large_motion15.png",
+          "sha256": "8eaa0d7cf0c03a1245b59b801d630658466d468d0927e02544b93452a11ae026"
+        },
+        {
+          "path": "figures/fig06_large_motion15.svg",
+          "sha256": "3ee202ec3c3ef32e818e368092c5b63f4754ec4f9763153fc9df92f5e81e2614"
+        },
+        {
+          "path": "figures/fig06_large_motion15.gif",
+          "sha256": "82240aa8c5cd38f81b64b209a9fa39895e03901de6b2233f8d63a940556225dc"
+        }
+      ],
+      "gif_frames": 25,
+      "gif_duration_ms": 5000,
+      "gif_size_px": [
+        900,
+        900
+      ],
+      "png_size_px": [
+        2160,
+        1860
+      ],
+      "data": [
+        {
+          "path": "data/large_motion_demo/results.json",
+          "sha256": "4c1fc2189f597f1a9659b0cb779fc5b1eabd14de1c32f7d2b23c44fa1727b0ce"
+        },
+        {
+          "path": "data/large_motion_demo/parameters.snapshot.json",
+          "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+        },
+        {
+          "path": "data/large_motion_demo/validation.json",
+          "sha256": "a103e09924bde7ff7442f1eb3fb478c1c4e0ab7787ed13524d10c285c7465546"
+        }
+      ]
+    },
+    {
+      "figure": "fig07_prescribed30_loading",
+      "source_directory": "prescribed_30_refined",
+      "files": [
+        {
+          "path": "figures/fig07_prescribed30_loading.png",
+          "sha256": "2c8037478c8b87ae784ca72b64e2e65849bf85010390470fb53d22f86b3bd999"
+        },
+        {
+          "path": "figures/fig07_prescribed30_loading.svg",
+          "sha256": "1dc16298b24f4cf526d479590e0e6b78bdeed39b76e74d029154f82ad7c0edb3"
+        },
+        {
+          "path": "figures/fig07_prescribed30_loading.gif",
+          "sha256": "8eee3601920d412af6aa4309ba54ae9e89deb2824da41ed01ac3878590f23e48"
+        }
+      ],
+      "gif_frames": 13,
+      "gif_duration_ms": 2600,
+      "gif_size_px": [
+        900,
+        900
+      ],
+      "png_size_px": [
+        2160,
+        1860
+      ],
+      "data": [
+        {
+          "path": "data/prescribed_30_refined/loading_results.json",
+          "sha256": "17372f66a908fb425cff3a110de3f64ad03bc517f5751f48793fcf6c13004bc5"
+        },
+        {
+          "path": "data/prescribed_30_refined/parameters.snapshot.json",
+          "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+        },
+        {
+          "path": "data/prescribed_30_refined/validation.json",
+          "sha256": "b9db7d986404e5c7b4729749aa461749dfee37bf927606b72b639ce6d05bfff5"
+        },
+        {
+          "path": "data/prescribed_30_refined/wrench_feasibility.json",
+          "sha256": "3f07ad0f06fc5408a7f156e052d06034e7990818f3c42da259f997179a61a2c7"
+        }
+      ]
+    },
+    {
+      "figure": "fig08_cable_driven",
+      "source_directory": "actuated_demo",
+      "files": [
+        {
+          "path": "figures/fig08_cable_driven.png",
+          "sha256": "5becda329736a89c4044028166d0a001373f5a3d226cf36bc0254a88c0c50e8b"
+        },
+        {
+          "path": "figures/fig08_cable_driven.svg",
+          "sha256": "401e1cd28c1de787469bd27b6e28218c8017ca69897f9174323913a2c1f1300b"
+        },
+        {
+          "path": "figures/fig08_cable_driven.gif",
+          "sha256": "96a53b040e2ae8a03d92de99b9eec7d7f139fe72920ec3e5a82fad39573dc682"
+        }
+      ],
+      "gif_frames": 25,
+      "gif_duration_ms": 5000,
+      "gif_size_px": [
+        900,
+        900
+      ],
+      "png_size_px": [
+        2280,
+        1860
+      ],
+      "data": [
+        {
+          "path": "data/actuated_demo/results.json",
+          "sha256": "674fc36ee4f242550138c75eb726f6efc17cbfb8af6c861e0a1bdba521331f2e"
+        },
+        {
+          "path": "data/actuated_demo/parameters.snapshot.json",
+          "sha256": "a6f7f6bde60a8b3f6b47dab42d1267865351e02dbfb6557ca116ab411f0cafa1"
+        },
+        {
+          "path": "data/actuated_demo/validation.json",
+          "sha256": "f60d8e2fb3247d0f03cc12f54ea865d854a19e5b51de19d399551835d8518ccf"
+        }
+      ]
+    }
+  ],
+  "code": [
+    {
+      "path": "code/run.py",
+      "sha256": "c29e57430b9d5f55a059aede748592da354c9c6f4f4ca906031fdc2fd3e4f23e"
+    },
+    {
+      "path": "code/actuate.py",
+      "sha256": "7356f33a43d3887eac83c6ea2d4393083104b8798b34b912c4dd787976d9d791"
+    },
+    {
+      "path": "code/cable_loads.py",
+      "sha256": "7237696ca0b91305a080909615526f19db2a369dfd3dd9cb10596d19fabe9d29"
+    },
+    {
+      "path": "code/render.py",
+      "sha256": "f905610dc1de62aa04d85569a805d660f39d4690fb90e9a27604581944c9a8ad"
+    },
+    {
+      "path": "code/render_actuated.py",
+      "sha256": "7a4b47953f156b69d368c5de6de3a758f96529cbbf4ed29d811035cb590258cc"
+    },
+    {
+      "path": "code/compare_mesh.py",
+      "sha256": "86af40404d9d02f14d1b920cfcf57c9e63012e54cc52c10af68739fdf5047289"
+    },
+    {
+      "path": "code/check.py",
+      "sha256": "468848398a95ccb30d271046a093b2c00e7e064c870abcfaf149823fd299e7ec"
+    },
+    {
+      "path": "code/check_actuated.py",
+      "sha256": "c8b870f99a46ebfa14e7ac125c752ea9b7b1fd4e3a36334f86363a0b6f8c38e3"
+    },
+    {
+      "path": "code/check_target_wrench.py",
+      "sha256": "d4b5656b044819bc751068d332c35a4f8d8d2ed1b9529119b05a35921592922f"
+    },
+    {
+      "path": "code/predictor_probe.py",
+      "sha256": "7d4eea38e06d0bfba33057cc4b8fe840cc04dddd86b600598a99a76d9c7a00a4"
+    },
+    {
+      "path": "code/scaling_probe.py",
+      "sha256": "7955b6072c73274d18f87be20eeb70728b78d7420163379c9528368b3a69d902"
+    },
+    {
+      "path": "code/publish_results.py",
+      "sha256": "9f20d3597340eda5e62d49dc5a76b31c1a9ed2621e32068827d6015a08d3294a"
+    },
+    {
+      "path": "code/README.md",
+      "sha256": "6c776705d1b268877e210ad4e7f19c3544d6db72771dd408f5631565af5bbac4"
+    }
+  ],
+  "references": [
+    {
+      "path": "data/cad_reference.urdf",
+      "sha256": "7d851880fe242c756c9771f2d195030f32a87edf81d5737b86512abc846fe818"
+    },
+    {
+      "path": "data/upstream_LICENSE",
+      "sha256": "230184f60bae2feaf244f10a8bac053c8ff33a183bcc365b4d8b876d2b7f4809"
+    }
+  ]
+}

@@ -1,0 +1,234 @@
+{
+  "passed": true,
+  "mujoco_version": "3.13.0",
+  "checks": {
+    "finite_saved_states": true,
+    "increasing_times": true,
+    "final_time": true,
+    "physics_timestep": true,
+    "body_masses": true,
+    "head_and_tail_names": true,
+    "collision_geom_ids": true,
+    "complete_robot_collision_geoms": true,
+    "independent_com_and_subtree_com": true,
+    "saved_body_positions": true,
+    "replay_samples_clear": true,
+    "replay_envelope_within_planner": true,
+    "root_translation_com": true,
+    "root_translation_all_collision_geoms": true,
+    "path_start": true,
+    "path_goal": true,
+    "nonzero_path_edges": true,
+    "dense_path_clearance_certificate": true,
+    "stored_cross_track": true,
+    "summary_planned_length_m": true,
+    "summary_travelled_com_length_m": true,
+    "summary_net_displacement_m": true,
+    "summary_goal_error_m": true,
+    "summary_cross_track_rms_m": true,
+    "summary_cross_track_max_m": true,
+    "ordered_progress_monotone": true,
+    "large_projection_jumps_only_on_transfers": true,
+    "ordered_route_completed": true,
+    "stroke_0_visited": true,
+    "stroke_1_visited": true,
+    "stroke_2_visited": true,
+    "stroke_3_visited": true,
+    "stroke_4_visited": true,
+    "stroke_5_visited": true,
+    "stroke_6_visited": true,
+    "stroke_7_visited": true,
+    "stroke_8_visited": true,
+    "stroke_9_visited": true,
+    "stroke_10_visited": true,
+    "stroke_11_visited": true,
+    "saved_route_hash": true,
+    "metre_scale_path": true,
+    "successful_closed_loop": true,
+    "runtime_reports_no_obstacle_contacts": true,
+    "runtime_contact_check_timestep": true,
+    "runtime_envelope_within_planner": true,
+    "entire_robot_passed_obstacles": true,
+    "complete_yaw_actuators": true,
+    "five_unique_yaw_hinges": true,
+    "yaw_force_limit": true,
+    "yaw_sampled_force_consistency": true,
+    "slide_force_limit": true,
+    "slide_sampled_force_consistency": true,
+    "sources_unchanged_during_run": true,
+    "source_hash_src/v6/track_astar_v6.py": true,
+    "source_hash_src/v6/worm_v6.py": true,
+    "source_hash_src/v6/motor_contract_v6.py": true,
+    "source_hash_runs/cmaes_flat_serpentine/best_gait.json": true,
+    "source_hash_meshes/longworm2/longworm2.SLDASM.urdf": true,
+    "scene_xml_hash_exact_or_CRLF_serialization": true
+  },
+  "contact_scope": "Replay checks saved frames only; 2 ms contact count is the runner's report.",
+  "recomputed_metrics": {
+    "planned_length_m": 164.92997511759683,
+    "travelled_com_length_m": 185.11740829306174,
+    "net_displacement_m": 34.71055117773775,
+    "goal_error_m": 0.14993423943572254,
+    "cross_track_rms_m": 0.10105788510192709,
+    "cross_track_max_m": 0.734693101892445
+  },
+  "maximum_com_error_m": 3.552713678800501e-14,
+  "maximum_body_position_error_m": 0.0,
+  "replay_sample_count": 33940,
+  "replay_sample_minimum_clearance_m": null,
+  "replay_sample_maximum_envelope_m": 0.573842088668716,
+  "replay_obstacle_contact_frames": 0,
+  "certified_path_minimum_distance_m": null,
+  "provenance": "Startup source hashes match current files, allowing only LF/CRLF text serialization; runner confirmed no changes during rollout.",
+  "replay_minus_runtime_clearance_m": null,
+  "replay_minus_runtime_envelope_m": 9.83277189670062e-08,
+  "replay_resource_mapping": "Only compiler.meshdir remapped to current ROOT/meshes; physical XML unchanged.",
+  "scene_xml_file_bytes_sha256": "ae5a01df354ed59f9cb5d7484afdb045387a8096e233760563a555db4976586a",
+  "scene_xml_normalized_lf_sha256": "85bf179bfb5c4df96f524d1029c4df91740713b848610576c0877402830afce8",
+  "scene_xml_hash_match_mode": "Windows CRLF serialization of matching LF XML string",
+  "source_hash_match_modes": {
+    "src/v6/track_astar_v6.py": "Exact bytes",
+    "src/v6/worm_v6.py": "Exact bytes",
+    "src/v6/motor_contract_v6.py": "Exact bytes",
+    "runs/cmaes_flat_serpentine/best_gait.json": "Exact bytes",
+    "meshes/longworm2/longworm2.SLDASM.urdf": "Exact bytes"
+  },
+  "source_revision": null,
+  "historical_source_paths": [],
+  "sampled_joint_motion": {
+    "joint_names": [
+      "front2",
+      "front3",
+      "front4",
+      "front5",
+      "front6"
+    ],
+    "peak_abs_yaw_deg": [
+      28.95322464519516,
+      29.379689970978557,
+      28.338718166100676,
+      27.866919911495845,
+      28.37874219940961
+    ],
+    "peak_abs_yaw_speed_deg_s": [
+      66.88447396205818,
+      75.87081052550552,
+      71.47933732624928,
+      80.40772466554708,
+      84.61095362045742
+    ],
+    "max_abs_cumulative_yaw_deg": 88.40164356832824,
+    "scope": "Actual saved qpos/qvel, normally sampled every 0.1 s; sampled peaks can underestimate continuous peaks. Cumulative yaw sums the five serial hinge angles relative to the root."
+  },
+  "ordered_tracking": {
+    "rms_m": 0.11475714666493576,
+    "maximum_m": 0.7908271444844359,
+    "max_progress_jump_m": 0.6251677047906412,
+    "transfer_projection_cuts": [
+      {
+        "time_s": 160.0,
+        "arc_jump_m": 0.3375044256662232
+      },
+      {
+        "time_s": 383.8,
+        "arc_jump_m": 0.485331440389281
+      },
+      {
+        "time_s": 1705.4,
+        "arc_jump_m": 0.5941455199010335
+      },
+      {
+        "time_s": 3204.6,
+        "arc_jump_m": 0.6251677047906412
+      }
+    ],
+    "strokes": [
+      {
+        "stroke": 0,
+        "letter": "F",
+        "rms_m": 0.025636151124352063,
+        "max_m": 0.10272774718460695,
+        "samples": 1535
+      },
+      {
+        "stroke": 1,
+        "letter": "F",
+        "rms_m": 0.011224368581452466,
+        "max_m": 0.0295009146451046,
+        "samples": 491
+      },
+      {
+        "stroke": 2,
+        "letter": "D",
+        "rms_m": 0.060643961090267616,
+        "max_m": 0.37175357601554854,
+        "samples": 2858
+      },
+      {
+        "stroke": 3,
+        "letter": "U",
+        "rms_m": 0.03055601932867871,
+        "max_m": 0.09638973990121623,
+        "samples": 2337
+      },
+      {
+        "stroke": 4,
+        "letter": "B",
+        "rms_m": 0.016017565209375275,
+        "max_m": 0.08428959007666512,
+        "samples": 989
+      },
+      {
+        "stroke": 5,
+        "letter": "B",
+        "rms_m": 0.04151101537639878,
+        "max_m": 0.09315535865693182,
+        "samples": 1467
+      },
+      {
+        "stroke": 6,
+        "letter": "B",
+        "rms_m": 0.03994569795973078,
+        "max_m": 0.09093648266695455,
+        "samples": 1510
+      },
+      {
+        "stroke": 7,
+        "letter": "S",
+        "rms_m": 0.043111730245825715,
+        "max_m": 0.09767278610172936,
+        "samples": 2370
+      },
+      {
+        "stroke": 8,
+        "letter": "R",
+        "rms_m": 0.01121509437809282,
+        "max_m": 0.025918959891654502,
+        "samples": 982
+      },
+      {
+        "stroke": 9,
+        "letter": "R",
+        "rms_m": 0.0401673482830762,
+        "max_m": 0.0945797814763448,
+        "samples": 1481
+      },
+      {
+        "stroke": 10,
+        "letter": "R",
+        "rms_m": 0.029164688334389302,
+        "max_m": 0.05694060019562875,
+        "samples": 638
+      },
+      {
+        "stroke": 11,
+        "letter": "L",
+        "rms_m": 0.07042998823909938,
+        "max_m": 0.38028508813136036,
+        "samples": 1526
+      }
+    ],
+    "stroke_rms_m": 0.043231173743860186
+  },
+  "length_scope": "COM arc length from stored frames, not continuous 2 ms trajectory."
+}
